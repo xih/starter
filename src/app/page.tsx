@@ -17,7 +17,7 @@ export default async function Home() {
 
   return (
     <HydrateClient>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-gray-50">
         {/* Sidebar on the left */}
         <div className="hidden md:block">
           <Sidebar />

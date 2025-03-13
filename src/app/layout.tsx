@@ -3,6 +3,7 @@ import "~/styles/globals.css";
 import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
 import { ThemeProvider } from "next-themes";
+import Link from "next/link";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { Toaster } from "~/components/ui/sonner";
@@ -25,7 +26,24 @@ export default function RootLayout({
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TRPCReactProvider>
-            {children}
+            <div className="flex min-h-screen flex-col">
+              <header className="border-b">
+                <div className="container mx-auto flex h-16 items-center justify-between px-4">
+                  <Link href="/" className="text-xl font-bold">
+                    3-12-2025
+                  </Link>
+                  <nav className="flex gap-4">
+                    <Link href="/" className="hover:underline">
+                      Home
+                    </Link>
+                    <Link href="/game" className="hover:underline">
+                      Snow Game
+                    </Link>
+                  </nav>
+                </div>
+              </header>
+              {children}
+            </div>
             <Toaster position="bottom-right" />
           </TRPCReactProvider>
         </ThemeProvider>

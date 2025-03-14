@@ -44,3 +44,8 @@ yarn-error.log*
 
 # idea files
 .idea
+
+# data files
+*.csv
+*.screenshot.png
+coindesk_screenshot_*.png

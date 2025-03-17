@@ -1,5 +1,5 @@
 {
   "buildCommand": "pnpm run build-storybook",
   "outputDirectory": "storybook-static",
-  "framework": "static"
+  "framework": "storybook"
 }

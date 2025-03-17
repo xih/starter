@@ -49,3 +49,10 @@ yarn-error.log*
 *.csv
 *.screenshot.png
 coindesk_screenshot_*.png
+*storybook.log
+
+# Storybook environment file
+.env.storybook
+storybook-static/
+
+*.txt

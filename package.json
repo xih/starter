@@ -14,8 +14,8 @@
     "preview": "next build && next start",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "storybook": "cp .env.storybook .env && storybook dev -p 6006",
-    "build-storybook": "cp .env.storybook .env && storybook build"
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.5",

@@ -1,5 +1,22 @@
 {
-  "buildCommand": "storybook build",
-  "outputDirectory": "storybook-static",
-  "framework": "storybook"
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static",
+      "config": {
+        "buildCommand": "storybook build",
+        "outputDirectory": "storybook-static"
+      }
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/storybook/:path*",
+      "destination": "/storybook-static/:path*"
+    }
+  ]
 }

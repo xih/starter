@@ -1,29 +1,132 @@
-# Create T3 App
+# Next.js Starter Template with Storybook
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+A modern, full-stack Next.js starter template with built-in Storybook integration, tRPC, and more. Perfect for building scalable web applications with a great developer experience.
 
-## What's next? How do I make an app with this?
+## 🌟 Features
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+- **Next.js 15** - Latest version with App Router
+- **TypeScript** - For type safety and better developer experience
+- **Storybook 8** - For component development and documentation
+- **tRPC** - End-to-end typesafe APIs
+- **Tailwind CSS** - For styling with utility classes
+- **Clerk Auth** - Authentication and user management
+- **Prettier & ESLint** - Code formatting and linting
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## 📚 Documentation
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+- Main Application: [https://starter2-ten.vercel.app](https://starter2-ten.vercel.app)
+- Storybook: [https://starter2-ten.vercel.app/storybook](https://starter2-ten.vercel.app/storybook)
 
-## Learn More
+## 🚀 Getting Started
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+### Prerequisites
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+- Node.js 18+
+- pnpm (recommended) or npm
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+### Installation
 
-## How do I deploy this?
+1. Clone the repository:
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+```bash
+git clone https://github.com/yourusername/starter.git
+cd starter
+```
+
+2. Install dependencies:
+
+```bash
+pnpm install
+```
+
+3. Create a `.env` file in the root directory:
+
+```env
+# Auth
+AUTH_SECRET=your-auth-secret
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
+CLERK_SECRET_KEY=your-clerk-secret-key
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
+```
+
+### Development
+
+Run the development server:
+
+```bash
+pnpm dev
+```
+
+Run Storybook:
+
+```bash
+pnpm storybook
+```
+
+### Building
+
+Build the application:
+
+```bash
+pnpm build
+```
+
+Build Storybook:
+
+```bash
+pnpm build-storybook
+```
+
+## 🏗️ Project Structure
+
+```
+├── src/
+│   ├── app/           # Next.js app directory
+│   ├── components/    # React components
+│   ├── server/        # Server-side code
+│   │   ├── api/      # API routes
+│   │   └── trpc/     # tRPC routers
+│   └── styles/       # Global styles
+├── .storybook/       # Storybook configuration
+├── public/           # Static assets
+└── vercel.json       # Vercel deployment configuration
+```
+
+## 📦 Deployment
+
+The project is configured for deployment on Vercel with both the main application and Storybook:
+
+- Main application is served at the root URL
+- Storybook is served at `/storybook` path
+- Single deployment handles both builds
+
+## 🧪 Testing
+
+Run tests:
+
+```bash
+pnpm test
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Next.js](https://nextjs.org/)
+- [Storybook](https://storybook.js.org/)
+- [tRPC](https://trpc.io/)
+- [Clerk](https://clerk.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)

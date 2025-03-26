@@ -29,6 +29,7 @@ google = "*"
 pillow = "*"
 google-genai = "*"
 replicate = "*"
+requests = "*"
 
 [dev-packages]
 

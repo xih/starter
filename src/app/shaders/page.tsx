@@ -5,8 +5,10 @@ import { useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import TweetGLSLVisualization from "~/components/YoheiShader";
+import type { ThreeElements } from "@react-three/fiber";
+type BoxProps = ThreeElements["mesh"];
 
-function Box(props: JSX.IntrinsicElements["mesh"]) {
+function Box(props: BoxProps) {
   // This reference will give us direct access to the THREE.Mesh object
   const ref = useRef<THREE.Mesh>(null!);
   // Hold state for hovered and clicked events

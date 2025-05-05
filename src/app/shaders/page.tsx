@@ -5,7 +5,6 @@ import { useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import TweetGLSLVisualization from "~/components/YoheiShader";
-import test from "~/components/test";
 
 function Box(props: JSX.IntrinsicElements["mesh"]) {
   // This reference will give us direct access to the THREE.Mesh object

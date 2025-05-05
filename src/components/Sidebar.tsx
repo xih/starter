@@ -1,10 +1,10 @@
 "use client";
 
-import { Home, Inbox, Calendar, Search, Settings } from "lucide-react";
+import { Home, Inbox, Calendar, Search, Settings, BadgeX } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const sidebarItems = [
   {
@@ -42,10 +42,19 @@ const sidebarItems = [
     message:
       "The gears and levers of your digital space,\nTurn them gently to set your perfect pace.",
   },
+  {
+    title: "Shaders",
+    href: "/shaders",
+    icon: <BadgeX className="h-4 w-4" />,
+    message:
+      "The gears and levers of your digital space,\nTurn them gently to set your perfect pace.",
+  },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+
+  const router = useRouter();
 
   const handleNavigation = (item: (typeof sidebarItems)[0]) => {
     // Format the message to preserve line breaks
@@ -58,6 +67,8 @@ export function Sidebar() {
       className:
         "bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-800 border-2 border-purple-300",
     });
+
+    router.push(item.href);
   };
 
   return (

@@ -1,7 +1,7 @@
 /* --------------------------------------------------------------------------
    ProteanClouds.tsx  – fixed version
-   ‣ Removes duplicate `attribute vec3 position;` in the vertex shader
-   ‣ No more “redefinition” / VALIDATE_STATUS errors
+   ‣ Removes duplicate `attribute vec3 position;` in the vertex shader
+   ‣ No more "redefinition" / VALIDATE_STATUS errors
    ----------------------------------------------------------------------- */
 "use client";
 
@@ -9,6 +9,23 @@ import { Canvas, useThree, useFrame, extend } from "@react-three/fiber";
 import { shaderMaterial } from "@react-three/drei";
 import * as THREE from "three";
 import { Suspense, useRef, useEffect, useMemo } from "react";
+
+// Add proteanCloudMaterial to JSX.IntrinsicElements for TSX support
+declare global {
+  interface IntrinsicElements {
+    proteanCloudMaterial: React.PropsWithChildren<{
+      ref?: React.Ref<THREE.ShaderMaterial>;
+    }>;
+  }
+}
+
+/* ─────────────────── runtime knobs (same as before) ─────────────────── */
+const dprCap =
+  typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 1.5) : 1;
+const isMobile =
+  typeof navigator !== "undefined" &&
+  /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+const MARCH_STEPS = isMobile ? 72 : dprCap < 1.4 ? 96 : 110;
 
 // ─────────────────────────── GLSL sources ────────────────────────────
 const VERT = /* glsl */ `
@@ -30,7 +47,7 @@ const FRAG = /* glsl */ `
    uniform float iTime;
    uniform vec4  iMouse;
    
-   /*  ––––– Nimitz “Protean clouds” fragment shader –––––
+   /*  ––––– Nimitz "Protean clouds" fragment shader –––––
        (unchanged, just wrapped for WebGL)                */
    mat2 rot(in float a){float c = cos(a), s = sin(a);return mat2(c,s,-s,c);}
    const mat3 m3 = mat3(0.33338, 0.56034, -0.71817, -0.87887, 0.32651, -0.15323, 0.15162, 0.69596, 0.61339)*1.93;
@@ -165,7 +182,7 @@ const FRAG = /* glsl */ `
 const ProteanCloudMaterial = shaderMaterial(
   {
     iTime: 0,
-    iResolution: new THREE.Vector2(1, 1),
+    iResolution: new THREE.Vector2(),
     iMouse: new THREE.Vector4(),
   },
   VERT,
@@ -175,26 +192,53 @@ extend({ ProteanCloudMaterial });
 
 // ─────────────────────────── full‑screen mesh ──────────────────────────
 const CloudsMesh = () => {
-  const materialRef = useRef<THREE.ShaderMaterial>(null!);
-  const { gl, size, pointer, clock } = useThree();
+  // NOTE: start with null, then narrow everywhere
+  const matRef = useRef<THREE.ShaderMaterial | null>(null);
+  const { size, pointer, clock } = useThree();
+  const lastT = useRef(0);
 
-  // update resolution on resize / DPR change
+  // --- safe resize handler ------------------------------------------------
   useEffect(() => {
-    const dpr = gl.getPixelRatio();
-    materialRef.current.uniforms.iResolution.value.set(
-      size.width * dpr,
-      size.height * dpr,
-    );
-  }, [gl, size]);
+    if (!matRef.current) return; // 🚫 mat could still be null during first render
+    const uniforms = matRef.current.uniforms;
+    if (
+      uniforms?.iResolution?.value &&
+      typeof uniforms.iResolution.value.set === "function"
+    ) {
+      (uniforms.iResolution.value as THREE.Vector2).set(
+        size.width * dprCap,
+        size.height * dprCap,
+      );
+    }
+  }, [size]);
 
-  // per‑frame uniform updates
+  // --- per‑frame update ---------------------------------------------------
   useFrame(() => {
-    const dpr = gl.getPixelRatio();
-    materialRef.current.uniforms.iTime.value = clock.elapsedTime;
+    const m = matRef.current;
+    if (!m) return; // ⛑ guard for TS + runtime
+    if (
+      typeof document !== "undefined" &&
+      document.visibilityState !== "visible"
+    )
+      return;
 
-    const px = (pointer.x + 1) * 0.5 * size.width * dpr;
-    const py = (1 - (pointer.y + 1) * 0.5) * size.height * dpr;
-    materialRef.current.uniforms.iMouse.value.set(px, py, 0, 0);
+    const now = clock.elapsedTime;
+    if (now - lastT.current < 1 / 60) return;
+    lastT.current = now;
+
+    const uniforms = m.uniforms;
+    if (uniforms?.iTime?.value !== undefined) uniforms.iTime.value = now;
+    if (
+      uniforms?.iMouse?.value &&
+      typeof uniforms.iMouse.value.set === "function"
+    ) {
+      (uniforms.iMouse.value as THREE.Vector4).set(
+        (pointer.x + 1) * 0.5 * size.width * dprCap,
+        (1 - (pointer.y + 1) * 0.5) * size.height * dprCap,
+        0,
+        0,
+      );
+    }
   });
 
   // static clip‑space quad
@@ -213,7 +257,7 @@ const CloudsMesh = () => {
   return (
     <mesh geometry={geometry}>
       {/* eslint-disable-next-line react/no-unknown-property */}
-      <proteanCloudMaterial ref={materialRef} />
+      <proteanCloudMaterial ref={matRef} />
     </mesh>
   );
 };
@@ -223,8 +267,10 @@ export default function ProteanClouds() {
   return (
     <div className="relative h-screen w-full">
       <Canvas
+        dpr={dprCap}
         orthographic
         camera={{ position: [0, 0, 1], zoom: 1 }}
+        gl={{ antialias: false, powerPreference: "high-performance" }}
         resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
       >
         <Suspense fallback={null}>

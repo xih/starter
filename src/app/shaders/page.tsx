@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import * as THREE from "three";
 import * as React from "react";
 import { useRef, useState } from "react";
@@ -8,10 +9,13 @@ import TweetGLSLVisualization from "~/components/YoheiShader";
 import type { ThreeElements } from "@react-three/fiber";
 import SeascapeGLSLVisualization from "~/components/SeaScapeShader";
 import WaterGLSLVisualization from "~/components/WaterVisualizationShader";
+import ProteanCloudsShader from "~/components/ProteanCloudsShader";
+// import CloudShader from "~/components/CloudMaterialShader";
 // import RainforestGLSLVisualization from "~/components/RainforestShader";
 // import DVDShader from "~/components/DVDShader";
-
-import dynamic from "next/dynamic";
+// const CloudShader = dynamic(() => import("~/components/CloudMaterialShader"), {
+//   ssr: false,
+// });
 
 const DVDShader = dynamic(() => import("~/components/DVDShader"), {
   ssr: false,
@@ -49,7 +53,9 @@ export default function page() {
     // <SeascapeGLSLVisualization />
     // <WaterGLSLVisualization />
     // <RainforestGLSLVisualization />
-    <DVDShader />
+    // <DVDShader />
+    // <CloudShader /> not working
+    <ProteanCloudsShader />
     // <div className="h-screen w-full">
     //   <Canvas>
     //     <ambientLight intensity={Math.PI / 2} />

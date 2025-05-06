@@ -6,6 +6,9 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import TweetGLSLVisualization from "~/components/YoheiShader";
 import type { ThreeElements } from "@react-three/fiber";
+import SeascapeGLSLVisualization from "~/components/SeaScapeShader";
+import WaterGLSLVisualization from "~/components/WaterVisualizationShader";
+
 type BoxProps = ThreeElements["mesh"];
 
 function Box(props: BoxProps) {
@@ -34,7 +37,9 @@ function Box(props: BoxProps) {
 
 export default function page() {
   return (
-    <TweetGLSLVisualization />
+    // <TweetGLSLVisualization />
+    // <SeascapeGLSLVisualization />
+    <WaterGLSLVisualization />
     // <div className="h-screen w-full">
     //   <Canvas>
     //     <ambientLight intensity={Math.PI / 2} />

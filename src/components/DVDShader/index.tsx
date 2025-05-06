@@ -4,6 +4,13 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useRef, useMemo, useEffect } from "react";
 import * as THREE from "three";
 
+type Uniforms = {
+  iTime: { value: number };
+  iResolution: { value: THREE.Vector3 };
+  iChannel0: { value: THREE.Texture };
+  iChannelResolution: { value: [THREE.Vector3] }; // tuple ⇒ index 0 exists
+};
+
 /* ─────────────────────────── Vertex shader ─────────────────────────── */
 const vertexShader = /* glsl */ `
 precision highp float;
@@ -122,7 +129,7 @@ function DVDShaderScene() {
   const { size } = useThree();
 
   /* ---------- stable uniforms object – created once ---------- */
-  const uniforms = useMemo(
+  const uniforms = useMemo<Uniforms>(
     () => ({
       iTime: { value: 0 },
       iResolution: { value: new THREE.Vector3() },

@@ -9,7 +9,13 @@ import type { ThreeElements } from "@react-three/fiber";
 import SeascapeGLSLVisualization from "~/components/SeaScapeShader";
 import WaterGLSLVisualization from "~/components/WaterVisualizationShader";
 // import RainforestGLSLVisualization from "~/components/RainforestShader";
-import DVDShader from "~/components/DVDShader";
+// import DVDShader from "~/components/DVDShader";
+
+import dynamic from "next/dynamic";
+
+const DVDShader = dynamic(() => import("~/components/DVDShader"), {
+  ssr: false,
+});
 
 type BoxProps = ThreeElements["mesh"];
 

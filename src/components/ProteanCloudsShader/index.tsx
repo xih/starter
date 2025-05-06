@@ -5,10 +5,10 @@
    ----------------------------------------------------------------------- */
 "use client";
 
+import React, { Suspense, useRef, useEffect, useMemo } from "react";
 import { Canvas, useThree, useFrame, extend } from "@react-three/fiber";
 import { shaderMaterial } from "@react-three/drei";
 import * as THREE from "three";
-import { Suspense, useRef, useEffect, useMemo } from "react";
 
 // Add proteanCloudMaterial to JSX.IntrinsicElements for TSX support
 declare global {
@@ -31,10 +31,9 @@ const MARCH_STEPS = isMobile ? 72 : dprCap < 1.4 ? 96 : 110;
 const VERT = /* glsl */ `
    precision highp float;
    
-   /*  NOTE:
-       Three.js already injects:
-         attribute vec3 position;
-       so we **do not** redeclare it here. */
+   // Note: Three.js automatically injects:
+   //   attribute vec3 position;
+   // We don't need to declare it ourselves
    void main() {
      gl_Position = vec4(position, 1.0);
    }
@@ -190,32 +189,37 @@ const ProteanCloudMaterial = shaderMaterial(
 );
 extend({ ProteanCloudMaterial });
 
+// Type for our shader material's uniforms
+type ProteanCloudMaterialType = THREE.ShaderMaterial & {
+  uniforms: {
+    iTime: { value: number };
+    iResolution: { value: THREE.Vector2 };
+    iMouse: { value: THREE.Vector4 };
+  };
+};
+
 // ─────────────────────────── full‑screen mesh ──────────────────────────
-const CloudsMesh = () => {
-  // NOTE: start with null, then narrow everywhere
-  const matRef = useRef<THREE.ShaderMaterial | null>(null);
-  const { size, pointer, clock } = useThree();
-  const lastT = useRef(0);
+const CloudsMesh: React.FC = () => {
+  const matRef = useRef<ProteanCloudMaterialType>(null);
+  const { gl, size, pointer, clock } = useThree();
+  const lastTime = useRef(0);
 
-  // --- safe resize handler ------------------------------------------------
+  // update resolution on resize
   useEffect(() => {
-    if (!matRef.current) return; // 🚫 mat could still be null during first render
-    const uniforms = matRef.current.uniforms;
-    if (
-      uniforms?.iResolution?.value &&
-      typeof uniforms.iResolution.value.set === "function"
-    ) {
-      (uniforms.iResolution.value as THREE.Vector2).set(
-        size.width * dprCap,
-        size.height * dprCap,
-      );
-    }
-  }, [size]);
+    const material = matRef.current;
+    if (!material) return;
 
-  // --- per‑frame update ---------------------------------------------------
+    const dpr = gl.getPixelRatio();
+    material.uniforms.iResolution.value.set(
+      size.width * dpr,
+      size.height * dpr,
+    );
+  }, [gl, size]);
+
+  // per-frame uniform updates (throttled to 60fps + paused when hidden)
   useFrame(() => {
-    const m = matRef.current;
-    if (!m) return; // ⛑ guard for TS + runtime
+    const material = matRef.current;
+    if (!material) return;
     if (
       typeof document !== "undefined" &&
       document.visibilityState !== "visible"
@@ -223,22 +227,15 @@ const CloudsMesh = () => {
       return;
 
     const now = clock.elapsedTime;
-    if (now - lastT.current < 1 / 60) return;
-    lastT.current = now;
+    if (now - lastTime.current < 1 / 60) return;
+    lastTime.current = now;
 
-    const uniforms = m.uniforms;
-    if (uniforms?.iTime?.value !== undefined) uniforms.iTime.value = now;
-    if (
-      uniforms?.iMouse?.value &&
-      typeof uniforms.iMouse.value.set === "function"
-    ) {
-      (uniforms.iMouse.value as THREE.Vector4).set(
-        (pointer.x + 1) * 0.5 * size.width * dprCap,
-        (1 - (pointer.y + 1) * 0.5) * size.height * dprCap,
-        0,
-        0,
-      );
-    }
+    material.uniforms.iTime.value = now;
+
+    const dpr = gl.getPixelRatio();
+    const x = (pointer.x + 1) * 0.5 * size.width * dpr;
+    const y = (1 - (pointer.y + 1) * 0.5) * size.height * dpr;
+    material.uniforms.iMouse.value.set(x, y, 0, 0);
   });
 
   // static clip‑space quad

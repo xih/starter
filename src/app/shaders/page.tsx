@@ -8,6 +8,8 @@ import TweetGLSLVisualization from "~/components/YoheiShader";
 import type { ThreeElements } from "@react-three/fiber";
 import SeascapeGLSLVisualization from "~/components/SeaScapeShader";
 import WaterGLSLVisualization from "~/components/WaterVisualizationShader";
+// import RainforestGLSLVisualization from "~/components/RainforestShader";
+import DVDShader from "~/components/DVDShader";
 
 type BoxProps = ThreeElements["mesh"];
 
@@ -39,7 +41,9 @@ export default function page() {
   return (
     // <TweetGLSLVisualization />
     // <SeascapeGLSLVisualization />
-    <WaterGLSLVisualization />
+    // <WaterGLSLVisualization />
+    // <RainforestGLSLVisualization />
+    <DVDShader />
     // <div className="h-screen w-full">
     //   <Canvas>
     //     <ambientLight intensity={Math.PI / 2} />

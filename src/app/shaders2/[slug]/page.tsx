@@ -1,6 +1,7 @@
 // app/shaders2/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import { ALL_SLUGS, SHADERS, type ShaderSlug } from "../data";
+import FamilyDrawer from "~/components/FamilyDrawer";
 
 export function generateStaticParams(): Array<{ slug: ShaderSlug }> {
   return ALL_SLUGS.map((slug) => ({ slug }));
@@ -22,6 +23,9 @@ export default async function ShaderPage({
   return (
     <main className="h-screen w-screen">
       <Component />
+      <div className="fixed inset-x-0 bottom-0">
+        <FamilyDrawer />
+      </div>
     </main>
   );
 }

@@ -7,13 +7,12 @@ export function generateStaticParams(): Array<{ slug: ShaderSlug }> {
 }
 
 export default async function ShaderPage({
-  // inline the params type instead of your own PageProps
   params,
 }: {
-  params: { slug: ShaderSlug };
+  params: Promise<{ slug: ShaderSlug }>;
 }) {
   // you can still await() it even if TS thinks it's a plain object
-  const { slug } = params;
+  const { slug } = await params;
 
   if (!ALL_SLUGS.includes(slug)) {
     return notFound();

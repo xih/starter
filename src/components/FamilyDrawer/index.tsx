@@ -6,11 +6,27 @@ import useMeasure from "react-use-measure";
 import { motion, AnimatePresence } from "framer-motion";
 import { DefaultView, Key, Phrase, RemoveWallet } from "./components";
 import { CloseIcon } from "./icons";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export default function FamilyDrawer() {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState("default");
   const [elementRef, bounds] = useMeasure();
+
+  const dialogTitle = useMemo(() => {
+    switch (view) {
+      case "default":
+        return "Wallet Options";
+      case "remove":
+        return "Remove Wallet";
+      case "phrase":
+        return "Secret Recovery Phrase";
+      case "key":
+        return "Private Key";
+      default:
+        return "Wallet Drawer";
+    }
+  }, [view]);
 
   const content = useMemo(() => {
     switch (view) {
@@ -53,6 +69,9 @@ export default function FamilyDrawer() {
                   <CloseIcon />
                 </button>
               </Drawer.Close>
+              <Drawer.Title asChild>
+                <VisuallyHidden>{dialogTitle}</VisuallyHidden>
+              </Drawer.Title>
               <div
                 ref={elementRef}
                 className="px-6 pb-6 pt-2.5 antialiased"

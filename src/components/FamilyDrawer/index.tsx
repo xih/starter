@@ -44,7 +44,7 @@ export default function FamilyDrawer() {
   return (
     <>
       <button
-        className="focus-visible:shadow-focus-ring-button fixed left-1/2 top-1/2 h-[44px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gray-200 bg-white px-4 py-2 font-medium text-black transition-colors hover:bg-[#F9F9F8] md:font-medium"
+        className="focus-visible:shadow-focus-ring-button fixed bottom-8 left-1/2 h-[44px] -translate-x-1/2 transform rounded-full border border-gray-200 bg-white px-4 py-2 font-medium text-black transition-colors hover:bg-[#F9F9F8] md:font-medium"
         onClick={() => setIsOpen(true)}
         style={{ fontFamily: "Open Runde" }}
       >

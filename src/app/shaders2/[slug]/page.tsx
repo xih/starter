@@ -2,33 +2,26 @@
 import { notFound } from "next/navigation";
 import { ALL_SLUGS, SHADERS, type ShaderSlug } from "../data";
 
-interface Params {
-  slug: ShaderSlug;
-}
-
-interface PageProps {
-  // In Next.js 15, `params` is technically a Promise<{ slug: string }>
-  params: Params | Promise<Params>;
-}
-
 export function generateStaticParams(): Array<{ slug: ShaderSlug }> {
   return ALL_SLUGS.map((slug) => ({ slug }));
 }
 
-export default async function ShaderPage({ params }: PageProps) {
-  // ✨ await the params promise before using it
-  const { slug } = await params;
+export default async function ShaderPage({
+  // inline the params type instead of your own PageProps
+  params,
+}: {
+  params: { slug: ShaderSlug };
+}) {
+  // you can still await() it even if TS thinks it's a plain object
+  const { slug } = params;
 
-  // If someone navigates to an unknown slug, return 404
   if (!ALL_SLUGS.includes(slug)) {
     return notFound();
   }
 
-  const { title, Component } = SHADERS[slug];
-
+  const { Component } = SHADERS[slug];
   return (
     <main className="h-screen w-screen">
-      {/* <h1>{title}</h1> */}
       <Component />
     </main>
   );

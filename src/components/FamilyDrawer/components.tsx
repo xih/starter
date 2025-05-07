@@ -1,4 +1,7 @@
 import React from "react";
+import Link from "next/link";
+import clsx from "clsx";
+
 import {
   BannedIcon,
   DangerIcon,
@@ -10,7 +13,36 @@ import {
   ShieldIcon,
   WarningIcon,
 } from "./icons";
-import clsx from "clsx";
+
+export function OptionLink({
+  href,
+  icon,
+  label,
+  onNavigate,
+  variant = "default",
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  onNavigate?: () => void;
+  variant?: "default" | "danger";
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className={clsx(
+        "focus-visible:shadow-focus-ring-button flex h-12 w-full items-center gap-4 rounded-[16px] px-4 text-[17px] font-semibold transition-transform focus:scale-95 active:scale-95 md:font-medium",
+        variant === "danger"
+          ? "bg-[#FFF0F0] text-[#FF3F40]"
+          : "bg-[#F7F8F9] text-[#222222]",
+      )}
+    >
+      {icon}
+      {label}
+    </Link>
+  );
+}
 
 export function Button({
   children,

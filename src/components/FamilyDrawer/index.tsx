@@ -1,55 +1,86 @@
+// index.tsx — REPLACED file
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import { Drawer } from "vaul";
+import { motion } from "framer-motion";
 import useMeasure from "react-use-measure";
-import { motion, AnimatePresence } from "framer-motion";
-import { DefaultView, Key, Phrase, RemoveWallet } from "./components";
-import { CloseIcon } from "./icons";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import {
+  OptionLink, //  ← new helper
+} from "./components";
+import {
+  LockIcon,
+  PhraseIcon,
+  WarningIcon,
+  FaceIDIcon,
+  ShieldIcon,
+  PassIcon,
+  BannedIcon,
+  DangerIcon,
+} from "./icons";
+import { CloseIcon } from "./icons";
 
-export default function FamilyDrawer() {
+type WalletOption = {
+  label: string;
+  icon: JSX.Element;
+  href: string;
+  variant?: "default" | "danger";
+};
+
+// 🔑  All menu items live in ONE array — easy to reorder / extend.
+const walletOptions: WalletOption[] = [
+  // five “generic” items – replace / extend at will
+  {
+    label: "Tweet",
+    icon: <FaceIDIcon />,
+    href: "/shaders2/tweet",
+  },
+  {
+    label: "Seascape",
+    icon: <LockIcon />,
+    href: "/shaders2/seascape",
+  },
+  {
+    label: "Water",
+    icon: <ShieldIcon />,
+    href: "/shaders2/water",
+  },
+  {
+    label: "Protean Clouds",
+    icon: <PassIcon />,
+    href: "/shaders2/proteanClouds",
+  },
+  {
+    label: "DVD Shader",
+    icon: <BannedIcon />,
+    href: "/shaders2/dvd",
+  },
+  // {
+  //   label: "Remove Wallet",
+  //   icon: <WarningIcon />,
+  //   href: "/wallet/remove",
+  //   variant: "danger",
+  // },
+];
+
+export default function WalletOptionsDrawer() {
   const [isOpen, setIsOpen] = useState(false);
-  const [view, setView] = useState("default");
-  const [elementRef, bounds] = useMeasure();
+  const [ref, bounds] = useMeasure();
 
-  const dialogTitle = useMemo(() => {
-    switch (view) {
-      case "default":
-        return "Wallet Options";
-      case "remove":
-        return "Remove Wallet";
-      case "phrase":
-        return "Secret Recovery Phrase";
-      case "key":
-        return "Private Key";
-      default:
-        return "Wallet Drawer";
-    }
-  }, [view]);
-
-  const content = useMemo(() => {
-    switch (view) {
-      case "default":
-        return <DefaultView setView={setView} />;
-      case "remove":
-        return <RemoveWallet setView={setView} />;
-      case "phrase":
-        return <Phrase setView={setView} />;
-      case "key":
-        return <Key setView={setView} />;
-    }
-  }, [view]);
+  // dynamically build an accessible drawer title
+  const dialogTitle = useMemo(() => "Shaders", []);
 
   return (
     <>
       <button
-        className="focus-visible:shadow-focus-ring-button fixed bottom-8 left-1/2 h-[44px] -translate-x-1/2 transform rounded-full border border-gray-200 bg-white px-4 py-2 font-medium text-black transition-colors hover:bg-[#F9F9F8] md:font-medium"
         onClick={() => setIsOpen(true)}
+        className="focus-visible:shadow-focus-ring-button fixed bottom-8 left-1/2 h-[44px] -translate-x-1/2 transform rounded-full border border-gray-200 bg-white px-4 py-2 font-medium text-black transition-colors hover:bg-[#F9F9F8]"
         style={{ fontFamily: "Open Runde" }}
       >
-        Try it out
+        Shaders
       </button>
+
       <Drawer.Root open={isOpen} onOpenChange={setIsOpen}>
         <Drawer.Portal>
           <Drawer.Overlay
@@ -58,36 +89,33 @@ export default function FamilyDrawer() {
           />
           <Drawer.Content
             asChild
-            className="fixed inset-x-4 bottom-4 z-10 mx-auto max-w-[361px] overflow-hidden rounded-[36px] bg-[#FEFFFE] outline-none md:mx-auto md:w-full"
+            className="fixed inset-x-4 bottom-4 z-20 mx-auto max-w-[361px] overflow-hidden rounded-[36px] bg-[#FEFFFE] outline-none"
           >
             <motion.div animate={{ height: bounds.height }}>
               <Drawer.Close asChild>
                 <button
-                  data-vaul-no-drag=""
+                  data-vaul-no-drag
                   className="focus-visible:shadow-focus-ring-button absolute right-8 top-7 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[#F7F8F9] text-[#949595] transition-transform focus:scale-95 active:scale-75"
                 >
                   <CloseIcon />
                 </button>
               </Drawer.Close>
-              <Drawer.Title asChild>
-                <VisuallyHidden>{dialogTitle}</VisuallyHidden>
-              </Drawer.Title>
+
               <div
-                ref={elementRef}
-                className="px-6 pb-6 pt-2.5 antialiased"
+                ref={ref}
+                className="space-y-3 px-6 pb-8 pt-2"
                 style={{ fontFamily: "Open Runde" }}
               >
-                <AnimatePresence initial={false} custom={view} mode="popLayout">
-                  <motion.div
-                    key={view}
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {content}
-                  </motion.div>
-                </AnimatePresence>
+                <Drawer.Title className="px-6 pt-6 text-[19px] font-semibold text-[#222222] md:font-medium">
+                  {dialogTitle}
+                </Drawer.Title>
+                {walletOptions.map((opt) => (
+                  <OptionLink
+                    key={opt.label}
+                    {...opt}
+                    onNavigate={() => setIsOpen(false)}
+                  />
+                ))}
               </div>
             </motion.div>
           </Drawer.Content>

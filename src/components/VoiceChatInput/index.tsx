@@ -156,10 +156,13 @@ export function VoiceChatInput() {
         >
           <PromptInput
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type a message..."
+            onValueChange={setInputValue}
             className="border-none pr-24"
-          />
+          >
+            <div className="flex items-center gap-2">
+              hi
+            </div>
+          </PromptInput>
 
           {/* Audio visualization */}
           <div

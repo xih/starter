@@ -386,8 +386,10 @@ function ResponseStream({
     }
   }
 
+  // @ts-ignore
   const Container = as as keyof React.JSX.IntrinsicElements
 
+  // @ts-ignore
   return <Container className={className}>{renderContent()}</Container>
 }
 

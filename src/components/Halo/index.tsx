@@ -104,7 +104,7 @@ export function Halo() {
       <canvas
         ref={canvasRef}
         style={{ filter: "blur(20px)" }}
-        className="motion-safe:delay-[100ms] motion-safe:ease-[cubic-bezier(0.215,0.61,0.355,1)] absolute h-full w-full opacity-0 motion-safe:opacity-[1] motion-safe:transition-[opacity,transform] motion-safe:duration-700 motion-safe:will-change-[opacity,transform] motion-safe:dark:opacity-[1]"
+        className="motion-safe:delay-[100ms] motion-safe:ease-\[cubic-bezier(0.215,0.61,0.355,1)\] absolute h-full w-full opacity-0 motion-safe:opacity-[1] motion-safe:transition-[opacity,transform] motion-safe:duration-700 motion-safe:will-change-[opacity,transform] motion-safe:dark:opacity-[1]"
       />
     </div>
   );

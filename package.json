@@ -25,6 +25,7 @@
     "@radix-ui/react-separator": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.6",
+    "@radix-ui/react-tooltip": "^1.2.6",
     "@radix-ui/react-visually-hidden": "^1.2.2",
     "@react-three/drei": "^10.0.7",
     "@react-three/fiber": "^9.1.2",
@@ -89,6 +90,7 @@
     "postcss": "^8.4.39",
     "prettier": "^3.3.2",
     "prettier-plugin-tailwindcss": "^0.6.5",
+    "shadcn": "^2.5.0",
     "storybook": "^8.6.7",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.5.3",
@@ -98,5 +100,8 @@
   "ct3aMetadata": {
     "initVersion": "7.38.1"
   },
-  "packageManager": "npm@10.9.2"
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "packageManager": "pnpm@10.10.0"
 }

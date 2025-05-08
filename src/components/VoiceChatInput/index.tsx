@@ -22,17 +22,20 @@ export function VoiceChatInput() {
 
   // Initialize audio context
   useEffect(() => {
-    audioContextRef.current = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
+    type WebKitWindow = Window & {
+      webkitAudioContext: typeof AudioContext;
+    };
+
+    const AudioContextClass =
+      window.AudioContext ??
+      (window as unknown as WebKitWindow).webkitAudioContext;
+    audioContextRef.current = new AudioContextClass();
     analyserRef.current = audioContextRef.current.createAnalyser();
     analyserRef.current.fftSize = 256;
 
     return () => {
-      if (
-        audioContextRef.current &&
-        audioContextRef.current.state !== "closed"
-      ) {
-        audioContextRef.current.close();
+      if (audioContextRef.current?.state !== "closed") {
+        void audioContextRef.current?.close();
       }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -51,9 +54,14 @@ export function VoiceChatInput() {
         });
         mediaStreamRef.current = stream;
 
-        const audioContext = audioContextRef.current!;
+        const audioContext = audioContextRef.current;
+        if (!audioContext) return;
+
         const source = audioContext.createMediaStreamSource(stream);
-        source.connect(analyserRef.current!);
+        const analyser = analyserRef.current;
+        if (!analyser) return;
+
+        source.connect(analyser);
 
         setIsListening(true);
         startVisualization();
@@ -92,7 +100,7 @@ export function VoiceChatInput() {
         .fill(0)
         .map((_, i) => {
           const index = Math.floor((i * dataArray.length) / 100);
-          return dataArray[index] || 0;
+          return dataArray[index] ?? 0;
         });
 
       setAudioData(visualData);
@@ -159,9 +167,7 @@ export function VoiceChatInput() {
             onValueChange={setInputValue}
             className="border-none pr-24"
           >
-            <div className="flex items-center gap-2">
-              hi
-            </div>
+            <div className="flex items-center gap-2">hi</div>
           </PromptInput>
 
           {/* Audio visualization */}

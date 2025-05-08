@@ -2,12 +2,7 @@
 
 import { Check, Copy, X } from "lucide-react";
 import { useState } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from "~/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "~/components/ui/sheet";
 
 interface TransactionDetailsProps {
   open: boolean;

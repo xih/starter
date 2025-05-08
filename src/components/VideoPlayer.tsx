@@ -99,7 +99,7 @@ export function VideoPlayer() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isAnimating]);
+  }, [isAnimating, navigateToNext, navigateToPrevious]);
 
   // Ensure currentVideoIndex is within bounds
   const safeVideoIndex = Math.min(
@@ -231,7 +231,7 @@ export function VideoPlayer() {
                 {/* Heart animation */}
                 {showHeart && (
                   <div
-                    className="animate-heart-pop absolute"
+                    className="absolute animate-heart-pop"
                     style={{
                       left: `${heartPosition.x}%`,
                       top: `${heartPosition.y}%`,

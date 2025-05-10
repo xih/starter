@@ -14,7 +14,7 @@ interface RainbowPromptInputProps {
   rainbowActive?: boolean;
   onRainbowToggle?: (active: boolean) => void;
   rainbowColor?: string;
-  onSubmit?: (value: string, files: File[]) => void;
+  onSubmit?: (value: string, files?: File[]) => void;
 }
 
 export function RainbowPromptInput({

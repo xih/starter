@@ -1,7 +1,7 @@
 import { ResponseStream } from "~/components/ui/response-stream";
 
-export function ResponseStreamFade() {
-  const text = `This text is fading in word by word. The fade mode creates a smooth and elegant text reveal. You can customize the fadeDuration but also the segmentDelay to control the speed of the animation.`
+export function ResponseStreamFade({ text }: { text: string }) {
+  // const text = `This text is fading in word by word. The fade mode creates a smooth and elegant text reveal. You can customize the fadeDuration but also the segmentDelay to control the speed of the animation.`
 
   return (
     <div className="w-full min-w-full">
@@ -12,5 +12,5 @@ export function ResponseStreamFade() {
         fadeDuration={1200}
       />
     </div>
-  )
+  );
 }

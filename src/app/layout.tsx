@@ -3,7 +3,7 @@ import "~/styles/globals.css";
 import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
 import { ThemeProvider } from "next-themes";
-
+import { VoiceRecorderProvider } from "~/hooks/useVoiceRecorder";
 import { TRPCReactProvider } from "~/trpc/react";
 import { Toaster } from "~/components/ui/sonner";
 
@@ -23,12 +23,14 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <TRPCReactProvider>
-            {children}
-            <Toaster position="bottom-right" />
-          </TRPCReactProvider>
-        </ThemeProvider>
+        <VoiceRecorderProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <TRPCReactProvider>
+              {children}
+              <Toaster position="bottom-right" />
+            </TRPCReactProvider>
+          </ThemeProvider>
+        </VoiceRecorderProvider>
       </body>
     </html>
   );

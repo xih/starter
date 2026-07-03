@@ -107,7 +107,7 @@ export async function POST(request: Request) {
   if (agentName) {
     try {
       const dispatchClient = new AgentDispatchClient(
-        getLiveKitApiUrl(env.LIVEKIT_URL),
+        getLiveKitApiUrl(env.LIVEKIT_URL!),
         env.LIVEKIT_API_KEY,
         env.LIVEKIT_API_SECRET,
       );

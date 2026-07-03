@@ -7,10 +7,17 @@ import { env } from "~/env";
 export const runtime = "nodejs";
 
 const DEFAULT_AGENT_NAME = "dennis-portfolio-agent";
-const corsHeaders = {
-  "Access-Control-Allow-Headers": "Content-Type",
+const DEV_ALLOWED_ORIGINS = new Set([
+  "http://localhost:3000",
+  "http://localhost:6006",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:6006",
+]);
+const CORS_BASE_HEADERS = {
+  "Access-Control-Allow-Headers":
+    "Authorization, Content-Type, X-LiveKit-Token-Auth",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Origin": "http://localhost:6006",
+  Vary: "Origin",
 };
 
 const tokenRequestSchema = z.object({
@@ -46,21 +53,122 @@ function getLiveKitApiUrl(livekitUrl: string) {
     .replace(/^ws:\/\//, "http://");
 }
 
-export function OPTIONS() {
+function getAllowedOrigins() {
+  const configuredOrigins = env.LIVEKIT_ALLOWED_ORIGINS?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (configuredOrigins?.length) {
+    return new Set(configuredOrigins);
+  }
+
+  return env.NODE_ENV === "production"
+    ? new Set<string>()
+    : DEV_ALLOWED_ORIGINS;
+}
+
+function isOriginAllowed(origin: string | null) {
+  if (!origin) {
+    return true;
+  }
+
+  return getAllowedOrigins().has(origin);
+}
+
+function getCorsHeaders(request: Request) {
+  const origin = request.headers.get("origin");
+
+  if (!origin || !isOriginAllowed(origin)) {
+    return CORS_BASE_HEADERS;
+  }
+
+  return {
+    ...CORS_BASE_HEADERS,
+    "Access-Control-Allow-Origin": origin,
+  };
+}
+
+function jsonWithCors(
+  request: Request,
+  body: unknown,
+  init: ResponseInit = {},
+) {
+  return NextResponse.json(body, {
+    ...init,
+    headers: {
+      ...getCorsHeaders(request),
+      ...init.headers,
+    },
+  });
+}
+
+function getBearerToken(request: Request) {
+  const authorization = request.headers.get("authorization");
+
+  if (!authorization?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  return authorization.slice("Bearer ".length).trim();
+}
+
+function isAuthorizedForLiveKitToken(request: Request) {
+  const expectedSecret = env.LIVEKIT_TOKEN_AUTH_SECRET;
+
+  if (!expectedSecret) {
+    return env.NODE_ENV !== "production";
+  }
+
+  const suppliedSecret =
+    getBearerToken(request) ?? request.headers.get("x-livekit-token-auth");
+
+  return suppliedSecret === expectedSecret;
+}
+
+export function OPTIONS(request: Request) {
+  if (!isOriginAllowed(request.headers.get("origin"))) {
+    return new NextResponse(null, {
+      headers: getCorsHeaders(request),
+      status: 403,
+    });
+  }
+
   return new NextResponse(null, {
-    headers: corsHeaders,
+    headers: getCorsHeaders(request),
     status: 204,
   });
 }
 
 export async function POST(request: Request) {
+  if (!isOriginAllowed(request.headers.get("origin"))) {
+    return jsonWithCors(
+      request,
+      { error: "Origin is not allowed to request LiveKit tokens." },
+      { status: 403 },
+    );
+  }
+
+  if (!isAuthorizedForLiveKitToken(request)) {
+    return jsonWithCors(
+      request,
+      {
+        error:
+          env.NODE_ENV === "production" && !env.LIVEKIT_TOKEN_AUTH_SECRET
+            ? "LiveKit token auth is not configured for production."
+            : "Unauthorized LiveKit token request.",
+      },
+      { status: 401 },
+    );
+  }
+
   if (!env.LIVEKIT_URL || !env.LIVEKIT_API_KEY || !env.LIVEKIT_API_SECRET) {
-    return NextResponse.json(
+    return jsonWithCors(
+      request,
       {
         error:
           "LiveKit token endpoint is not configured. Set LIVEKIT_URL, LIVEKIT_API_KEY, and LIVEKIT_API_SECRET.",
       },
-      { headers: corsHeaders, status: 500 },
+      { status: 500 },
     );
   }
 
@@ -68,9 +176,10 @@ export async function POST(request: Request) {
   const parsed = tokenRequestSchema.safeParse(json ?? {});
 
   if (!parsed.success) {
-    return NextResponse.json(
+    return jsonWithCors(
+      request,
       { error: "Invalid LiveKit token request", issues: parsed.error.issues },
-      { headers: corsHeaders, status: 400 },
+      { status: 400 },
     );
   }
 
@@ -121,24 +230,26 @@ export async function POST(request: Request) {
       );
       agent_dispatch_id = dispatch.id;
     } catch (error) {
-      return NextResponse.json(
+      return jsonWithCors(
+        request,
         {
           error: "LiveKit agent dispatch failed",
           agent_name: agentName,
           details:
             error instanceof Error ? error.message : "Unknown dispatch error",
         },
-        { headers: corsHeaders, status: 502 },
+        { status: 502 },
       );
     }
   }
 
-  return NextResponse.json(
+  return jsonWithCors(
+    request,
     {
       server_url: env.LIVEKIT_URL,
       participant_token: await token.toJwt(),
       agent_dispatch_id,
     },
-    { headers: corsHeaders, status: 201 },
+    { status: 201 },
   );
 }

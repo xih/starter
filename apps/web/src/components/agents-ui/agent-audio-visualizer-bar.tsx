@@ -50,6 +50,13 @@ function cloneSingleChild(
   });
 }
 
+function isNumericArrayLike(value: unknown): value is ArrayLike<number> {
+  return (
+    Array.isArray(value) ||
+    (ArrayBuffer.isView(value) && !(value instanceof DataView))
+  );
+}
+
 export const AgentAudioVisualizerBarElementVariants = cva(
   [
     "rounded-full transition-colors duration-250 ease-linear",
@@ -132,8 +139,10 @@ export function AgentAudioVisualizerBar({
   });
   const volumeBands = useMemo(
     () =>
-      Array.isArray(rawVolumeBands)
-        ? rawVolumeBands.map((band) => (typeof band === "number" ? band : 0))
+      isNumericArrayLike(rawVolumeBands)
+        ? Array.from(rawVolumeBands).map((band) =>
+            typeof band === "number" ? band : 0,
+          )
         : [],
     [rawVolumeBands],
   );

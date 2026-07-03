@@ -186,6 +186,10 @@ export function AgentControlBar({
   const publishPermissions = usePublishPermissions();
   const [isChatOpenUncontrolled, setIsChatOpenUncontrolled] =
     useState(isChatOpen);
+  const isChatOpenControlled = onIsChatOpenChange !== undefined;
+  const resolvedIsChatOpen = isChatOpenControlled
+    ? isChatOpen
+    : isChatOpenUncontrolled;
   const {
     cameraToggle,
     handleAudioDeviceChange,
@@ -200,6 +204,14 @@ export function AgentControlBar({
   const handleSendMessage = async (message: string) => {
     await send(message);
   };
+
+  useEffect(() => {
+    if (isConnected || isChatOpenControlled) {
+      return;
+    }
+
+    setIsChatOpenUncontrolled(false);
+  }, [isChatOpenControlled, isConnected]);
 
   const visibleControls = {
     leave: controls?.leave ?? true,
@@ -230,12 +242,12 @@ export function AgentControlBar({
     >
       <motion.div
         {...MOTION_PROPS}
-        inert={!(isChatOpen || isChatOpenUncontrolled)}
-        animate={isChatOpen || isChatOpenUncontrolled ? "visible" : "hidden"}
+        inert={!resolvedIsChatOpen}
+        animate={resolvedIsChatOpen ? "visible" : "hidden"}
         className="border-input/50 flex w-full items-start overflow-hidden border-b"
       >
         <AgentChatInput
-          chatOpen={isChatOpen || isChatOpenUncontrolled}
+          chatOpen={resolvedIsChatOpen}
           onSend={handleSendMessage}
           className={cn(variant === "livekit" && "[&_button]:rounded-full")}
         />
@@ -302,11 +314,14 @@ export function AgentControlBar({
           {visibleControls.chat && (
             <Toggle
               variant={variant === "outline" ? "outline" : "default"}
-              pressed={isChatOpen || isChatOpenUncontrolled}
+              pressed={resolvedIsChatOpen}
               aria-label="Toggle transcript"
               onPressedChange={(state) => {
-                if (!onIsChatOpenChange) setIsChatOpenUncontrolled(state);
-                else onIsChatOpenChange(state);
+                if (isChatOpenControlled) {
+                  onIsChatOpenChange(state);
+                } else {
+                  setIsChatOpenUncontrolled(state);
+                }
               }}
               className={agentTrackToggleVariants({
                 variant: variant === "outline" ? "outline" : "default",

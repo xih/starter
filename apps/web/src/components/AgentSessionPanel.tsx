@@ -136,6 +136,7 @@ function ControlIconButton({
 function AgentControlDock({
   compact = false,
   isCameraEnabled = false,
+  isConnected = false,
   isLive = false,
   isMicrophoneEnabled = false,
   isScreenShareEnabled = false,
@@ -148,6 +149,7 @@ function AgentControlDock({
 }: {
   compact?: boolean;
   isCameraEnabled?: boolean;
+  isConnected?: boolean;
   isLive?: boolean;
   isMicrophoneEnabled?: boolean;
   isScreenShareEnabled?: boolean;
@@ -170,7 +172,7 @@ function AgentControlDock({
       <AgentControlBar
         variant="livekit"
         isChatOpen={false}
-        isConnected
+        isConnected={isConnected}
         onDisconnect={onDisconnect}
         controls={{
           leave: true,
@@ -437,6 +439,7 @@ function DesktopPanel({
             </div>
             <AgentControlDock
               isCameraEnabled={isCameraEnabled}
+              isConnected
               isLive={isLive}
               isMicrophoneEnabled={isMicrophoneEnabled}
               isScreenShareEnabled={isScreenShareEnabled}
@@ -454,6 +457,7 @@ function DesktopPanel({
             <ChatTranscript messages={messages} />
             <AgentControlDock
               isCameraEnabled={isCameraEnabled}
+              isConnected
               isLive={isLive}
               isMicrophoneEnabled={isMicrophoneEnabled}
               isScreenShareEnabled={isScreenShareEnabled}
@@ -516,6 +520,7 @@ function MobileCard({
         <AgentControlDock
           compact
           isCameraEnabled={isCameraEnabled}
+          isConnected={state !== "preconnect" && state !== "ended"}
           isLive={isLive}
           isMicrophoneEnabled={isMicrophoneEnabled}
           isScreenShareEnabled={isScreenShareEnabled}

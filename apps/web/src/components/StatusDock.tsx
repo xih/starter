@@ -77,16 +77,25 @@ const weatherCodeLabels = new Map<number, string>([
   [51, "Drizzle"],
   [53, "Drizzle"],
   [55, "Drizzle"],
+  [56, "Freezing Drizzle"],
+  [57, "Freezing Drizzle"],
   [61, "Rain"],
   [63, "Rain"],
   [65, "Rain"],
+  [66, "Freezing Rain"],
+  [67, "Freezing Rain"],
   [71, "Snow"],
   [73, "Snow"],
   [75, "Snow"],
+  [77, "Snow Grains"],
   [80, "Rain Showers"],
   [81, "Rain Showers"],
   [82, "Rain Showers"],
+  [85, "Snow Showers"],
+  [86, "Snow Showers"],
   [95, "Thunderstorm"],
+  [96, "Thunderstorm With Hail"],
+  [99, "Thunderstorm With Hail"],
 ]);
 
 const LIVE_STATUS_FETCH_TIMEOUT_MS = 5000;
@@ -129,7 +138,21 @@ function milesPerHourToInchesPerSecond(value: number) {
 function getWeatherCondition(code?: number) {
   if (typeof code !== "number")
     return DEFAULT_STATUS_DOCK_DATA.weather.condition;
-  return weatherCodeLabels.get(code) ?? "Overcast";
+  return weatherCodeLabels.get(code) ?? "Unknown";
+}
+
+function getPrecipitationLabel(code?: number, precipitation?: number) {
+  if (typeof precipitation !== "number" || precipitation <= 0) return "Dry";
+
+  if (typeof code !== "number") return "Precipitation";
+  if (code >= 51 && code <= 57) return "Drizzle";
+  if (code >= 66 && code <= 67) return "Freezing Rain";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
+  if ([96, 99].includes(code)) return "Hail";
+  if (code === 95) return "Storm";
+  if ((code >= 61 && code <= 65) || (code >= 80 && code <= 82)) return "Rain";
+
+  return "Precipitation";
 }
 
 async function fetchLiveStatusData() {
@@ -189,10 +212,10 @@ async function fetchLiveStatusData() {
         typeof current?.wind_speed_10m === "number"
           ? milesPerHourToInchesPerSecond(current.wind_speed_10m)
           : DEFAULT_STATUS_DOCK_DATA.weather.windInchesPerSecond,
-      precipitationLabel:
-        typeof current?.precipitation === "number" && current.precipitation > 0
-          ? "Rain"
-          : "Dry",
+      precipitationLabel: getPrecipitationLabel(
+        current?.weather_code,
+        current?.precipitation,
+      ),
     },
   } satisfies StatusDockData;
 }

@@ -89,22 +89,23 @@ const weatherCodeLabels = new Map<number, string>([
   [95, "Thunderstorm"],
 ]);
 
+const LIVE_STATUS_FETCH_TIMEOUT_MS = 5000;
+
 function formatTime(now: Date, timezone?: string) {
+  const options: Intl.DateTimeFormatOptions = {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  };
+
   try {
     return new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true,
+      ...options,
       timeZone: timezone,
     }).format(now);
   } catch {
-    return new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true,
-    }).format(now);
+    return new Intl.DateTimeFormat("en-US", options).format(now);
   }
 }
 
@@ -132,7 +133,9 @@ function getWeatherCondition(code?: number) {
 }
 
 async function fetchLiveStatusData() {
-  const locationResponse = await fetch("https://ipapi.co/json/");
+  const locationResponse = await fetch("https://ipapi.co/json/", {
+    signal: AbortSignal.timeout(LIVE_STATUS_FETCH_TIMEOUT_MS),
+  });
 
   if (!locationResponse.ok) {
     throw new Error("Unable to load IP location");
@@ -157,7 +160,9 @@ async function fetchLiveStatusData() {
   weatherUrl.searchParams.set("wind_speed_unit", "mph");
   weatherUrl.searchParams.set("timezone", location.timezone ?? "auto");
 
-  const weatherResponse = await fetch(weatherUrl);
+  const weatherResponse = await fetch(weatherUrl, {
+    signal: AbortSignal.timeout(LIVE_STATUS_FETCH_TIMEOUT_MS),
+  });
 
   if (!weatherResponse.ok) {
     throw new Error("Unable to load current weather");
@@ -187,7 +192,7 @@ async function fetchLiveStatusData() {
       precipitationLabel:
         typeof current?.precipitation === "number" && current.precipitation > 0
           ? "Rain"
-          : DEFAULT_STATUS_DOCK_DATA.weather.precipitationLabel,
+          : "Dry",
     },
   } satisfies StatusDockData;
 }
@@ -197,15 +202,23 @@ function useStatusDockData(data?: StatusDockData, live = false) {
   const [liveData, setLiveData] = useState<StatusDockData | null>(null);
 
   useEffect(() => {
+    if (data?.now) {
+      setNow(data.now);
+      return;
+    }
+
     const timer = window.setInterval(() => {
       setNow(new Date());
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [data?.now]);
 
   useEffect(() => {
-    if (!live) return;
+    if (!live) {
+      setLiveData(null);
+      return;
+    }
 
     let ignore = false;
 
@@ -222,10 +235,10 @@ function useStatusDockData(data?: StatusDockData, live = false) {
     };
   }, [live]);
 
-  const resolvedData = liveData ?? data ?? DEFAULT_STATUS_DOCK_DATA;
+  const resolvedData = live ? (liveData ?? data) : data;
 
   return {
-    ...resolvedData,
+    ...(resolvedData ?? DEFAULT_STATUS_DOCK_DATA),
     now,
   };
 }

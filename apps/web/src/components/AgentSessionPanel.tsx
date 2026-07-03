@@ -59,25 +59,6 @@ export type AgentSessionPanelProps = {
   variant?: "desktop" | "mobile";
 };
 
-const defaultMessages: AgentSessionMessage[] = [
-  {
-    id: "1",
-    speaker: "agent",
-    text: "Of course! I'd be happy to help with your coding question. What would you like to know?",
-  },
-  {
-    id: "2",
-    speaker: "user",
-    text: "How do I create a responsive layout with CSS Grid?",
-  },
-  {
-    id: "3",
-    speaker: "agent",
-    text: "Creating a responsive layout with CSS Grid is straightforward. Here's a basic example:",
-    code: ".container {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\n  gap: 1rem;\n}",
-  },
-];
-
 function HeaderButton({
   children,
   label,
@@ -547,7 +528,7 @@ export function AgentSessionPanel({
   className,
   isCameraEnabled = false,
   isLive = false,
-  messages = defaultMessages,
+  messages = [],
   isMicrophoneEnabled = false,
   isScreenShareEnabled = false,
   onDisconnect,
@@ -561,8 +542,6 @@ export function AgentSessionPanel({
   themeMode = "light",
   variant = "desktop",
 }: AgentSessionPanelProps) {
-  const resolvedMessages = messages.length > 0 ? messages : defaultMessages;
-
   if (variant === "mobile") {
     return (
       <div className={cn(themeMode === "dark" && "dark", className)}>
@@ -590,7 +569,7 @@ export function AgentSessionPanel({
         isLive={isLive}
         isMicrophoneEnabled={isMicrophoneEnabled}
         isScreenShareEnabled={isScreenShareEnabled}
-        messages={resolvedMessages}
+        messages={messages}
         onConnect={onConnect}
         onDisconnect={onDisconnect}
         onToggleCamera={onToggleCamera}

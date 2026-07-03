@@ -20,27 +20,26 @@ const CORS_BASE_HEADERS = {
   Vary: "Origin",
 };
 
+const roomAgentSchema = z.object({
+  agent_name: z.string().min(1).max(160).optional(),
+  agentName: z.string().min(1).max(160).optional(),
+  metadata: z.string().max(4096).optional(),
+  deployment: z.string().min(1).max(160).optional(),
+});
+
+const roomConfigSchema = z
+  .object({
+    agents: z.array(roomAgentSchema).optional(),
+  })
+  .strict();
+
 const tokenRequestSchema = z.object({
   room_name: z.string().min(1).max(160).optional(),
   participant_identity: z.string().min(1).max(160).optional(),
   participant_name: z.string().min(1).max(160).optional(),
   participant_metadata: z.string().max(4096).optional(),
   participant_attributes: z.record(z.string(), z.string()).optional(),
-  room_config: z
-    .object({
-      agents: z
-        .array(
-          z.object({
-            agent_name: z.string().min(1).max(160).optional(),
-            agentName: z.string().min(1).max(160).optional(),
-            metadata: z.string().max(4096).optional(),
-            deployment: z.string().min(1).max(160).optional(),
-          }),
-        )
-        .optional(),
-    })
-    .passthrough()
-    .optional(),
+  room_config: roomConfigSchema.optional(),
 });
 
 function createId(prefix: string) {
@@ -188,13 +187,18 @@ export async function POST(request: Request) {
   const participantIdentity =
     body.participant_identity ?? createId("anonymous_participant");
   const participantName = body.participant_name ?? "Guest";
-  const requestedAgent = body.room_config?.agents?.[0];
-  const agentName =
-    requestedAgent?.agent_name ??
-    requestedAgent?.agentName ??
-    env.LIVEKIT_AGENT_NAME ??
-    env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
-    DEFAULT_AGENT_NAME;
+  const requestedAgents = body.room_config?.agents;
+  const agentsToDispatch =
+    requestedAgents && requestedAgents.length > 0
+      ? requestedAgents
+      : [
+          {
+            agentName:
+              env.LIVEKIT_AGENT_NAME ??
+              env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
+              DEFAULT_AGENT_NAME,
+          },
+        ];
   const token = new AccessToken(env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET, {
     identity: participantIdentity,
     name: participantName,
@@ -211,36 +215,44 @@ export async function POST(request: Request) {
     canSubscribe: true,
   });
 
-  let agent_dispatch_id: string | undefined;
+  const agent_dispatch_ids: string[] = [];
 
-  if (agentName) {
-    try {
-      const dispatchClient = new AgentDispatchClient(
-        getLiveKitApiUrl(env.LIVEKIT_URL),
-        env.LIVEKIT_API_KEY,
-        env.LIVEKIT_API_SECRET,
-      );
+  try {
+    const dispatchClient = new AgentDispatchClient(
+      getLiveKitApiUrl(env.LIVEKIT_URL),
+      env.LIVEKIT_API_KEY,
+      env.LIVEKIT_API_SECRET,
+    );
+
+    for (const requestedAgent of agentsToDispatch) {
+      const agentName =
+        requestedAgent.agent_name ??
+        requestedAgent.agentName ??
+        env.LIVEKIT_AGENT_NAME ??
+        env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
+        DEFAULT_AGENT_NAME;
+
       const dispatch = await dispatchClient.createDispatch(
         roomName,
         agentName,
         {
-          metadata: requestedAgent?.metadata,
-          deployment: requestedAgent?.deployment,
+          metadata: requestedAgent.metadata,
+          deployment: requestedAgent.deployment,
         },
       );
-      agent_dispatch_id = dispatch.id;
-    } catch (error) {
-      return jsonWithCors(
-        request,
-        {
-          error: "LiveKit agent dispatch failed",
-          agent_name: agentName,
-          details:
-            error instanceof Error ? error.message : "Unknown dispatch error",
-        },
-        { status: 502 },
-      );
+
+      agent_dispatch_ids.push(dispatch.id);
     }
+  } catch (error) {
+    return jsonWithCors(
+      request,
+      {
+        error: "LiveKit agent dispatch failed",
+        details:
+          error instanceof Error ? error.message : "Unknown dispatch error",
+      },
+      { status: 502 },
+    );
   }
 
   return jsonWithCors(
@@ -248,7 +260,8 @@ export async function POST(request: Request) {
     {
       server_url: env.LIVEKIT_URL,
       participant_token: await token.toJwt(),
-      agent_dispatch_id,
+      agent_dispatch_id: agent_dispatch_ids[0],
+      agent_dispatch_ids,
     },
     { status: 201 },
   );

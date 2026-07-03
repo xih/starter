@@ -135,6 +135,11 @@ export const LiveIpLocationAndWeather: Story = {
     live: true,
     viewport: "desktop",
   },
+  parameters: {
+    chromatic: {
+      disableSnapshot: true,
+    },
+  },
   render: (args) => (
     <StorySurface width={1800}>
       <StatusDock {...args} />

@@ -7,6 +7,7 @@ import {
   Settings2,
 } from "lucide-react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { ReactNode } from "react";
 
 const colorTokens = [
   "--color-background-primary",
@@ -52,9 +53,9 @@ const typeRows = [
     "Caption",
     "font-body text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)]",
   ],
-];
+] as const;
 
-function Surface({ children }: { children: React.ReactNode }) {
+function Surface({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[var(--color-background-secondary)] p-nell-24 text-[var(--color-text-primary)]">
       <div className="mx-auto flex max-w-[1100px] flex-col gap-nell-32">
@@ -64,13 +65,7 @@ function Surface({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Section({
-  children,
-  title,
-}: {
-  children: React.ReactNode;
-  title: string;
-}) {
+function Section({ children, title }: { children: ReactNode; title: string }) {
   return (
     <section className="flex flex-col gap-nell-16">
       <h2 className="font-title text-[length:var(--font-font-size-title)] leading-[var(--font-line-height-lh-title)]">
@@ -106,7 +101,7 @@ function DsButton({
   selected,
   variant,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   disabled?: boolean;
   selected?: boolean;
   variant: "primary" | "secondary" | "tertiary";

@@ -1,0 +1,32 @@
+{
+  "name": "@starter/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-tokens.mjs",
+    "check": "corepack pnpm build && corepack pnpm typecheck",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./css": "./dist/css/variables.css",
+    "./tailwind": {
+      "types": "./dist/tailwind/tokens.d.ts",
+      "default": "./dist/tailwind/tokens.mjs"
+    },
+    "./light": "./dist/json/light.json",
+    "./dark": "./dist/json/dark.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "typescript": "^5.9.3"
+  }
+}

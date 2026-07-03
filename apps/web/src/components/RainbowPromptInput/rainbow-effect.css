@@ -1,0 +1,148 @@
+@keyframes disco {
+  from {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+@keyframes rotate-gradient {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.rainbow-container {
+  /* Customizable */
+  --rainbow-color-border: rgb(229 231 235);
+  --rainbow-color-disco: rgb(59 130 246);
+  --rainbow-border-width: 1px;
+  --rainbow-bg-color: white;
+  --rainbow-disco-animation: disco 1.5s linear infinite;
+  --rainbow-disco-gradient-stops:
+    transparent 135deg, var(--rainbow-color-disco) 180deg, transparent 225deg;
+  --rainbow-disco-opacity: 1;
+  --rainbow-radius: 0.75rem;
+  --rainbow-transition-duration: 200ms;
+  --rainbow-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --rainbow-transition: var(--rainbow-transition-duration)
+    var(--rainbow-transition-easing);
+  --rainbow-aspect-ratio-multiplier: 0.65;
+
+  /* Styles */
+  appearance: none;
+  position: relative;
+  border: 0;
+  width: 100%;
+  overflow: hidden;
+  margin: calc(var(--rainbow-border-width) * -1);
+  padding: var(--rainbow-border-width);
+  border-radius: var(--rainbow-radius);
+  background-color: var(--rainbow-color-border);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rainbow-container {
+    transition: var(--rainbow-transition);
+    transition-property: filter, transform;
+  }
+}
+
+.rainbow-content {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: calc(var(--rainbow-radius) - var(--rainbow-border-width));
+  background-color: var(--rainbow-bg-color);
+  width: 100%;
+  z-index: 10;
+}
+
+.rainbow-disco,
+.rainbow-disco::before {
+  position: absolute;
+  width: 100%;
+}
+
+.rainbow-disco {
+  inset: 0;
+  height: 100%;
+  top: 50%;
+  transform: translateY(-50%)
+    scaleX(
+      calc(var(--rainbow-aspect-ratio) * var(--rainbow-aspect-ratio-multiplier))
+    );
+  will-change: transform;
+}
+
+.rainbow-disco::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  min-height: 100%;
+  top: 50%;
+  aspect-ratio: 1 / 1;
+  transform-origin: center;
+  background-image: conic-gradient(var(--rainbow-disco-gradient-stops));
+  opacity: var(--rainbow-disco-opacity-enabled, 0);
+  filter: blur(8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rainbow-disco::before {
+    transform: translateY(-50%) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rainbow-disco::before {
+    animation: var(--rainbow-disco-animation);
+    animation-play-state: var(--rainbow-disco-animation-state, paused);
+    transition: var(--rainbow-transition);
+    transition-property: opacity;
+  }
+}
+
+.rainbow-container.rainbow-active {
+  --rainbow-disco-animation-state: running;
+  --rainbow-disco-opacity-enabled: var(--rainbow-disco-opacity);
+}
+
+/* Continuous Rainbow Border */
+.continuous-rainbow-container {
+  --rainbow-border-width: 2px; /* Increased border width */
+  --rainbow-radius: 0.75rem;
+  --rainbow-bg-color: white;
+  --rainbow-disco-animation: rotate-gradient 3s linear infinite;
+  --rainbow-disco-cw-gradient-stops:
+    red, orange, #ff0, green, blue, purple, red;
+
+  position: relative;
+  padding: var(--rainbow-border-width); /* Use the variable */
+  border-radius: var(--rainbow-radius);
+  background-origin: border-box;
+}
+
+.continuous-rainbow-disco {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(var(--rainbow-disco-cw-gradient-stops));
+  z-index: 0;
+}
+
+.continuous-rainbow-content {
+  position: relative;
+  background: var(--rainbow-bg-color);
+  border-radius: calc(var(--rainbow-radius) - var(--rainbow-border-width));
+  z-index: 1;
+}
+
+.continuous-rainbow-container.rainbow-active .continuous-rainbow-disco {
+  animation: var(--rainbow-disco-animation);
+  transform-origin: center;
+}

@@ -106,7 +106,7 @@ function TokenSurface({ mode }: { mode: "light" | "dark" }) {
               {colorTokens.map((token) => (
                 <div
                   key={token}
-                  className="overflow-hidden rounded-nell-s border border-border bg-card"
+                  className="overflow-hidden rounded-token-s border border-border bg-card"
                 >
                   <div
                     className="h-20 border-b border-border"

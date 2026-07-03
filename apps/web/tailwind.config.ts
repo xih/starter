@@ -84,9 +84,9 @@ export default {
       fontWeight: tokens.fontWeight,
       lineHeight: tokens.lineHeight,
       letterSpacing: tokens.letterSpacing,
-      spacing: prefixTokenMap(tokens.spacing, "nell"),
+      spacing: prefixTokenMap(tokens.spacing, "token"),
       borderRadius: {
-        ...prefixTokenMap(tokens.borderRadius, "nell"),
+        ...prefixTokenMap(tokens.borderRadius, "token"),
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",

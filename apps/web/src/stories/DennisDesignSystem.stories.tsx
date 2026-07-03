@@ -57,8 +57,8 @@ const typeRows = [
 
 function Surface({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[var(--color-background-secondary)] p-nell-24 text-[var(--color-text-primary)]">
-      <div className="mx-auto flex max-w-[1100px] flex-col gap-nell-32">
+    <div className="min-h-screen bg-[var(--color-background-secondary)] p-token-24 text-[var(--color-text-primary)]">
+      <div className="mx-auto flex max-w-[1100px] flex-col gap-token-32">
         {children}
       </div>
     </div>
@@ -67,7 +67,7 @@ function Surface({ children }: { children: ReactNode }) {
 
 function Section({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <section className="flex flex-col gap-nell-16">
+    <section className="flex flex-col gap-token-16">
       <h2 className="font-title text-[length:var(--font-font-size-title)] leading-[var(--font-line-height-lh-title)]">
         {title}
       </h2>
@@ -78,9 +78,9 @@ function Section({ children, title }: { children: ReactNode; title: string }) {
 
 function TokenSwatch({ token }: { token: string }) {
   return (
-    <div className="flex items-center gap-nell-12 rounded-nell-m border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] p-nell-12">
+    <div className="flex items-center gap-token-12 rounded-token-m border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] p-token-12">
       <div
-        className="size-[44px] rounded-nell-s border border-[var(--color-border-subtle)]"
+        className="size-[44px] rounded-token-s border border-[var(--color-border-subtle)]"
         style={{ backgroundColor: `var(${token})` }}
       />
       <div className="min-w-0">
@@ -109,7 +109,7 @@ function DsButton({
   return (
     <button
       className={[
-        "inline-flex h-[38px] items-center justify-center rounded-nell-s px-nell-12 font-body text-[length:var(--font-font-size-cta)] leading-[var(--font-line-height-lh-subtext)] transition",
+        "inline-flex h-[38px] items-center justify-center rounded-token-s px-token-12 font-body text-[length:var(--font-font-size-cta)] leading-[var(--font-line-height-lh-subtext)] transition",
         variant === "primary" &&
           "bg-[var(--color-core-primary-a)] text-[var(--color-text-inverse-primary)]",
         variant === "secondary" &&
@@ -133,7 +133,7 @@ function Checkbox({ checked }: { checked?: boolean }) {
   return (
     <button
       aria-pressed={checked}
-      className="flex size-[24px] items-center justify-center rounded-nell-xxs border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)] data-[state=on]:bg-[var(--color-core-primary-a)] data-[state=on]:text-[var(--color-text-inverse-primary)]"
+      className="flex size-[24px] items-center justify-center rounded-token-xxs border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)] data-[state=on]:bg-[var(--color-core-primary-a)] data-[state=on]:text-[var(--color-text-inverse-primary)]"
       data-state={checked ? "on" : "off"}
       type="button"
     >
@@ -147,7 +147,7 @@ function ToastPreview({ state }: { state: "neutral" | "success" | "error" }) {
   return (
     <div
       className={[
-        "flex min-h-[48px] w-[320px] items-center gap-nell-12 rounded-nell-m px-nell-16 py-nell-12 font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)]",
+        "flex min-h-[48px] w-[320px] items-center gap-token-12 rounded-token-m px-token-16 py-token-12 font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)]",
         state === "neutral" &&
           "bg-[var(--color-background-primary)] text-[var(--color-text-primary)]",
         state === "success" &&
@@ -172,7 +172,7 @@ function AgentControlPreview({
   state?: "default" | "typing" | "streaming";
 }) {
   return (
-    <div className="flex w-[448px] max-w-full flex-col gap-nell-20 rounded-[31px] border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] px-nell-20 py-nell-16 shadow-[0_3px_3px_rgba(0,0,0,0.03)]">
+    <div className="flex w-[448px] max-w-full flex-col gap-token-20 rounded-[31px] border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] px-token-20 py-token-16 shadow-[0_3px_3px_rgba(0,0,0,0.03)]">
       <div className="flex items-center">
         <span className="font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)] text-[var(--color-text-secondary)]">
           {state === "typing" ? "Bonjourno" : "How are you feeling today?"}
@@ -180,18 +180,18 @@ function AgentControlPreview({
         <Settings2 className="ml-auto size-[20px] text-[var(--color-text-secondary)]" />
       </div>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-nell-4">
-          <button className="flex h-[36px] items-center rounded-nell-round bg-[var(--color-background-secondary)] text-[var(--color-text-primary)]">
-            <span className="flex h-full items-center px-nell-12">
+        <div className="flex items-center gap-token-4">
+          <button className="flex h-[36px] items-center rounded-token-round bg-[var(--color-background-secondary)] text-[var(--color-text-primary)]">
+            <span className="flex h-full items-center px-token-12">
               <Mic className="size-[18px]" />
             </span>
             <span className="h-[16px] w-px bg-[var(--color-bg-secondary)]" />
-            <span className="flex h-full items-center px-nell-12">
+            <span className="flex h-full items-center px-token-12">
               <ChevronDown className="size-[16px]" />
             </span>
           </button>
-          <button className="flex h-[36px] items-center gap-nell-8 rounded-nell-round border border-[var(--color-border-subtle)] px-[15px]">
-            <span className="flex size-[16px] items-center justify-center rounded-nell-round bg-[var(--color-bg-secondary)] text-[10px] text-[var(--color-text-inverse-primary)]">
+          <button className="flex h-[36px] items-center gap-token-8 rounded-token-round border border-[var(--color-border-subtle)] px-[15px]">
+            <span className="flex size-[16px] items-center justify-center rounded-token-round bg-[var(--color-bg-secondary)] text-[10px] text-[var(--color-text-inverse-primary)]">
               M
             </span>
             <span className="font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)]">
@@ -201,11 +201,11 @@ function AgentControlPreview({
           </button>
         </div>
         {state === "typing" ? (
-          <button className="flex size-[36px] items-center justify-center rounded-nell-round bg-[var(--color-core-primary-a)] text-[var(--color-text-inverse-primary)]">
+          <button className="flex size-[36px] items-center justify-center rounded-token-round bg-[var(--color-core-primary-a)] text-[var(--color-text-inverse-primary)]">
             ↑
           </button>
         ) : state === "streaming" ? (
-          <button className="flex size-[36px] items-center justify-center rounded-nell-round bg-[var(--color-core-primary-a)] text-[var(--color-text-inverse-primary)]">
+          <button className="flex size-[36px] items-center justify-center rounded-token-round bg-[var(--color-core-primary-a)] text-[var(--color-text-inverse-primary)]">
             ■
           </button>
         ) : (
@@ -220,7 +220,7 @@ function Overview() {
   return (
     <Surface>
       <Section title="Colors">
-        <div className="grid grid-cols-1 gap-nell-12 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-token-12 md:grid-cols-2">
           {colorTokens.map((token) => (
             <TokenSwatch key={token} token={token} />
           ))}
@@ -228,10 +228,10 @@ function Overview() {
       </Section>
 
       <Section title="Typography">
-        <div className="rounded-nell-m border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] p-nell-16">
+        <div className="rounded-token-m border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] p-token-16">
           {typeRows.map(([label, className]) => (
             <div
-              className="grid grid-cols-[120px_minmax(0,1fr)] items-baseline gap-nell-16 border-b border-[var(--color-border-subtle)] py-nell-12 last:border-b-0"
+              className="grid grid-cols-[120px_minmax(0,1fr)] items-baseline gap-token-16 border-b border-[var(--color-border-subtle)] py-token-12 last:border-b-0"
               key={label}
             >
               <span className="font-body text-[length:var(--font-font-size-caption)] text-[var(--color-text-secondary)]">
@@ -244,7 +244,7 @@ function Overview() {
       </Section>
 
       <Section title="Buttons">
-        <div className="flex flex-wrap gap-nell-12">
+        <div className="flex flex-wrap gap-token-12">
           <DsButton variant="primary">Primary</DsButton>
           <DsButton variant="primary" selected>
             Selected
@@ -258,7 +258,7 @@ function Overview() {
       </Section>
 
       <Section title="Selection And Toasts">
-        <div className="flex flex-wrap items-center gap-nell-16">
+        <div className="flex flex-wrap items-center gap-token-16">
           <Checkbox />
           <Checkbox checked />
           <ToastPreview state="neutral" />
@@ -268,7 +268,7 @@ function Overview() {
       </Section>
 
       <Section title="Agent Control Bar">
-        <div className="flex flex-col gap-nell-16">
+        <div className="flex flex-col gap-token-16">
           <AgentControlPreview />
           <AgentControlPreview state="typing" />
           <AgentControlPreview state="streaming" />

@@ -17,6 +17,7 @@
     "predev": "corepack pnpm --filter @starter/tokens build",
     "prestorybook": "corepack pnpm --filter @starter/tokens build",
     "start": "next start",
+    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "storybook": "SKIP_ENV_VALIDATION=1 storybook dev -p 6006",
     "build-storybook": "SKIP_ENV_VALIDATION=1 storybook build"

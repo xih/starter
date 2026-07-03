@@ -20,6 +20,7 @@
     "build-storybook": "corepack pnpm --filter @starter/web build-storybook",
     "test-storybook": "concurrently -k -s first -n storybook,tests \"http-server apps/web/storybook-static -p 7007 --silent\" \"wait-on http://127.0.0.1:7007 && test-storybook --config-dir apps/web/.storybook --url http://127.0.0.1:7007\"",
     "chromatic": "chromatic --project-token=$CHROMATIC_PROJECT_TOKEN --storybook-build-dir apps/web/storybook-static",
+    "test": "corepack pnpm --filter @starter/web test",
     "tokens:build": "corepack pnpm --filter @starter/tokens build",
     "typecheck": "corepack pnpm -r typecheck"
   },
@@ -36,7 +37,7 @@
     "wait-on": "^9.0.10"
   },
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=22.12.0"
   },
   "packageManager": "pnpm@10.10.0"
 }

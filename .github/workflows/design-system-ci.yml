@@ -1,0 +1,54 @@
+name: Design System CI
+
+on:
+  pull_request:
+
+jobs:
+  design-system:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build tokens
+        run: pnpm tokens:build
+
+      - name: Check token drift
+        run: git diff --exit-code packages/tokens/dist
+
+      - name: ESLint design-system rules
+        run: pnpm lint:design-system
+
+      - name: Stylelint token rules
+        run: pnpm lint:styles
+
+      - name: AST structural checks
+        run: pnpm lint:ast
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build Storybook
+        run: pnpm build-storybook
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @starter/web exec playwright install --with-deps chromium
+
+      - name: Storybook tests
+        run: pnpm test-storybook
+
+      - name: Chromatic visual tests
+        run: pnpm chromatic --exit-zero-on-changes=false
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

@@ -90,13 +90,22 @@ const weatherCodeLabels = new Map<number, string>([
 ]);
 
 function formatTime(now: Date, timezone?: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-    timeZone: timezone,
-  }).format(now);
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+      timeZone: timezone,
+    }).format(now);
+  } catch (e) {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    }).format(now);
+  }
 }
 
 function formatTemperature(value: number) {

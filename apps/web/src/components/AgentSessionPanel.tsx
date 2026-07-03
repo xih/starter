@@ -349,7 +349,7 @@ function ChatMessage({ message }: { message: AgentSessionMessage }) {
             <code>{message.code}</code>
           </pre>
         )}
-        {message.code && (
+        {message.code && message.id === "3" && (
           <div className="mt-[8px]">
             <p>This creates a grid where:</p>
             <p>Columns automatically fit as many as possible</p>

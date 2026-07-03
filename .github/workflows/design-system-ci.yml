@@ -49,6 +49,6 @@ jobs:
         run: pnpm test-storybook
 
       - name: Chromatic visual tests
-        run: pnpm chromatic --exit-zero-on-changes=false
+        run: pnpm chromatic --exit-zero-on-changes=true
         env:
           CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

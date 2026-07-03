@@ -22,7 +22,13 @@ import {
   WifiOff,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   AgentSideBar,
@@ -42,6 +48,28 @@ const DEFAULT_TOKEN_ENDPOINT =
   process.env.NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT ?? "/api/livekit/token";
 const STORYBOOK_ORIGIN =
   process.env.NEXT_PUBLIC_STORYBOOK_ORIGIN ?? "http://localhost:6006";
+
+const lightModeTokenStyle = {
+  "--background": "var(--color-background-primary)",
+  "--foreground": "var(--color-text-primary)",
+  "--card": "var(--color-background-primary)",
+  "--card-foreground": "var(--color-text-primary)",
+  "--popover": "var(--color-background-primary)",
+  "--popover-foreground": "var(--color-text-primary)",
+  "--primary": "var(--color-core-primary-a)",
+  "--primary-foreground": "var(--color-text-inverse-primary)",
+  "--secondary": "var(--color-background-secondary)",
+  "--secondary-foreground": "var(--color-text-primary)",
+  "--muted": "var(--color-background-secondary)",
+  "--muted-foreground": "var(--color-text-secondary)",
+  "--accent": "var(--color-background-hovered)",
+  "--accent-foreground": "var(--color-text-primary)",
+  "--destructive": "var(--color-core-negative)",
+  "--destructive-foreground": "var(--color-text-inverse-primary)",
+  "--border": "var(--color-border-opaque)",
+  "--input": "var(--color-border-opaque)",
+  "--ring": "var(--color-border-selected)",
+} as CSSProperties;
 
 type TokenProbeState =
   | { status: "idle"; detail: string }
@@ -145,14 +173,18 @@ function DiagnosticRow({
 function LiveAgentConsole({
   agentName,
   endpointAuth,
+  onSessionEnded,
   roomName,
   setManualState,
+  startRequestId,
   tokenEndpoint,
 }: {
   agentName: string;
   endpointAuth: string;
+  onSessionEnded: () => void;
   roomName: string;
   setManualState: (state: AgentSideBarState) => void;
+  startRequestId: number;
   tokenEndpoint: string;
 }) {
   const [inputValue, setInputValue] = useState("");
@@ -181,9 +213,11 @@ function LiveAgentConsole({
       <LiveAgentSession
         agentName={agentName}
         inputValue={inputValue}
+        onSessionEnded={onSessionEnded}
         session={session}
         setInputValue={setInputValue}
         setManualState={setManualState}
+        startRequestId={startRequestId}
       />
       <RoomAudioRenderer />
     </SessionProvider>
@@ -193,19 +227,24 @@ function LiveAgentConsole({
 function LiveAgentSession({
   agentName,
   inputValue,
+  onSessionEnded,
   session,
   setInputValue,
   setManualState,
+  startRequestId,
 }: {
   agentName: string;
   inputValue: string;
+  onSessionEnded: () => void;
   session: ReturnType<typeof useSession>;
   setInputValue: (value: string) => void;
   setManualState: (state: AgentSideBarState) => void;
+  startRequestId: number;
 }) {
   const agent = useAgent(session);
   const sessionMessages = useSessionMessages(session);
   const { microphoneToggle } = useInputControls();
+  const startedRequestRef = useRef(0);
   const messages = sessionMessages.messages
     .map((message, index) =>
       toAgentSideBarMessage(
@@ -225,6 +264,32 @@ function LiveAgentSession({
         ? "intro"
         : "loading",
   });
+  const endSession = () => {
+    setInputValue("");
+    setManualState("intro");
+    void session.end().finally(onSessionEnded);
+  };
+
+  useEffect(() => {
+    if (startRequestId <= 0 || startedRequestRef.current === startRequestId) {
+      return;
+    }
+
+    startedRequestRef.current = startRequestId;
+    setManualState("loading");
+    void session
+      .start({
+        tracks: {
+          camera: { enabled: false },
+          microphone: { enabled: true },
+          screenShare: { enabled: false },
+        },
+      })
+      .catch((error) => {
+        console.error("LiveKit session start failed", error);
+        setManualState("error");
+      });
+  }, [session, setManualState, startRequestId]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_402px]">
@@ -272,6 +337,7 @@ function LiveAgentSession({
           <Button
             type="button"
             onClick={() => {
+              startedRequestRef.current = 0;
               setManualState("loading");
               void session
                 .start({
@@ -294,11 +360,7 @@ function LiveAgentSession({
           <Button
             type="button"
             variant="outline"
-            onClick={() => {
-              setInputValue("");
-              setManualState("intro");
-              void session.end();
-            }}
+            onClick={endSession}
             disabled={session.connectionState === ConnectionState.Disconnected}
           >
             <Square />
@@ -358,11 +420,7 @@ function LiveAgentSession({
         isSending={sessionMessages.isSending}
         messages={messages}
         onChangeInput={setInputValue}
-        onEnd={() => {
-          setInputValue("");
-          setManualState("intro");
-          void session.end();
-        }}
+        onEnd={endSession}
         onSend={async (message) => {
           await sessionMessages.send(message);
           setInputValue("");
@@ -392,6 +450,79 @@ function LiveAgentSession({
   );
 }
 
+function LiveAgentLauncher({
+  manualState,
+  onStart,
+}: {
+  manualState: AgentSideBarState;
+  onStart: () => void;
+}) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_402px]">
+      <section className="border border-border bg-background p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold">Live session state</h2>
+            <p className="text-sm text-muted-foreground">
+              The LiveKit session hook stays idle until you intentionally start
+              a voice session.
+            </p>
+          </div>
+          <StatusPill>
+            <WifiOff className="size-3.5" />
+            disconnected
+          </StatusPill>
+        </div>
+
+        <div className="mt-4 grid gap-0 border-y border-border md:grid-cols-2">
+          <DiagnosticRow label="Agent state" value="not mounted" />
+          <DiagnosticRow label="Manual state" value={manualState} />
+          <DiagnosticRow label="Local participant" value="pending" />
+          <DiagnosticRow label="Messages" value="0" />
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button type="button" onClick={onStart}>
+            <Play />
+            Start voice session
+          </Button>
+          <Button type="button" variant="outline" disabled>
+            <Square />
+            End session
+          </Button>
+          <Toggle pressed={false} aria-label="Toggle microphone" disabled>
+            <Mic />
+            Mic off
+          </Toggle>
+        </div>
+
+        <div className="mt-5">
+          <Label htmlFor="livekit-message-disabled">Send a text message</Label>
+          <div className="mt-2 flex gap-2">
+            <Input
+              id="livekit-message-disabled"
+              placeholder="Ask the agent to introduce itself"
+              disabled
+            />
+            <Button type="button" disabled>
+              <Copy />
+              Send
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <AgentSideBar
+        isMicrophoneEnabled={false}
+        messages={[]}
+        onStart={onStart}
+        state="intro"
+        voiceName="Portfolio Agent"
+      />
+    </div>
+  );
+}
+
 export default function LiveKitAgentPage() {
   const [agentName, setAgentName] = useState(DEFAULT_AGENT_NAME);
   const [endpointAuth, setEndpointAuth] = useState("");
@@ -399,6 +530,7 @@ export default function LiveKitAgentPage() {
   const [roomName, setRoomName] = useState(
     () => `local_agent_${crypto.randomUUID()}`,
   );
+  const [sessionStartRequestId, setSessionStartRequestId] = useState(0);
   const [tokenEndpoint, setTokenEndpoint] = useState(DEFAULT_TOKEN_ENDPOINT);
   const [probe, setProbe] = useState<TokenProbeState>({
     status: "idle",
@@ -475,9 +607,19 @@ export default function LiveKitAgentPage() {
       });
     }
   };
+  const startLiveSession = () => {
+    setManualState("loading");
+    setSessionStartRequestId((requestId) => requestId + 1);
+  };
+  const endLiveSession = () => {
+    setSessionStartRequestId(0);
+  };
 
   return (
-    <main className="min-h-screen bg-[#f6f6f4] text-foreground">
+    <main
+      className="min-h-screen bg-[var(--color-background-secondary)] text-foreground"
+      style={lightModeTokenStyle}
+    >
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 md:px-6">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
           <div>
@@ -523,6 +665,7 @@ export default function LiveKitAgentPage() {
                 onClick={() => {
                   setRoomName(`local_agent_${crypto.randomUUID()}`);
                   setManualState("intro");
+                  setSessionStartRequestId(0);
                 }}
               >
                 <RefreshCw />
@@ -619,25 +762,25 @@ export default function LiveKitAgentPage() {
               <h2 className="text-base font-semibold">Scenario links</h2>
               <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
                 <a
-                  className="underline underline-offset-4"
+                  className="text-[var(--color-text-accent)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   href="/livekit-agent"
                 >
                   Local happy path
                 </a>
                 <a
-                  className="underline underline-offset-4"
+                  className="text-[var(--color-text-accent)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   href="/livekit-agent?viewport=mobile"
                 >
                   Mobile-width manual check
                 </a>
                 <a
-                  className="underline underline-offset-4"
+                  className="text-[var(--color-text-accent)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   href="/livekit-agent?tokenEndpoint=/api/livekit/missing"
                 >
                   Token error path
                 </a>
                 <a
-                  className="underline underline-offset-4"
+                  className="text-[var(--color-text-accent)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   href={`${STORYBOOK_ORIGIN}/?path=/story/livekit-agent-session-panel--live-cloud-session`}
                   target="_blank"
                   rel="noreferrer"
@@ -645,7 +788,7 @@ export default function LiveKitAgentPage() {
                   Storybook AgentSessionPanel live story
                 </a>
                 <a
-                  className="underline underline-offset-4"
+                  className="text-[var(--color-text-accent)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   href={`${STORYBOOK_ORIGIN}/?path=/story/dennis-design-system-agent-side-bar--live-cloud-session`}
                   target="_blank"
                   rel="noreferrer"
@@ -655,13 +798,22 @@ export default function LiveKitAgentPage() {
               </div>
             </section>
 
-            <LiveAgentConsole
-              agentName={agentName}
-              endpointAuth={endpointAuth}
-              roomName={roomName}
-              setManualState={setManualState}
-              tokenEndpoint={tokenEndpoint}
-            />
+            {sessionStartRequestId > 0 ? (
+              <LiveAgentConsole
+                agentName={agentName}
+                endpointAuth={endpointAuth}
+                onSessionEnded={endLiveSession}
+                roomName={roomName}
+                setManualState={setManualState}
+                startRequestId={sessionStartRequestId}
+                tokenEndpoint={tokenEndpoint}
+              />
+            ) : (
+              <LiveAgentLauncher
+                manualState={manualState}
+                onStart={startLiveSession}
+              />
+            )}
           </div>
         </section>
       </div>

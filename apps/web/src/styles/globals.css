@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root,
+  .dark {
+    --background: var(--color-bg-app);
+    --foreground: var(--color-text-primary);
+    --card: var(--color-bg-primary);
+    --card-foreground: var(--color-text-primary);
+    --popover: var(--color-bg-primary);
+    --popover-foreground: var(--color-text-primary);
+    --primary: var(--color-button-primary);
+    --primary-foreground: var(--color-text-inverse);
+    --secondary: var(--color-button-secondary);
+    --secondary-foreground: var(--color-text-primary);
+    --muted: var(--color-bg-primary);
+    --muted-foreground: var(--color-text-secondary);
+    --accent: var(--color-bg-secondary);
+    --accent-foreground: var(--color-text-inverse);
+    --destructive: var(--color-state-error);
+    --destructive-foreground: var(--color-text-inverse);
+    --border: var(--color-border-primary);
+    --input: var(--color-border-secondary);
+    --ring: var(--color-state-neutral);
+    --radius: var(--radius-xs);
+    --sidebar-background: var(--color-bg-primary);
+    --sidebar-foreground: var(--color-text-primary);
+    --sidebar-primary: var(--color-button-primary);
+    --sidebar-primary-foreground: var(--color-text-inverse);
+    --sidebar-accent: var(--color-bg-secondary);
+    --sidebar-accent-foreground: var(--color-text-inverse);
+    --sidebar-border: var(--color-border-primary);
+    --sidebar-ring: var(--color-state-neutral);
+  }
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src:
+    url("/fonts/OpenRunde-Regular.woff2") format("woff2"),
+    url("/fonts/OpenRunde-Regular.woff") format("woff");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src:
+    url("/fonts/OpenRunde-Medium.woff2") format("woff2"),
+    url("/fonts/OpenRunde-Medium.woff") format("woff");
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src:
+    url("/fonts/OpenRunde-Semibold.woff2") format("woff2"),
+    url("/fonts/OpenRunde-Semibold.woff") format("woff");
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src:
+    url("/fonts/OpenRunde-Bold.woff2") format("woff2"),
+    url("/fonts/OpenRunde-Bold.woff") format("woff");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Open Runde", sans-serif;
+  }
+}
+
+/* Sonner toast styles */
+.sonner-toast[data-styled="true"] {
+  white-space: pre-line;
+}
+
+.sonner-toast[data-styled="true"] [data-description="true"] {
+  white-space: pre-line;
+}
+
+/* 3D perspective styles */
+.perspective-1000 {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+.transform-3d {
+  transform-style: preserve-3d;
+}

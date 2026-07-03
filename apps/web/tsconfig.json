@@ -1,0 +1,35 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    /* Base Options: */
+    "checkJs": true,
+
+    /* Bundled projects */
+    "lib": ["dom", "dom.iterable", "ES2022"],
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "plugins": [{ "name": "next" }],
+    "incremental": true,
+
+    /* Path Aliases */
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./src/*"],
+      "ui": ["./src/components/ui"],
+      "@starter/design-system": ["../../packages/design-system/src"],
+      "@starter/design-system/*": ["../../packages/design-system/src/*"],
+      "@starter/tokens": ["../../packages/tokens/dist"],
+      "@starter/tokens/*": ["../../packages/tokens/dist/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next", "storybook-static"]
+}

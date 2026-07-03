@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+**/node_modules/
+**/.venv/
 /.pnp
 .pnp.js
 
@@ -15,6 +17,7 @@ db.sqlite
 
 # next.js
 /.next/
+/apps/**/.next/
 /out/
 next-env.d.ts
 
@@ -41,6 +44,12 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+.eslintcache
+apps/**/.eslintcache
+
+# python
+__pycache__/
+*.py[cod]
 
 # idea files
 .idea

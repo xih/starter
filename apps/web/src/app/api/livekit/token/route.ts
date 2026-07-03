@@ -34,6 +34,7 @@ const roomConfigSchema = z
   .strict();
 
 const tokenRequestSchema = z.object({
+  dispatch_agent: z.boolean().optional(),
   room_name: z.string().min(1).max(160).optional(),
   participant_identity: z.string().min(1).max(160).optional(),
   participant_name: z.string().min(1).max(160).optional(),
@@ -189,16 +190,18 @@ export async function POST(request: Request) {
   const participantName = body.participant_name ?? "Guest";
   const requestedAgents = body.room_config?.agents;
   const agentsToDispatch =
-    requestedAgents && requestedAgents.length > 0
-      ? requestedAgents
-      : [
-          {
-            agentName:
-              env.LIVEKIT_AGENT_NAME ??
-              env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
-              DEFAULT_AGENT_NAME,
-          },
-        ];
+    body.dispatch_agent === false
+      ? []
+      : requestedAgents && requestedAgents.length > 0
+        ? requestedAgents
+        : [
+            {
+              agentName:
+                env.LIVEKIT_AGENT_NAME ??
+                env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
+                DEFAULT_AGENT_NAME,
+            },
+          ];
   const token = new AccessToken(env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET, {
     identity: participantIdentity,
     name: participantName,
@@ -217,42 +220,44 @@ export async function POST(request: Request) {
 
   const agent_dispatch_ids: string[] = [];
 
-  try {
-    const dispatchClient = new AgentDispatchClient(
-      getLiveKitApiUrl(env.LIVEKIT_URL),
-      env.LIVEKIT_API_KEY,
-      env.LIVEKIT_API_SECRET,
-    );
-
-    for (const requestedAgent of agentsToDispatch) {
-      const agentName =
-        requestedAgent.agent_name ??
-        requestedAgent.agentName ??
-        env.LIVEKIT_AGENT_NAME ??
-        env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
-        DEFAULT_AGENT_NAME;
-
-      const dispatch = await dispatchClient.createDispatch(
-        roomName,
-        agentName,
-        {
-          metadata: requestedAgent.metadata,
-          deployment: requestedAgent.deployment,
-        },
+  if (agentsToDispatch.length > 0) {
+    try {
+      const dispatchClient = new AgentDispatchClient(
+        getLiveKitApiUrl(env.LIVEKIT_URL),
+        env.LIVEKIT_API_KEY,
+        env.LIVEKIT_API_SECRET,
       );
 
-      agent_dispatch_ids.push(dispatch.id);
+      for (const requestedAgent of agentsToDispatch) {
+        const agentName =
+          requestedAgent.agent_name ??
+          requestedAgent.agentName ??
+          env.LIVEKIT_AGENT_NAME ??
+          env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
+          DEFAULT_AGENT_NAME;
+
+        const dispatch = await dispatchClient.createDispatch(
+          roomName,
+          agentName,
+          {
+            metadata: requestedAgent.metadata,
+            deployment: requestedAgent.deployment,
+          },
+        );
+
+        agent_dispatch_ids.push(dispatch.id);
+      }
+    } catch (error) {
+      return jsonWithCors(
+        request,
+        {
+          error: "LiveKit agent dispatch failed",
+          details:
+            error instanceof Error ? error.message : "Unknown dispatch error",
+        },
+        { status: 502 },
+      );
     }
-  } catch (error) {
-    return jsonWithCors(
-      request,
-      {
-        error: "LiveKit agent dispatch failed",
-        details:
-          error instanceof Error ? error.message : "Unknown dispatch error",
-      },
-      { status: 502 },
-    );
   }
 
   return jsonWithCors(

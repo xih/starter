@@ -19,20 +19,20 @@ function expect(condition, message) {
 }
 
 expect(
-  tailwindConfig.includes('spacing: prefixTokenMap(tokens.spacing, "nell")'),
-  "Tailwind config must expose Nell spacing via the `nell-*` prefix.",
+  tailwindConfig.includes('spacing: prefixTokenMap(tokens.spacing, "token")'),
+  "Tailwind config must expose design-token spacing via the `token-*` prefix.",
 );
 expect(
   !tailwindConfig.includes("spacing: tokens.spacing"),
-  "Tailwind config must not map Nell spacing directly onto Tailwind's core spacing scale.",
+  "Tailwind config must not map design-token spacing directly onto Tailwind's core spacing scale.",
 );
 expect(
   !tailwindConfig.includes("...tokens.borderRadius"),
   "Tailwind config must not spread raw token radius keys into Tailwind's radius scale.",
 );
 expect(
-  tailwindConfig.includes('...prefixTokenMap(tokens.borderRadius, "nell")'),
-  "Tailwind config must expose Nell radius via the `nell-*` prefix.",
+  tailwindConfig.includes('...prefixTokenMap(tokens.borderRadius, "token")'),
+  "Tailwind config must expose design-token radius via the `token-*` prefix.",
 );
 expect(
   tailwindConfig.includes('lg: "var(--radius)"') &&

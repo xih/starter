@@ -39,9 +39,9 @@ function StorySurface({
   width: number;
 }) {
   return (
-    <div className="min-h-screen bg-[var(--color-bg-app)] p-nell-24">
+    <div className="min-h-screen bg-[var(--color-bg-app)] p-token-24">
       <div
-        className="overflow-auto border border-dashed border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-nell-16"
+        className="overflow-auto border border-dashed border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-token-16"
         style={{ width }}
       >
         {children}
@@ -58,7 +58,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Status dock implementation for Figma node 37:66. Uses Nell design tokens for color, spacing, radius, and typography. Live mode uses browser time, ipapi.co for IP location, and Open-Meteo for current weather.",
+          "Status dock implementation for Figma node 37:66. Uses design tokens for color, spacing, radius, and typography. Live mode uses browser time, ipapi.co for IP location, and Open-Meteo for current weather.",
       },
     },
   },

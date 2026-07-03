@@ -289,7 +289,7 @@ function VisitorDot() {
   return (
     <span
       aria-hidden="true"
-      className="block size-[8px] shrink-0 rounded-nell-round bg-[var(--color-state-success)]"
+      className="block size-[8px] shrink-0 rounded-token-round bg-[var(--color-state-success)]"
     />
   );
 }
@@ -312,7 +312,7 @@ export function StatusDock({
       className={cn(
         "h-[34px] overflow-hidden bg-[var(--color-button-primary)] text-[var(--color-text-inverse)]",
         isDesktop
-          ? "flex w-[1728px] items-center gap-nell-8"
+          ? "flex w-[1728px] items-center gap-token-8"
           : "relative w-[402px]",
         className,
       )}
@@ -321,12 +321,12 @@ export function StatusDock({
     >
       <div
         className={cn(
-          "flex h-full items-center gap-nell-16 px-nell-8 py-0",
+          "flex h-full items-center gap-token-16 px-token-8 py-0",
           isDesktop ? "relative shrink-0" : "absolute left-0 top-0 w-[402px]",
         )}
         data-figma-node={isDesktop ? "37:32" : "37:55"}
       >
-        <div className="flex h-[18px] items-center gap-nell-8">
+        <div className="flex h-[18px] items-center gap-token-8">
           <VisitorDot />
           <StatusText>{status.visitors} visitors</StatusText>
         </div>
@@ -342,12 +342,12 @@ export function StatusDock({
 
       {isDesktop && (
         <>
-          <div className="flex h-full shrink-0 items-center p-nell-8">
+          <div className="flex h-full shrink-0 items-center p-token-8">
             <StatusText>
               {formatWindInchesPerSecond(status.weather.windInchesPerSecond)}
             </StatusText>
           </div>
-          <div className="flex h-full shrink-0 items-center p-nell-8">
+          <div className="flex h-full shrink-0 items-center p-token-8">
             <StatusText>
               {status.weather.precipitationLabel ?? "Rain"}
             </StatusText>

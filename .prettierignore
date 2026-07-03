@@ -1,0 +1,13 @@
+node_modules/
+**/node_modules/
+
+.next/
+**/.next/
+storybook-static/
+**/storybook-static/
+
+.venv/
+**/.venv/
+__pycache__/
+
+packages/tokens/dist/

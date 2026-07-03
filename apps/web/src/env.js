@@ -16,6 +16,8 @@ export const env = createEnv({
     LIVEKIT_API_SECRET: z.string().optional(),
     LIVEKIT_AGENT_NAME: z.string().optional(),
     LIVEKIT_AGENT_REALTIME_MODEL: z.string().optional(),
+    LIVEKIT_ALLOWED_ORIGINS: z.string().optional(),
+    LIVEKIT_TOKEN_AUTH_SECRET: z.string().optional(),
     // AUTH_DISCORD_ID: z.string(),
     // AUTH_DISCORD_SECRET: z.string(),
     NODE_ENV: z
@@ -45,6 +47,8 @@ export const env = createEnv({
     LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET,
     LIVEKIT_AGENT_NAME: process.env.LIVEKIT_AGENT_NAME,
     LIVEKIT_AGENT_REALTIME_MODEL: process.env.LIVEKIT_AGENT_REALTIME_MODEL,
+    LIVEKIT_ALLOWED_ORIGINS: process.env.LIVEKIT_ALLOWED_ORIGINS,
+    LIVEKIT_TOKEN_AUTH_SECRET: process.env.LIVEKIT_TOKEN_AUTH_SECRET,
     // AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
     // AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
     NODE_ENV: process.env.NODE_ENV,

@@ -1,6 +1,8 @@
 export const tokens = {
   "colors": {
     "text": {
+      "primary": "var(--color-text-primary)",
+      "secondary": "var(--color-text-secondary)",
       "inverse": "var(--color-text-inverse)"
     },
     "bg": {
@@ -14,6 +16,7 @@ export const tokens = {
     "border": {
       "primary": "var(--color-border-primary)",
       "secondary": "var(--color-border-secondary)",
+      "subtle": "var(--color-border-subtle)",
       "default": "var(--color-border-default)"
     },
     "button": {
@@ -73,6 +76,11 @@ export const tokens = {
     "l": "var(--radius-l)",
     "xl": "var(--radius-xl)",
     "round": "var(--radius-round)"
+  },
+  "fontFamily": {
+    "title": "var(--font-font-family-title)",
+    "body": "var(--font-font-family-body)",
+    "mono": "var(--font-font-family-mono)"
   },
   "fontSize": {
     "title": "var(--font-font-size-title)",

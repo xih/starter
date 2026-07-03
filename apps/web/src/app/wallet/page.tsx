@@ -51,6 +51,7 @@ interface RedEnvelope {
 }
 
 export default function WalletPage() {
+  const transactionDate = new Date().toLocaleDateString();
   const [isOpen, setIsOpen] = useState(false);
   const [redEnvelopes, setRedEnvelopes] = useState<RedEnvelope[]>([]);
   const [nextEnvelopeId, setNextEnvelopeId] = useState(1);
@@ -62,6 +63,27 @@ export default function WalletPage() {
 
   const counterRef = useRef<HTMLDivElement>(null);
   const phoneRef = useRef<HTMLDivElement>(null);
+  const envelopeTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const scheduleEnvelopeTimeout = (callback: () => void, delay: number) => {
+    const timeoutId = setTimeout(() => {
+      envelopeTimeoutsRef.current = envelopeTimeoutsRef.current.filter(
+        (activeTimeoutId) => activeTimeoutId !== timeoutId,
+      );
+      callback();
+    }, delay);
+
+    envelopeTimeoutsRef.current.push(timeoutId);
+  };
+
+  useEffect(() => {
+    return () => {
+      for (const timeoutId of envelopeTimeoutsRef.current) {
+        clearTimeout(timeoutId);
+      }
+      envelopeTimeoutsRef.current = [];
+    };
+  }, []);
 
   // Calculate counter position when component mounts and on window resize
   useEffect(() => {
@@ -113,20 +135,20 @@ export default function WalletPage() {
     setNextEnvelopeId((prev) => prev + 1);
 
     // Schedule removal of this envelope
-    setTimeout(() => {
+    scheduleEnvelopeTimeout(() => {
       setRedEnvelopes((prev) =>
         prev.filter((env) => env.id !== newEnvelope.id),
       );
 
       // Trigger counter effects
       setCounterPulse(true);
-      setTimeout(() => {
+      scheduleEnvelopeTimeout(() => {
         setCounterPulse(false);
         // Add money after animation
         setMoneyEarned((prev) => prev + newEnvelope.amount);
         // Highlight counter
         setCounterHighlight(true);
-        setTimeout(() => setCounterHighlight(false), 1000);
+        scheduleEnvelopeTimeout(() => setCounterHighlight(false), 1000);
       }, 200);
     }, 1000);
   };
@@ -309,8 +331,11 @@ export default function WalletPage() {
                                   </div>
                                   <div>
                                     <p className="font-medium">Red Envelope</p>
-                                    <p className="text-sm text-gray-500">
-                                      {new Date().toLocaleDateString()}
+                                    <p
+                                      className="text-sm text-gray-500"
+                                      suppressHydrationWarning
+                                    >
+                                      {transactionDate}
                                     </p>
                                   </div>
                                 </div>

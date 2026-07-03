@@ -1,8 +1,8 @@
 [
   {
     "path": [
-      "color",
-      "text",
+      "Color",
+      "Text",
       "primary"
     ],
     "name": "color-text-primary",
@@ -11,13 +11,13 @@
   },
   {
     "path": [
-      "color",
-      "text",
+      "Color",
+      "Text",
       "secondary"
     ],
     "name": "color-text-secondary",
     "type": "color",
-    "value": "#DDDDDD"
+    "value": "#A0A1A3"
   },
   {
     "path": [
@@ -111,13 +111,13 @@
   },
   {
     "path": [
-      "color",
-      "border",
+      "Color",
+      "Border",
       "subtle"
     ],
     "name": "color-border-subtle",
     "type": "color",
-    "value": "#4B4B4B"
+    "value": "#E4E4E4"
   },
   {
     "path": [
@@ -890,6 +890,26 @@
     "path": [
       "color",
       "text",
+      "primary"
+    ],
+    "name": "color-text-primary",
+    "type": "color",
+    "value": "#FFFFFF"
+  },
+  {
+    "path": [
+      "color",
+      "text",
+      "secondary"
+    ],
+    "name": "color-text-secondary",
+    "type": "color",
+    "value": "#DDDDDD"
+  },
+  {
+    "path": [
+      "color",
+      "text",
       "tertiary"
     ],
     "name": "color-text-tertiary",
@@ -925,6 +945,16 @@
     "name": "color-text-negative",
     "type": "color",
     "value": "#FFB2AB"
+  },
+  {
+    "path": [
+      "color",
+      "border",
+      "subtle"
+    ],
+    "name": "color-border-subtle",
+    "type": "color",
+    "value": "#4B4B4B"
   },
   {
     "path": [

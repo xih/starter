@@ -24,6 +24,7 @@ export function VideoPlayer() {
   const [isMuted, setIsMuted] = useState(false);
   const [direction, setDirection] = useState(0); // -1 for up, 1 for down
   const [isAnimating, setIsAnimating] = useState(false);
+  const outerContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartYRef = useRef<number | null>(null);
   const wheelDeltaRef = useRef(0);
@@ -46,27 +47,6 @@ export function VideoPlayer() {
     setDirection(1);
     setCurrentVideoIndex((index) => getNextIndex(index));
   }, [isAnimating]);
-
-  const handleWheel = useCallback(
-    (event: React.WheelEvent<HTMLDivElement>) => {
-      event.preventDefault();
-
-      if (isAnimating) return;
-
-      wheelDeltaRef.current += event.deltaY;
-
-      if (Math.abs(wheelDeltaRef.current) < 48) return;
-
-      if (wheelDeltaRef.current > 0) {
-        navigateToNext();
-      } else {
-        navigateToPrevious();
-      }
-
-      wheelDeltaRef.current = 0;
-    },
-    [isAnimating, navigateToNext, navigateToPrevious],
-  );
 
   const handleTouchStart = useCallback(
     (event: React.TouchEvent<HTMLDivElement>) => {
@@ -95,6 +75,34 @@ export function VideoPlayer() {
     },
     [isAnimating, navigateToNext, navigateToPrevious],
   );
+
+  useEffect(() => {
+    const container = outerContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+
+      if (isAnimating) return;
+
+      wheelDeltaRef.current += event.deltaY;
+
+      if (Math.abs(wheelDeltaRef.current) < 48) return;
+
+      if (wheelDeltaRef.current > 0) {
+        navigateToNext();
+      } else {
+        navigateToPrevious();
+      }
+
+      wheelDeltaRef.current = 0;
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, [isAnimating, navigateToNext, navigateToPrevious]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -215,8 +223,8 @@ export function VideoPlayer() {
 
   return (
     <div
+      ref={outerContainerRef}
       className="relative flex h-full min-h-[600px] w-full touch-none items-center justify-center overflow-hidden px-4 py-8"
-      onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >

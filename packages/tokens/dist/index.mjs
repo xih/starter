@@ -1,23 +1,23 @@
 export const lightTokens = [
   {
     "path": [
-      "color",
-      "text",
+      "Color",
+      "Text",
       "primary"
     ],
     "name": "color-text-primary",
     "type": "color",
-    "value": "#000000"
+    "value": "#1E1F24"
   },
   {
     "path": [
-      "color",
-      "text",
+      "Color",
+      "Text",
       "secondary"
     ],
     "name": "color-text-secondary",
     "type": "color",
-    "value": "#4B4B4B"
+    "value": "#595A5D"
   },
   {
     "path": [
@@ -111,13 +111,13 @@ export const lightTokens = [
   },
   {
     "path": [
-      "color",
-      "border",
+      "Color",
+      "Border",
       "subtle"
     ],
     "name": "color-border-subtle",
     "type": "color",
-    "value": "#E8E8E8"
+    "value": "#1E1F24"
   },
   {
     "path": [
@@ -890,6 +890,26 @@ export const lightTokens = [
     "path": [
       "color",
       "text",
+      "primary"
+    ],
+    "name": "color-text-primary",
+    "type": "color",
+    "value": "#000000"
+  },
+  {
+    "path": [
+      "color",
+      "text",
+      "secondary"
+    ],
+    "name": "color-text-secondary",
+    "type": "color",
+    "value": "#4B4B4B"
+  },
+  {
+    "path": [
+      "color",
+      "text",
       "tertiary"
     ],
     "name": "color-text-tertiary",
@@ -925,6 +945,16 @@ export const lightTokens = [
     "name": "color-text-negative",
     "type": "color",
     "value": "#DE1135"
+  },
+  {
+    "path": [
+      "color",
+      "border",
+      "subtle"
+    ],
+    "name": "color-border-subtle",
+    "type": "color",
+    "value": "#E8E8E8"
   },
   {
     "path": [
@@ -970,8 +1000,8 @@ export const lightTokens = [
 export const darkTokens = [
   {
     "path": [
-      "color",
-      "text",
+      "Color",
+      "Text",
       "primary"
     ],
     "name": "color-text-primary",
@@ -980,13 +1010,13 @@ export const darkTokens = [
   },
   {
     "path": [
-      "color",
-      "text",
+      "Color",
+      "Text",
       "secondary"
     ],
     "name": "color-text-secondary",
     "type": "color",
-    "value": "#DDDDDD"
+    "value": "#A0A1A3"
   },
   {
     "path": [
@@ -1080,13 +1110,13 @@ export const darkTokens = [
   },
   {
     "path": [
-      "color",
-      "border",
+      "Color",
+      "Border",
       "subtle"
     ],
     "name": "color-border-subtle",
     "type": "color",
-    "value": "#4B4B4B"
+    "value": "#E4E4E4"
   },
   {
     "path": [
@@ -1859,6 +1889,26 @@ export const darkTokens = [
     "path": [
       "color",
       "text",
+      "primary"
+    ],
+    "name": "color-text-primary",
+    "type": "color",
+    "value": "#FFFFFF"
+  },
+  {
+    "path": [
+      "color",
+      "text",
+      "secondary"
+    ],
+    "name": "color-text-secondary",
+    "type": "color",
+    "value": "#DDDDDD"
+  },
+  {
+    "path": [
+      "color",
+      "text",
       "tertiary"
     ],
     "name": "color-text-tertiary",
@@ -1894,6 +1944,16 @@ export const darkTokens = [
     "name": "color-text-negative",
     "type": "color",
     "value": "#FFB2AB"
+  },
+  {
+    "path": [
+      "color",
+      "border",
+      "subtle"
+    ],
+    "name": "color-border-subtle",
+    "type": "color",
+    "value": "#4B4B4B"
   },
   {
     "path": [

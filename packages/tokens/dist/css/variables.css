@@ -1,6 +1,6 @@
 :root {
-  --color-text-primary: #000000;
-  --color-text-secondary: #4B4B4B;
+  --color-text-primary: #1E1F24;
+  --color-text-secondary: #595A5D;
   --color-text-inverse: #E4E4E4;
   --color-bg-app: #121318;
   --color-bg-primary: #1E1F24;
@@ -10,7 +10,7 @@
   --color-bg-surface: #FFFFFF;
   --color-border-primary: #1E1F24;
   --color-border-secondary: #121318;
-  --color-border-subtle: #E8E8E8;
+  --color-border-subtle: #1E1F24;
   --color-border-default: #1E1F24;
   --color-button-primary: #121318;
   --color-button-secondary: #A0A1A3;
@@ -102,7 +102,7 @@
 
 .dark {
   --color-text-primary: #FFFFFF;
-  --color-text-secondary: #DDDDDD;
+  --color-text-secondary: #A0A1A3;
   --color-text-inverse: #121318;
   --color-bg-app: #121318;
   --color-bg-primary: #1E1F24;
@@ -112,7 +112,7 @@
   --color-bg-surface: #FFFFFF;
   --color-border-primary: #B8B8BA;
   --color-border-secondary: #A0A1A3;
-  --color-border-subtle: #4B4B4B;
+  --color-border-subtle: #E4E4E4;
   --color-border-default: #D0D0D1;
   --color-button-primary: #EBE7E4;
   --color-button-secondary: #2A2B2F;

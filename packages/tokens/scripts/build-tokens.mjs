@@ -40,7 +40,12 @@ function collectTokens(node, trail = [], output = []) {
 }
 
 function dedupeTokens(tokens) {
-  return [...new Map(tokens.map((token) => [token.name, token])).values()];
+  const seen = new Set();
+  return tokens.filter((token) => {
+    if (seen.has(token.name)) return false;
+    seen.add(token.name);
+    return true;
+  });
 }
 
 function normalizeValue(token) {
@@ -167,6 +172,16 @@ function buildNestedMap(tokens, section) {
   return result;
 }
 
+function buildFontFamilyMap(tokens) {
+  const fontTokens = buildNestedMap(tokens, "Font");
+
+  return {
+    title: fontTokens.fontFamilyTitle,
+    body: fontTokens.fontFamilyBody,
+    mono: fontTokens.fontFamilyMono,
+  };
+}
+
 function toObjectKey(value) {
   return toKebabSegment(value).replace(/-([a-z])/g, (_, letter) =>
     letter.toUpperCase(),
@@ -183,17 +198,19 @@ async function main() {
   await mkdir(new URL("tailwind/", distDir), { recursive: true });
 
   const tokensByMode = {};
+  const cssTokensByMode = {};
 
   for (const [mode, file] of Object.entries(tokenFiles)) {
     const source = JSON.parse(await readFile(new URL(file, srcDir), "utf8"));
-    tokensByMode[mode] = dedupeTokens(collectTokens(source));
+    tokensByMode[mode] = collectTokens(source);
+    cssTokensByMode[mode] = dedupeTokens(tokensByMode[mode]);
     await writeFile(
       new URL(`json/${mode}.json`, distDir),
       `${JSON.stringify(tokensByMode[mode], null, 2)}\n`,
     );
   }
 
-  const css = buildCss(tokensByMode);
+  const css = buildCss(cssTokensByMode);
   await writeFile(new URL("css/variables.css", distDir), css);
 
   const light = tokensByMode.light;
@@ -201,7 +218,7 @@ async function main() {
     colors: buildNestedMap(light, "Color"),
     spacing: buildNestedMap(light, "Spacing"),
     borderRadius: buildNestedMap(light, "Radius"),
-    fontFamily: buildNestedMap(light, "Font").fontFamily,
+    fontFamily: buildFontFamilyMap(light),
     fontSize: buildNestedMap(light, "Font").fontSize,
     fontWeight: buildNestedMap(light, "Font").fontWeight,
     lineHeight: buildNestedMap(light, "Font").lineHeight,

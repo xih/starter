@@ -275,7 +275,7 @@ function IntroContent({ compact = false }: { compact?: boolean }) {
         <h1 className="font-title text-[length:var(--font-font-size-title)] font-[var(--font-font-weight-medium)] leading-[var(--font-line-height-lh-title)] tracking-[var(--font-letter-spacing-title)]">
           Dennis Xing is a founding product designer.
         </h1>
-        <div className="mt-nell-24 whitespace-pre font-body text-[length:var(--font-font-size-subtext)] leading-[var(--font-line-height-lh-subtext)]">
+        <div className="mt-token-24 whitespace-pre font-body text-[length:var(--font-font-size-subtext)] leading-[var(--font-line-height-lh-subtext)]">
           {"Past:\nFounding designer at Nell\nAGI\nKrea\nSkydio"}
         </div>
       </div>
@@ -420,16 +420,16 @@ function DesktopPanel({
               <X className="size-[24px]" />
             </div>
             <div>
-              <h3 className="font-title text-[20px] font-semibold leading-[28px] text-[#18181b]">
+              <h3 className="font-title text-[length:var(--font-font-size-heading)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-heading)] text-[var(--color-text-primary)]">
                 Connection failed
               </h3>
-              <p className="mt-[6px] font-sans text-[14px] leading-[20px] text-[#52525b]">
+              <p className="mt-token-8 font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)] text-[var(--color-text-secondary)]">
                 Check the token endpoint, microphone permission, or LiveKit
                 configuration.
               </p>
             </div>
             <button
-              className="flex h-[40px] min-w-[72px] items-center justify-center rounded-[8px] bg-[#18181b] px-[16px] font-sans text-[14px] font-medium text-white"
+              className="flex h-token-40 min-w-[72px] items-center justify-center rounded-token-xs bg-[var(--color-core-primary-a)] px-token-16 font-body text-[length:var(--font-font-size-cta)] font-[var(--font-font-weight-medium)] leading-[var(--font-line-height-lh-cta)] text-[var(--color-text-inverse-primary)]"
               onClick={onConnect}
               type="button"
             >
@@ -533,16 +533,16 @@ function MobileCard({
               <X className="size-[22px]" />
             </div>
             <div>
-              <h3 className="font-title text-[18px] font-semibold leading-[24px] text-white">
+              <h3 className="font-title text-[length:var(--font-font-size-heading)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-heading)] text-[var(--color-text-inverse-primary)]">
                 Connection failed
               </h3>
-              <p className="mt-[6px] font-sans text-[13px] leading-[18px] text-[#d4d4d8]">
+              <p className="mt-token-8 font-body text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--color-text-inverse)]">
                 Check the token endpoint, microphone permission, or LiveKit
                 configuration.
               </p>
             </div>
             <button
-              className="flex h-[36px] min-w-[70px] items-center justify-center rounded-[8px] bg-white px-[14px] font-sans text-[13px] font-medium text-[#18181b]"
+              className="flex h-[36px] min-w-[70px] items-center justify-center rounded-token-xs bg-[var(--color-background-primary)] px-token-16 font-body text-[length:var(--font-font-size-caption)] font-[var(--font-font-weight-medium)] leading-[var(--font-line-height-lh-caption)] text-[var(--color-text-primary)]"
               onClick={onConnect}
               type="button"
             >

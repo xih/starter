@@ -49,7 +49,7 @@ function StorySurface({
   maxWidth?: number;
 }) {
   return (
-    <div className="min-h-screen bg-[#f4f4f5] p-nell-24">
+    <div className="min-h-screen bg-[#f4f4f5] p-token-24">
       <div className="mx-auto" style={{ maxWidth }}>
         {children}
       </div>

@@ -47,7 +47,7 @@ const scenarioMessages: AgentSideBarMessage[] = [
 
 function StorySurface({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-start justify-center bg-[var(--color-bg-app)] p-nell-24">
+    <div className="flex min-h-screen items-start justify-center bg-[var(--color-bg-app)] p-token-24">
       {children}
     </div>
   );
@@ -408,7 +408,7 @@ export const LiveCloudSession: Story = {
 export const MicSelectorStates: StoryObj = {
   render: () => (
     <StorySurface>
-      <div className="flex items-center gap-nell-16 rounded-nell-m bg-[var(--color-background-primary)] p-nell-24">
+      <div className="flex items-center gap-token-16 rounded-token-m bg-[var(--color-background-primary)] p-token-24">
         <MicSelector enabled />
         <MicSelector enabled={false} />
       </div>
@@ -419,7 +419,7 @@ export const MicSelectorStates: StoryObj = {
 export const VoiceSelectorPanel: StoryObj = {
   render: () => (
     <StorySurface>
-      <div className="rounded-nell-m bg-[var(--color-background-primary)] p-nell-24">
+      <div className="rounded-token-m bg-[var(--color-background-primary)] p-token-24">
         <VoiceSelector
           avatar="/agent-sidebar/avatar-1.png"
           isOpen
@@ -433,7 +433,7 @@ export const VoiceSelectorPanel: StoryObj = {
 export const ChatMessages: StoryObj = {
   render: () => (
     <StorySurface>
-      <div className="w-[477px] rounded-nell-m bg-[var(--color-background-primary)] p-nell-24">
+      <div className="w-[477px] rounded-token-m bg-[var(--color-background-primary)] p-token-24">
         <ChatMessage
           message={{
             id: "system",

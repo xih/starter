@@ -34,6 +34,7 @@ export const env = createEnv({
     NEXT_PUBLIC_LIVEKIT_AGENT_NAME: z.string().optional(),
     NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT: z.string().optional(),
     NEXT_PUBLIC_LIVEKIT_PROJECT_ENV: z.string().optional(),
+    NEXT_PUBLIC_STORYBOOK_ORIGIN: z.string().url().optional(),
   },
 
   /**
@@ -57,6 +58,7 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT,
     NEXT_PUBLIC_LIVEKIT_PROJECT_ENV:
       process.env.NEXT_PUBLIC_LIVEKIT_PROJECT_ENV,
+    NEXT_PUBLIC_STORYBOOK_ORIGIN: process.env.NEXT_PUBLIC_STORYBOOK_ORIGIN,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

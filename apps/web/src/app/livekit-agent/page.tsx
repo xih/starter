@@ -39,15 +39,16 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Toggle } from "~/components/ui/toggle";
+import { env } from "~/env";
 import { useInputControls } from "~/hooks/agents-ui/use-agent-control-bar";
 import { cn } from "~/lib/utils";
 
 const DEFAULT_AGENT_NAME =
-  process.env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ?? "dennis-portfolio-agent";
+  env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ?? "dennis-portfolio-agent";
 const DEFAULT_TOKEN_ENDPOINT =
-  process.env.NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT ?? "/api/livekit/token";
+  env.NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT ?? "/api/livekit/token";
 const STORYBOOK_ORIGIN =
-  process.env.NEXT_PUBLIC_STORYBOOK_ORIGIN ?? "http://localhost:6006";
+  env.NEXT_PUBLIC_STORYBOOK_ORIGIN ?? "http://localhost:6006";
 
 const lightModeTokenStyle = {
   "--background": "var(--color-background-primary)",
@@ -80,6 +81,22 @@ type TokenProbeState =
 function messageText(message: { message?: unknown; text?: unknown }) {
   const value = message.message ?? message.text;
   return typeof value === "string" ? value : "";
+}
+
+function resolveSameOriginPath(endpoint: string) {
+  const fallbackOrigin =
+    typeof window === "undefined" ? "http://localhost" : window.location.origin;
+
+  try {
+    const url = new URL(endpoint, fallbackOrigin);
+    if (url.origin !== fallbackOrigin) {
+      return null;
+    }
+
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return null;
+  }
 }
 
 function toAgentSideBarMessage(
@@ -539,6 +556,10 @@ export default function LiveKitAgentPage() {
     detail: "Run a token probe before starting the room.",
   });
   const [isMobilePreset, setIsMobilePreset] = useState(false);
+  const resolvedTokenEndpoint = useMemo(
+    () => resolveSameOriginPath(tokenEndpoint),
+    [tokenEndpoint],
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -563,8 +584,16 @@ export default function LiveKitAgentPage() {
   const runTokenProbe = async () => {
     setProbe({ status: "checking", detail: "Requesting LiveKit token..." });
 
+    if (!resolvedTokenEndpoint) {
+      setProbe({
+        status: "error",
+        detail: "Token endpoint must be a same-origin path.",
+      });
+      return;
+    }
+
     try {
-      const response = await fetch(tokenEndpoint, {
+      const response = await fetch(resolvedTokenEndpoint, {
         body: JSON.stringify({
           dispatch_agent: false,
           participant_name: "Local QA",
@@ -610,6 +639,14 @@ export default function LiveKitAgentPage() {
     }
   };
   const startLiveSession = () => {
+    if (!resolvedTokenEndpoint) {
+      setProbe({
+        status: "error",
+        detail: "Token endpoint must be a same-origin path.",
+      });
+      return;
+    }
+
     setManualState("loading");
     setSessionStartRequestId((requestId) => requestId + 1);
   };
@@ -682,7 +719,13 @@ export default function LiveKitAgentPage() {
                   id="token-endpoint"
                   value={tokenEndpoint}
                   onChange={(event) => setTokenEndpoint(event.target.value)}
+                  aria-invalid={!resolvedTokenEndpoint}
                 />
+                {!resolvedTokenEndpoint ? (
+                  <p className="text-xs text-[var(--color-text-negative)]">
+                    Use a same-origin path, for example /api/livekit/token.
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="agent-name">Agent name</Label>
@@ -800,7 +843,7 @@ export default function LiveKitAgentPage() {
               </div>
             </section>
 
-            {sessionStartRequestId > 0 ? (
+            {sessionStartRequestId > 0 && resolvedTokenEndpoint ? (
               <LiveAgentConsole
                 agentName={agentName}
                 endpointAuth={endpointAuth}
@@ -809,7 +852,7 @@ export default function LiveKitAgentPage() {
                 roomName={roomName}
                 setManualState={setManualState}
                 startRequestId={sessionStartRequestId}
-                tokenEndpoint={tokenEndpoint}
+                tokenEndpoint={resolvedTokenEndpoint}
               />
             ) : (
               <LiveAgentLauncher

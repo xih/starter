@@ -1,7 +1,6 @@
 "use client";
 
 import React, {
-  Children,
   cloneElement,
   type ComponentProps,
   type CSSProperties,
@@ -21,33 +20,34 @@ import { useAgentAudioVisualizerBarAnimator } from "~/hooks/agents-ui/use-agent-
 import { cn } from "~/lib/utils";
 
 function cloneSingleChild(
-  children: ReactNode | ReactNode[],
+  children: ReactNode,
   props?: Record<string, unknown>,
   key?: string | number,
 ) {
-  return Children.map(children, (child) => {
-    if (isValidElement(child) && Children.only(children)) {
-      const childProps = child.props as Record<string, unknown>;
-      if (childProps.className) {
-        props ??= {};
-        props.className = cn(
-          typeof childProps.className === "string"
-            ? childProps.className
-            : undefined,
-          typeof props.className === "string" ? props.className : undefined,
-        );
-        props.style = {
-          ...(childProps.style as CSSProperties),
-          ...(props.style as CSSProperties),
-        };
-      }
-      return cloneElement(child, {
-        ...props,
-        key: key ? String(key) : undefined,
-      });
+  if (isValidElement(children)) {
+    const childProps = children.props as Record<string, unknown>;
+    const mergedProps = { ...props };
+
+    if (childProps.className) {
+      mergedProps.className = cn(
+        typeof childProps.className === "string"
+          ? childProps.className
+          : undefined,
+        typeof props?.className === "string" ? props.className : undefined,
+      );
+      mergedProps.style = {
+        ...(childProps.style as CSSProperties),
+        ...(props?.style as CSSProperties),
+      };
     }
-    return child;
-  });
+
+    return cloneElement(children, {
+      ...mergedProps,
+      key: key ? String(key) : undefined,
+    });
+  }
+
+  return children;
 }
 
 function isNumericArrayLike(value: unknown): value is ArrayLike<number> {

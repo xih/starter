@@ -323,7 +323,7 @@ export function StatusDock({
       <div
         className={cn(
           "flex h-full items-center gap-token-16 px-token-8 py-0",
-          isDesktop ? "relative shrink-0" : "absolute left-0 top-0 w-[402px]",
+          isDesktop ? "relative shrink-0" : "absolute left-0 top-0 w-full",
         )}
         data-figma-node={isDesktop ? "37:32" : "37:55"}
       >

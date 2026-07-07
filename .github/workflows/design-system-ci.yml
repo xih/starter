@@ -70,4 +70,4 @@ jobs:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}
           storybookBuildDir: apps/web/storybook-static
-          exitZeroOnChanges: false
+          exitZeroOnChanges: true

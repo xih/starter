@@ -95,7 +95,7 @@ function TokenSurface({ mode }: { mode: "light" | "dark" }) {
         <div className="mx-auto grid max-w-6xl gap-10">
           <header className="border-b border-border pb-4">
             <p className="text-caption uppercase text-muted-foreground">
-              Nell tokens
+              Tokens
             </p>
             <h1 className="text-title capitalize">{mode} theme</h1>
           </header>
@@ -106,7 +106,7 @@ function TokenSurface({ mode }: { mode: "light" | "dark" }) {
               {colorTokens.map((token) => (
                 <div
                   key={token}
-                  className="overflow-hidden rounded-nell-s border border-border bg-card"
+                  className="overflow-hidden rounded-token-s border border-border bg-card"
                 >
                   <div
                     className="h-20 border-b border-border"
@@ -172,7 +172,7 @@ function TokenSurface({ mode }: { mode: "light" | "dark" }) {
 }
 
 const meta = {
-  title: "Design System/Nell Tokens",
+  title: "Design System/Tokens",
   component: TokenSurface,
   parameters: {
     layout: "fullscreen",

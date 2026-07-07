@@ -77,26 +77,45 @@ const weatherCodeLabels = new Map<number, string>([
   [51, "Drizzle"],
   [53, "Drizzle"],
   [55, "Drizzle"],
+  [56, "Freezing Drizzle"],
+  [57, "Freezing Drizzle"],
   [61, "Rain"],
   [63, "Rain"],
   [65, "Rain"],
+  [66, "Freezing Rain"],
+  [67, "Freezing Rain"],
   [71, "Snow"],
   [73, "Snow"],
   [75, "Snow"],
+  [77, "Snow Grains"],
   [80, "Rain Showers"],
   [81, "Rain Showers"],
   [82, "Rain Showers"],
+  [85, "Snow Showers"],
+  [86, "Snow Showers"],
   [95, "Thunderstorm"],
+  [96, "Thunderstorm With Hail"],
+  [99, "Thunderstorm With Hail"],
 ]);
 
+const LIVE_STATUS_FETCH_TIMEOUT_MS = 5000;
+
 function formatTime(now: Date, timezone?: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  const options: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
-    timeZone: timezone,
-  }).format(now);
+  };
+
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      ...options,
+      timeZone: timezone,
+    }).format(now);
+  } catch {
+    return new Intl.DateTimeFormat("en-US", options).format(now);
+  }
 }
 
 function formatTemperature(value: number) {
@@ -119,11 +138,27 @@ function milesPerHourToInchesPerSecond(value: number) {
 function getWeatherCondition(code?: number) {
   if (typeof code !== "number")
     return DEFAULT_STATUS_DOCK_DATA.weather.condition;
-  return weatherCodeLabels.get(code) ?? "Overcast";
+  return weatherCodeLabels.get(code) ?? "Unknown";
+}
+
+function getPrecipitationLabel(code?: number, precipitation?: number) {
+  if (typeof precipitation !== "number" || precipitation <= 0) return "Dry";
+
+  if (typeof code !== "number") return "Precipitation";
+  if (code >= 51 && code <= 57) return "Drizzle";
+  if (code >= 66 && code <= 67) return "Freezing Rain";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
+  if ([96, 99].includes(code)) return "Hail";
+  if (code === 95) return "Storm";
+  if ((code >= 61 && code <= 65) || (code >= 80 && code <= 82)) return "Rain";
+
+  return "Precipitation";
 }
 
 async function fetchLiveStatusData() {
-  const locationResponse = await fetch("https://ipapi.co/json/");
+  const locationResponse = await fetch("https://ipapi.co/json/", {
+    signal: AbortSignal.timeout(LIVE_STATUS_FETCH_TIMEOUT_MS),
+  });
 
   if (!locationResponse.ok) {
     throw new Error("Unable to load IP location");
@@ -148,7 +183,9 @@ async function fetchLiveStatusData() {
   weatherUrl.searchParams.set("wind_speed_unit", "mph");
   weatherUrl.searchParams.set("timezone", location.timezone ?? "auto");
 
-  const weatherResponse = await fetch(weatherUrl);
+  const weatherResponse = await fetch(weatherUrl, {
+    signal: AbortSignal.timeout(LIVE_STATUS_FETCH_TIMEOUT_MS),
+  });
 
   if (!weatherResponse.ok) {
     throw new Error("Unable to load current weather");
@@ -175,10 +212,10 @@ async function fetchLiveStatusData() {
         typeof current?.wind_speed_10m === "number"
           ? milesPerHourToInchesPerSecond(current.wind_speed_10m)
           : DEFAULT_STATUS_DOCK_DATA.weather.windInchesPerSecond,
-      precipitationLabel:
-        typeof current?.precipitation === "number" && current.precipitation > 0
-          ? "Rain"
-          : DEFAULT_STATUS_DOCK_DATA.weather.precipitationLabel,
+      precipitationLabel: getPrecipitationLabel(
+        current?.weather_code,
+        current?.precipitation,
+      ),
     },
   } satisfies StatusDockData;
 }
@@ -188,15 +225,23 @@ function useStatusDockData(data?: StatusDockData, live = false) {
   const [liveData, setLiveData] = useState<StatusDockData | null>(null);
 
   useEffect(() => {
+    if (data?.now) {
+      setNow(data.now);
+      return;
+    }
+
     const timer = window.setInterval(() => {
       setNow(new Date());
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [data?.now]);
 
   useEffect(() => {
-    if (!live) return;
+    if (!live) {
+      setLiveData(null);
+      return;
+    }
 
     let ignore = false;
 
@@ -213,10 +258,10 @@ function useStatusDockData(data?: StatusDockData, live = false) {
     };
   }, [live]);
 
-  const resolvedData = liveData ?? data ?? DEFAULT_STATUS_DOCK_DATA;
+  const resolvedData = live ? (liveData ?? data) : data;
 
   return {
-    ...resolvedData,
+    ...(resolvedData ?? DEFAULT_STATUS_DOCK_DATA),
     now,
   };
 }
@@ -244,7 +289,7 @@ function VisitorDot() {
   return (
     <span
       aria-hidden="true"
-      className="block size-[8px] shrink-0 rounded-nell-round bg-[var(--color-state-success)]"
+      className="block size-[8px] shrink-0 rounded-token-round bg-[var(--color-state-success)]"
     />
   );
 }
@@ -267,7 +312,7 @@ export function StatusDock({
       className={cn(
         "h-[34px] overflow-hidden bg-[var(--color-button-primary)] text-[var(--color-text-inverse)]",
         isDesktop
-          ? "flex w-[1728px] items-center gap-nell-8"
+          ? "flex w-[1728px] items-center gap-token-8"
           : "relative w-[402px]",
         className,
       )}
@@ -276,12 +321,12 @@ export function StatusDock({
     >
       <div
         className={cn(
-          "flex h-full items-center gap-nell-16 px-nell-8 py-0",
+          "flex h-full items-center gap-token-16 px-token-8 py-0",
           isDesktop ? "relative shrink-0" : "absolute left-0 top-0 w-[402px]",
         )}
         data-figma-node={isDesktop ? "37:32" : "37:55"}
       >
-        <div className="flex h-[18px] items-center gap-nell-8">
+        <div className="flex h-[18px] items-center gap-token-8">
           <VisitorDot />
           <StatusText>{status.visitors} visitors</StatusText>
         </div>
@@ -297,12 +342,12 @@ export function StatusDock({
 
       {isDesktop && (
         <>
-          <div className="flex h-full shrink-0 items-center p-nell-8">
+          <div className="flex h-full shrink-0 items-center p-token-8">
             <StatusText>
               {formatWindInchesPerSecond(status.weather.windInchesPerSecond)}
             </StatusText>
           </div>
-          <div className="flex h-full shrink-0 items-center p-nell-8">
+          <div className="flex h-full shrink-0 items-center p-token-8">
             <StatusText>
               {status.weather.precipitationLabel ?? "Rain"}
             </StatusText>

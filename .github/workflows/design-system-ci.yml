@@ -9,6 +9,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:
@@ -16,7 +18,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -48,7 +50,23 @@ jobs:
       - name: Storybook tests
         run: pnpm test-storybook
 
-      - name: Chromatic visual tests
-        run: pnpm chromatic --exit-zero-on-changes=true
+      - name: Check Chromatic token
+        id: chromatic-token
+        run: |
+          if [ -z "$CHROMATIC_PROJECT_TOKEN" ]; then
+            echo "Skipping Chromatic because CHROMATIC_PROJECT_TOKEN is unavailable."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
         env:
           CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+
+      - name: Chromatic visual tests
+        if: steps.chromatic-token.outputs.available == 'true'
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          storybookBuildDir: apps/web/storybook-static
+          exitZeroOnChanges: true

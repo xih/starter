@@ -392,6 +392,7 @@ function DesktopPanel({
 }) {
   const isChatting = state === "connected" || state === "thinking";
   const isPreconnect = state === "preconnect" || state === "ended";
+  const isError = state === "error";
 
   return (
     <section
@@ -413,7 +414,30 @@ function DesktopPanel({
             </button>
           </>
         )}
-        {!isPreconnect && !isChatting && (
+        {isError && (
+          <div className="absolute left-[72px] top-[264px] flex w-[296px] flex-col items-center gap-[16px] text-center">
+            <div className="flex size-[56px] items-center justify-center rounded-full bg-[rgba(231,0,11,0.1)] text-[#e7000b]">
+              <X className="size-[24px]" />
+            </div>
+            <div>
+              <h3 className="font-title text-[20px] font-semibold leading-[28px] text-[#18181b]">
+                Connection failed
+              </h3>
+              <p className="mt-[6px] font-sans text-[14px] leading-[20px] text-[#52525b]">
+                Check the token endpoint, microphone permission, or LiveKit
+                configuration.
+              </p>
+            </div>
+            <button
+              className="flex h-[40px] min-w-[72px] items-center justify-center rounded-[8px] bg-[#18181b] px-[16px] font-sans text-[14px] font-medium text-white"
+              onClick={onConnect}
+              type="button"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+        {!isPreconnect && !isChatting && !isError && (
           <>
             <div className="absolute left-[85px] top-[249px] size-[270px]">
               <AuraVisualizer />
@@ -461,6 +485,7 @@ function MobileCard({
   isLive,
   isMicrophoneEnabled,
   isScreenShareEnabled,
+  onConnect,
   onDisconnect,
   onToggleCamera,
   onToggleMicrophone,
@@ -480,11 +505,15 @@ function MobileCard({
     | "supportsVideoInput"
   >
 > & {
+  onConnect?: () => void;
   onDisconnect?: () => void;
   onToggleCamera?: () => void;
   onToggleMicrophone?: () => void;
   onToggleScreenShare?: () => void;
 }) {
+  const isConnected =
+    state !== "preconnect" && state !== "ended" && state !== "error";
+
   return (
     <div
       className="relative h-[874px] w-[402px] overflow-hidden bg-white"
@@ -493,15 +522,38 @@ function MobileCard({
     >
       <IntroContent compact />
       <div className="absolute left-[8px] top-[450px] h-[372px] w-[381px] overflow-hidden rounded-[12px] bg-[#1e1f24]">
-        {state !== "preconnect" && state !== "ended" && (
+        {isConnected && (
           <div className="absolute left-[56px] top-[12px] size-[270px]">
             <AuraVisualizer dark />
+          </div>
+        )}
+        {state === "error" && (
+          <div className="absolute left-[40px] top-[84px] flex w-[300px] flex-col items-center gap-[14px] text-center">
+            <div className="flex size-[48px] items-center justify-center rounded-full bg-[rgba(231,0,11,0.16)] text-[#ff4d55]">
+              <X className="size-[22px]" />
+            </div>
+            <div>
+              <h3 className="font-title text-[18px] font-semibold leading-[24px] text-white">
+                Connection failed
+              </h3>
+              <p className="mt-[6px] font-sans text-[13px] leading-[18px] text-[#d4d4d8]">
+                Check the token endpoint, microphone permission, or LiveKit
+                configuration.
+              </p>
+            </div>
+            <button
+              className="flex h-[36px] min-w-[70px] items-center justify-center rounded-[8px] bg-white px-[14px] font-sans text-[13px] font-medium text-[#18181b]"
+              onClick={onConnect}
+              type="button"
+            >
+              Retry
+            </button>
           </div>
         )}
         <AgentControlDock
           compact
           isCameraEnabled={isCameraEnabled}
-          isConnected={state !== "preconnect" && state !== "ended"}
+          isConnected={isConnected}
           isLive={isLive}
           isMicrophoneEnabled={isMicrophoneEnabled}
           isScreenShareEnabled={isScreenShareEnabled}
@@ -550,6 +602,7 @@ export function AgentSessionPanel({
           isLive={isLive}
           isMicrophoneEnabled={isMicrophoneEnabled}
           isScreenShareEnabled={isScreenShareEnabled}
+          onConnect={onConnect}
           onDisconnect={onDisconnect}
           onToggleCamera={onToggleCamera}
           onToggleMicrophone={onToggleMicrophone}

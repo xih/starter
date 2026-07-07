@@ -100,7 +100,8 @@ const weatherCodeLabels = new Map<number, string>([
 
 const LIVE_STATUS_FETCH_TIMEOUT_MS = 5000;
 
-function formatTime(now: Date, timezone?: string) {
+function formatTime(now: Date | null, timezone?: string) {
+  if (!now) return "--:--:--";
   const options: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",

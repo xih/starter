@@ -12,43 +12,44 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.10.0
-
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: Enable Corepack
+        run: |
+          npm install --global corepack@latest
+          corepack enable
+          corepack prepare pnpm@10.10.0 --activate
+
+      - run: corepack pnpm install --frozen-lockfile
 
       - name: Build tokens
-        run: pnpm tokens:build
+        run: corepack pnpm tokens:build
 
       - name: Check token drift
         run: git diff --exit-code packages/tokens/dist
 
       - name: ESLint design-system rules
-        run: pnpm lint:design-system
+        run: corepack pnpm lint:design-system
 
       - name: Stylelint token rules
-        run: pnpm lint:styles
+        run: corepack pnpm lint:styles
 
       - name: AST structural checks
-        run: pnpm lint:ast
+        run: corepack pnpm lint:ast
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: corepack pnpm typecheck
 
       - name: Build Storybook
-        run: pnpm build-storybook
+        run: corepack pnpm build-storybook
 
       - name: Install Playwright browsers
-        run: pnpm --filter @starter/web exec playwright install --with-deps chromium
+        run: corepack pnpm --filter @starter/web exec playwright install chromium
 
       - name: Storybook tests
-        run: pnpm test-storybook
+        run: corepack pnpm test-storybook
 
       - name: Check Chromatic token
         id: chromatic-token

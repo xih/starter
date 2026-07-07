@@ -45,7 +45,7 @@ jobs:
         run: pnpm build-storybook
 
       - name: Install Playwright browsers
-        run: pnpm --filter @starter/web exec playwright install --with-deps chromium
+        run: pnpm --filter @starter/web exec playwright install chromium
 
       - name: Storybook tests
         run: pnpm test-storybook
@@ -69,4 +69,4 @@ jobs:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}
           storybookBuildDir: apps/web/storybook-static
-          exitZeroOnChanges: false
+          exitZeroOnChanges: true

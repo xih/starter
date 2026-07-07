@@ -102,6 +102,7 @@ const surfaceStyle = {
   "--agent-sidebar-muted": "var(--color-text-secondary)",
   "--agent-sidebar-border": "var(--color-border-opaque)",
   "--agent-sidebar-shadow": "0 3px 3px rgba(0, 0, 0, 0.03)",
+  "--agent-sidebar-menu-shadow": "0 12px 32px rgba(0, 0, 0, 0.12)",
 } as CSSProperties;
 
 function AgentTitle({
@@ -127,7 +128,7 @@ function HostAvatar({ index, name }: { index: number; name: string }) {
   return (
     <div
       aria-label={name}
-      className="relative size-[24px] shrink-0 overflow-hidden rounded-nell-round"
+      className="relative size-[24px] shrink-0 overflow-hidden rounded-token-round"
     >
       <img
         alt=""
@@ -143,7 +144,7 @@ function HostStack() {
     <div className="flex h-[24px] items-center justify-center">
       {hostAvatars.map((_, index) => (
         <div
-          className={cn(index > 0 && "-ml-[8px]")}
+          className={cn(index > 0 && "-ml-token-8")}
           key={hostAvatars[index]}
           style={{ zIndex: hostAvatars.length - index }}
         >
@@ -166,7 +167,7 @@ function PrimaryAction({
 }) {
   return (
     <button
-      className="inline-flex h-[38px] items-center justify-center rounded-nell-s bg-[var(--color-bg-secondary)] px-nell-12 font-body text-[length:var(--font-font-size-cta)] font-[var(--font-font-weight-medium)] leading-[var(--font-line-height-lh-subtext)] text-[var(--color-text-inverse-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
+      className="inline-flex h-[38px] items-center justify-center rounded-token-s bg-[var(--color-bg-secondary)] px-token-12 font-body text-[length:var(--font-font-size-cta)] font-[var(--font-font-weight-medium)] leading-[var(--font-line-height-lh-subtext)] text-[var(--color-text-inverse-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
       onClick={onClick}
       type="button"
     >
@@ -187,7 +188,7 @@ export function MicSelector({
   return (
     <div
       className={cn(
-        "flex h-[36px] min-w-[72px] items-center rounded-nell-round",
+        "flex h-[36px] min-w-[72px] items-center rounded-token-round",
         enabled
           ? "bg-[var(--color-background-secondary)] text-[var(--color-text-primary)]"
           : "bg-[var(--color-background-error-bg)] text-[var(--color-text-negative)]",
@@ -197,7 +198,7 @@ export function MicSelector({
       <button
         aria-label={enabled ? "Mute microphone" : "Unmute microphone"}
         aria-pressed={enabled}
-        className="flex h-full flex-1 items-center justify-center rounded-l-nell-round pl-nell-12 pr-nell-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
+        className="flex h-full flex-1 items-center justify-center rounded-l-token-round pl-token-12 pr-token-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
         onClick={() => {
           void onToggle?.();
         }}
@@ -208,7 +209,7 @@ export function MicSelector({
       <button
         aria-label="Select microphone"
         className={cn(
-          "relative flex h-full w-[36px] items-center justify-center rounded-r-nell-round pl-nell-8 pr-nell-12 before:absolute before:left-0 before:top-[10px] before:h-[16px] before:w-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]",
+          "relative flex h-full w-[36px] items-center justify-center rounded-r-token-round pl-token-8 pr-token-12 before:absolute before:left-0 before:top-1/2 before:h-token-16 before:w-px before:-translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]",
           enabled
             ? "before:bg-[var(--color-bg-secondary)]"
             : "before:bg-[var(--color-core-negative)]",
@@ -236,11 +237,11 @@ export function VoiceSelector({
     <button
       aria-label="Select voice"
       aria-expanded={isOpen}
-      className="inline-flex h-[36px] max-w-[139px] items-center justify-center gap-nell-8 rounded-nell-round border border-[var(--color-border-subtle)] bg-[var(--agent-sidebar-surface)] px-[15px] py-[7px] text-left"
+      className="inline-flex h-[36px] max-w-[139px] items-center justify-center gap-token-8 rounded-token-round border border-[var(--color-border-subtle)] bg-[var(--agent-sidebar-surface)] px-token-16 py-token-8 text-left"
       onClick={onClick}
       type="button"
     >
-      <span className="relative flex size-[16px] shrink-0 items-center justify-center overflow-hidden rounded-nell-round bg-[var(--color-bg-secondary)] text-[10px] font-[var(--font-font-weight-semi-bold)] text-[var(--color-text-inverse-primary)]">
+      <span className="relative flex size-[16px] shrink-0 items-center justify-center overflow-hidden rounded-token-round bg-[var(--color-bg-secondary)] font-body text-[length:var(--font-font-size-caption)] font-[var(--font-font-weight-semi-bold)] leading-none text-[var(--color-text-inverse-primary)]">
         {avatar ? (
           <img
             alt=""
@@ -267,22 +268,22 @@ function VoicePanel({
   selectedVoice: string;
 }) {
   return (
-    <div className="absolute bottom-[calc(100%+8px)] left-0 z-10 w-[341px] max-w-[calc(100vw-48px)] rounded-nell-m border border-[var(--color-border-opaque)] bg-[var(--agent-sidebar-surface)] p-nell-8 shadow-[0_12px_32px_rgba(0,0,0,0.12)]">
-      <div className="flex flex-col gap-nell-4">
+    <div className="absolute bottom-full left-0 z-10 mb-token-8 w-[341px] max-w-[calc(100vw-var(--spacing-48))] rounded-token-m border border-[var(--color-border-opaque)] bg-[var(--agent-sidebar-surface)] p-token-8 shadow-[var(--agent-sidebar-menu-shadow)]">
+      <div className="flex flex-col gap-token-4">
         {voiceOptions.map((voice) => {
           const selected = voice.name === selectedVoice;
 
           return (
             <button
               className={cn(
-                "flex w-full items-center gap-nell-12 rounded-nell-s px-nell-12 py-nell-8 text-left transition hover:bg-[var(--color-background-secondary)]",
+                "flex w-full items-center gap-token-12 rounded-token-s px-token-12 py-token-8 text-left transition hover:bg-[var(--color-background-secondary)]",
                 selected && "bg-[var(--color-background-secondary)]",
               )}
               key={voice.name}
               onClick={() => onSelect(voice.name)}
               type="button"
             >
-              <span className="relative size-[32px] shrink-0 overflow-hidden rounded-nell-round">
+              <span className="relative size-[32px] shrink-0 overflow-hidden rounded-token-round">
                 <img
                   alt=""
                   className="absolute inset-0 size-full object-cover"
@@ -320,7 +321,7 @@ function SendButton({
   return (
     <button
       aria-label={isSending ? "Sending message" : "Send message"}
-      className="flex size-[36px] shrink-0 items-center justify-center rounded-nell-round bg-[var(--color-core-primary-a)] text-[var(--color-text-inverse-primary)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-[var(--color-background-selected)]"
+      className="flex size-[36px] shrink-0 items-center justify-center rounded-token-round bg-[var(--color-core-primary-a)] text-[var(--color-text-inverse-primary)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-[var(--color-background-selected)]"
       disabled={disabled}
       onClick={onClick}
       type="button"
@@ -334,7 +335,7 @@ function StopButton({ onClick }: { onClick?: () => void }) {
   return (
     <button
       aria-label="Stop response"
-      className="flex size-[36px] shrink-0 items-center justify-center rounded-nell-round bg-[var(--color-core-primary-a)] text-[var(--color-text-inverse-primary)] transition hover:opacity-90"
+      className="flex size-[36px] shrink-0 items-center justify-center rounded-token-round bg-[var(--color-core-primary-a)] text-[var(--color-text-inverse-primary)] transition hover:opacity-90"
       onClick={onClick}
       type="button"
     >
@@ -346,7 +347,7 @@ function StopButton({ onClick }: { onClick?: () => void }) {
 function EndChatButton({ onEnd }: { onEnd?: () => void }) {
   return (
     <button
-      className="inline-flex h-[36px] shrink-0 items-center justify-center rounded-nell-s bg-[var(--color-core-primary-a)] px-nell-12 py-nell-8 font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--color-text-inverse-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
+      className="inline-flex h-[36px] shrink-0 items-center justify-center rounded-token-s bg-[var(--color-core-primary-a)] px-token-12 py-token-8 font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--color-text-inverse-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
       onClick={onEnd}
       type="button"
     >
@@ -390,9 +391,9 @@ function AgentPromptBar({
     voiceOptions.find((voice) => voice.name === "Masa Son");
 
   return (
-    <div className="w-full rounded-[31px] border border-[var(--agent-sidebar-border)] bg-[var(--agent-sidebar-surface)] px-nell-20 py-nell-16 shadow-[var(--agent-sidebar-shadow)]">
-      <div className="flex h-[74px] flex-col justify-between gap-nell-20">
-        <div className="flex h-[28px] items-center gap-nell-8 px-nell-4">
+    <div className="w-full rounded-[31px] border border-[var(--agent-sidebar-border)] bg-[var(--agent-sidebar-surface)] px-token-20 py-token-16 shadow-[var(--agent-sidebar-shadow)]">
+      <div className="flex h-[74px] flex-col justify-between gap-token-20">
+        <div className="flex h-[28px] items-center gap-token-8 px-token-4">
           <input
             aria-label="Message"
             className="min-w-0 flex-1 bg-transparent font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-regular)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-text)] outline-none placeholder:text-[var(--agent-sidebar-muted)]"
@@ -410,7 +411,7 @@ function AgentPromptBar({
         </div>
 
         <div className="flex items-start justify-between">
-          <div className="relative flex items-center gap-nell-4">
+          <div className="relative flex items-center gap-token-4">
             {isVoicePanelOpen ? (
               <VoicePanel
                 onSelect={(nextVoice) => {
@@ -459,20 +460,20 @@ export function ChatMessage({ message }: { message: AgentSideBarMessage }) {
     <div
       className={cn(
         "flex w-full flex-col",
-        isUser ? "items-end pb-nell-16 pt-0" : "items-start pb-nell-20",
+        isUser ? "items-end pb-token-16 pt-0" : "items-start pb-token-20",
       )}
     >
       <div
         className={cn(
-          "font-body text-[16px] font-[var(--font-font-weight-regular)] tracking-[0]",
+          "font-body text-[length:var(--font-font-size-subtext)] font-[var(--font-font-weight-regular)] tracking-normal",
           isUser
-            ? "max-w-[404px] rounded-[22px] bg-[var(--color-core-primary-a)] px-nell-16 py-[10px] leading-[24px] text-[var(--color-text-inverse-primary)]"
-            : "max-w-[477px] pb-[4px] leading-[26px] text-[var(--color-text-primary)]",
+            ? "max-w-[404px] rounded-[22px] bg-[var(--color-core-primary-a)] px-token-16 py-token-8 leading-[var(--font-line-height-lh-heading)] text-[var(--color-text-inverse-primary)]"
+            : "max-w-[477px] pb-token-4 leading-[var(--font-line-height-lh-title)] text-[var(--color-text-primary)]",
         )}
       >
         {message.text}
         {message.isStreaming ? (
-          <span className="ml-[2px] inline-block animate-pulse">|</span>
+          <span className="ml-token-2 inline-block animate-pulse">|</span>
         ) : null}
       </div>
     </div>
@@ -481,7 +482,7 @@ export function ChatMessage({ message }: { message: AgentSideBarMessage }) {
 
 function ChatConversation({ messages }: { messages: AgentSideBarMessage[] }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-nell-4 [scrollbar-width:thin]">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-token-4 [scrollbar-width:thin]">
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} />
       ))}
@@ -491,7 +492,7 @@ function ChatConversation({ messages }: { messages: AgentSideBarMessage[] }) {
 
 function ErrorToast({ message }: { message: string }) {
   return (
-    <div className="mb-nell-16 flex min-h-[48px] w-full items-center gap-nell-12 rounded-nell-m bg-[var(--color-state-error)] px-nell-16 py-nell-12 text-[var(--color-text-inverse)]">
+    <div className="mb-token-16 flex min-h-[48px] w-full items-center gap-token-12 rounded-token-m bg-[var(--color-state-error)] px-token-16 py-token-12 text-[var(--color-text-inverse)]">
       <CircleAlert className="size-[18px] shrink-0" />
       <span className="font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)]">
         {message}
@@ -502,12 +503,12 @@ function ErrorToast({ message }: { message: string }) {
 
 function IntroState({ onStart }: { onStart?: () => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-nell-24 text-center">
+    <div className="flex h-full flex-col items-center justify-center px-token-24 text-center">
       <HostStack />
-      <AgentTitle className="mt-nell-8 w-[404px] max-w-full font-[var(--font-font-weight-medium)] text-[var(--color-text-primary)]">
+      <AgentTitle className="mt-token-8 w-[404px] max-w-full font-[var(--font-font-weight-medium)] text-[var(--color-text-primary)]">
         Chat with Masa Son, Sam Altman, Elon Musk
       </AgentTitle>
-      <div className="mt-nell-16">
+      <div className="mt-token-16">
         <PrimaryAction onClick={onStart}>Chat</PrimaryAction>
       </div>
     </div>
@@ -516,13 +517,13 @@ function IntroState({ onStart }: { onStart?: () => void }) {
 
 function LoadingState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-nell-24 text-center">
+    <div className="flex h-full flex-col items-center justify-center px-token-24 text-center">
       <img
         alt=""
         className="h-[164px] w-[269px] object-contain"
         src="/agent-sidebar/cloud.png"
       />
-      <p className="mt-nell-24 max-w-[292px] font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-muted)]">
+      <p className="mt-token-24 max-w-[292px] font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-muted)]">
         Watch the clouds move while we connect you to their consciousness
       </p>
     </div>
@@ -564,7 +565,7 @@ export function AgentSideBar({
   return (
     <aside
       className={cn(
-        "relative flex h-[1117px] w-[428px] max-w-full flex-col overflow-hidden border-l border-[var(--agent-sidebar-border)] bg-[var(--agent-sidebar-surface)] p-nell-24 text-[var(--agent-sidebar-text)]",
+        "relative flex h-[1117px] w-[428px] max-w-full flex-col overflow-hidden border-l border-[var(--agent-sidebar-border)] bg-[var(--agent-sidebar-surface)] p-token-24 text-[var(--agent-sidebar-text)]",
         className,
       )}
       data-state={state}
@@ -586,7 +587,7 @@ export function AgentSideBar({
             </>
           )}
 
-          <div className="mt-nell-24 shrink-0">
+          <div className="mt-token-24 shrink-0">
             <AgentPromptBar
               inputValue={inputValue}
               isMicrophoneEnabled={isMicrophoneEnabled}

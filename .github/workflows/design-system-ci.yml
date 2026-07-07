@@ -1,0 +1,73 @@
+name: Design System CI
+
+on:
+  pull_request:
+
+jobs:
+  design-system:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable Corepack
+        run: |
+          npm install --global corepack@latest
+          corepack enable
+          corepack prepare pnpm@10.10.0 --activate
+
+      - run: corepack pnpm install --frozen-lockfile
+
+      - name: Build tokens
+        run: corepack pnpm tokens:build
+
+      - name: Check token drift
+        run: git diff --exit-code packages/tokens/dist
+
+      - name: ESLint design-system rules
+        run: corepack pnpm lint:design-system
+
+      - name: Stylelint token rules
+        run: corepack pnpm lint:styles
+
+      - name: AST structural checks
+        run: corepack pnpm lint:ast
+
+      - name: Typecheck
+        run: corepack pnpm typecheck
+
+      - name: Build Storybook
+        run: corepack pnpm build-storybook
+
+      - name: Install Playwright browsers
+        run: corepack pnpm --filter @starter/web exec playwright install chromium
+
+      - name: Storybook tests
+        run: corepack pnpm test-storybook
+
+      - name: Check Chromatic token
+        id: chromatic-token
+        run: |
+          if [ -z "$CHROMATIC_PROJECT_TOKEN" ]; then
+            echo "Skipping Chromatic because CHROMATIC_PROJECT_TOKEN is unavailable."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+
+      - name: Chromatic visual tests
+        if: steps.chromatic-token.outputs.available == 'true'
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          storybookBuildDir: apps/web/storybook-static
+          exitZeroOnChanges: true

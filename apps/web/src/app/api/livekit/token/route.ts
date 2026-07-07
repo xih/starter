@@ -1,4 +1,8 @@
-import { AccessToken, AgentDispatchClient } from "livekit-server-sdk";
+import {
+  AccessToken,
+  RoomAgentDispatch,
+  RoomConfiguration,
+} from "livekit-server-sdk";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -23,6 +27,7 @@ const CORS_BASE_HEADERS = {
 const roomAgentSchema = z.object({
   agent_name: z.string().min(1).max(160).optional(),
   agentName: z.string().min(1).max(160).optional(),
+  agent_metadata: z.string().max(4096).optional(),
   metadata: z.string().max(4096).optional(),
   deployment: z.string().min(1).max(160).optional(),
 });
@@ -45,12 +50,6 @@ const tokenRequestSchema = z.object({
 
 function createId(prefix: string) {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
-}
-
-function getLiveKitApiUrl(livekitUrl: string) {
-  return livekitUrl
-    .replace(/^wss:\/\//, "https://")
-    .replace(/^ws:\/\//, "http://");
 }
 
 function getAllowedOrigins() {
@@ -218,17 +217,10 @@ export async function POST(request: Request) {
     canSubscribe: true,
   });
 
-  const agent_dispatch_ids: string[] = [];
-
   if (agentsToDispatch.length > 0) {
-    try {
-      const dispatchClient = new AgentDispatchClient(
-        getLiveKitApiUrl(env.LIVEKIT_URL),
-        env.LIVEKIT_API_KEY,
-        env.LIVEKIT_API_SECRET,
-      );
-
-      for (const requestedAgent of agentsToDispatch) {
+    token.roomConfig = new RoomConfiguration({
+      name: roomName,
+      agents: agentsToDispatch.map((requestedAgent) => {
         const agentName =
           requestedAgent.agent_name ??
           requestedAgent.agentName ??
@@ -236,28 +228,13 @@ export async function POST(request: Request) {
           env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
           DEFAULT_AGENT_NAME;
 
-        const dispatch = await dispatchClient.createDispatch(
-          roomName,
+        return new RoomAgentDispatch({
           agentName,
-          {
-            metadata: requestedAgent.metadata,
-            deployment: requestedAgent.deployment,
-          },
-        );
-
-        agent_dispatch_ids.push(dispatch.id);
-      }
-    } catch (error) {
-      return jsonWithCors(
-        request,
-        {
-          error: "LiveKit agent dispatch failed",
-          details:
-            error instanceof Error ? error.message : "Unknown dispatch error",
-        },
-        { status: 502 },
-      );
-    }
+          metadata: requestedAgent.agent_metadata ?? requestedAgent.metadata,
+          deployment: requestedAgent.deployment,
+        });
+      }),
+    });
   }
 
   return jsonWithCors(
@@ -265,8 +242,16 @@ export async function POST(request: Request) {
     {
       server_url: env.LIVEKIT_URL,
       participant_token: await token.toJwt(),
-      agent_dispatch_id: agent_dispatch_ids[0],
-      agent_dispatch_ids,
+      agent_dispatch_mode:
+        agentsToDispatch.length > 0 ? "token_room_config" : "disabled",
+      agent_dispatch_names: agentsToDispatch.map(
+        (requestedAgent) =>
+          requestedAgent.agent_name ??
+          requestedAgent.agentName ??
+          env.LIVEKIT_AGENT_NAME ??
+          env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
+          DEFAULT_AGENT_NAME,
+      ),
     },
     { status: 201 },
   );

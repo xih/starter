@@ -173,6 +173,7 @@ function DiagnosticRow({
 function LiveAgentConsole({
   agentName,
   endpointAuth,
+  manualState,
   onSessionEnded,
   roomName,
   setManualState,
@@ -181,6 +182,7 @@ function LiveAgentConsole({
 }: {
   agentName: string;
   endpointAuth: string;
+  manualState: AgentSideBarState;
   onSessionEnded: () => void;
   roomName: string;
   setManualState: (state: AgentSideBarState) => void;
@@ -213,6 +215,7 @@ function LiveAgentConsole({
       <LiveAgentSession
         agentName={agentName}
         inputValue={inputValue}
+        manualState={manualState}
         onSessionEnded={onSessionEnded}
         session={session}
         setInputValue={setInputValue}
@@ -227,6 +230,7 @@ function LiveAgentConsole({
 function LiveAgentSession({
   agentName,
   inputValue,
+  manualState,
   onSessionEnded,
   session,
   setInputValue,
@@ -235,6 +239,7 @@ function LiveAgentSession({
 }: {
   agentName: string;
   inputValue: string;
+  manualState: AgentSideBarState;
   onSessionEnded: () => void;
   session: ReturnType<typeof useSession>;
   setInputValue: (value: string) => void;
@@ -259,10 +264,7 @@ function LiveAgentSession({
     connectionState: session.connectionState,
     hasInput: inputValue.trim().length > 0,
     hasMessages: messages.length > 0,
-    manualState:
-      session.connectionState === ConnectionState.Disconnected
-        ? "intro"
-        : "loading",
+    manualState,
   });
   const endSession = () => {
     setInputValue("");
@@ -802,6 +804,7 @@ export default function LiveKitAgentPage() {
               <LiveAgentConsole
                 agentName={agentName}
                 endpointAuth={endpointAuth}
+                manualState={manualState}
                 onSessionEnded={endLiveSession}
                 roomName={roomName}
                 setManualState={setManualState}

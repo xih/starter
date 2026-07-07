@@ -313,8 +313,8 @@ export function StatusDock({
       className={cn(
         "h-[34px] overflow-hidden bg-[var(--color-button-primary)] text-[var(--color-text-inverse)]",
         isDesktop
-          ? "flex w-[1728px] items-center gap-token-8"
-          : "relative w-[402px]",
+          ? "flex w-full max-w-[1728px] items-center gap-token-8"
+          : "relative w-full max-w-[402px]",
         className,
       )}
       data-figma-node="37:66"

@@ -49,6 +49,12 @@ const DEFAULT_TOKEN_ENDPOINT =
   env.NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT ?? "/api/livekit/token";
 const STORYBOOK_ORIGIN =
   env.NEXT_PUBLIC_STORYBOOK_ORIGIN ?? "http://localhost:6006";
+const TOKEN_ENDPOINT_LABEL = "/api/livekit/token";
+const TOKEN_ERROR_ENDPOINT_LABEL = "/api/livekit/missing";
+
+type AllowedTokenEndpoint =
+  | typeof TOKEN_ENDPOINT_LABEL
+  | typeof TOKEN_ERROR_ENDPOINT_LABEL;
 
 const lightModeTokenStyle = {
   "--background": "var(--color-background-primary)",
@@ -83,19 +89,41 @@ function messageText(message: { message?: unknown; text?: unknown }) {
   return typeof value === "string" ? value : "";
 }
 
-function resolveSameOriginPath(endpoint: string) {
-  const fallbackOrigin =
-    typeof window === "undefined" ? "http://localhost" : window.location.origin;
+function createLocalAgentRoomName() {
+  return `local_agent_${crypto.randomUUID()}`;
+}
 
+function resolveAllowedTokenEndpoint(
+  endpoint: string,
+): AllowedTokenEndpoint | null {
   try {
-    const url = new URL(endpoint, fallbackOrigin);
-    if (url.origin !== fallbackOrigin) {
+    const url = new URL(endpoint, "http://local.invalid");
+    if (url.origin !== "http://local.invalid" || url.search) {
       return null;
     }
 
-    return `${url.pathname}${url.search}`;
+    switch (url.pathname) {
+      case TOKEN_ENDPOINT_LABEL:
+        return TOKEN_ENDPOINT_LABEL;
+      case TOKEN_ERROR_ENDPOINT_LABEL:
+        return TOKEN_ERROR_ENDPOINT_LABEL;
+      default:
+        return null;
+    }
   } catch {
     return null;
+  }
+}
+
+function fetchAllowedTokenEndpoint(
+  endpoint: AllowedTokenEndpoint,
+  init: RequestInit,
+) {
+  switch (endpoint) {
+    case TOKEN_ENDPOINT_LABEL:
+      return fetch(TOKEN_ENDPOINT_LABEL, init);
+    case TOKEN_ERROR_ENDPOINT_LABEL:
+      return fetch(TOKEN_ERROR_ENDPOINT_LABEL, init);
   }
 }
 
@@ -546,9 +574,7 @@ export default function LiveKitAgentPage() {
   const [agentName, setAgentName] = useState(DEFAULT_AGENT_NAME);
   const [endpointAuth, setEndpointAuth] = useState("");
   const [manualState, setManualState] = useState<AgentSideBarState>("intro");
-  const [roomName, setRoomName] = useState(
-    () => `local_agent_${crypto.randomUUID()}`,
-  );
+  const [roomName, setRoomName] = useState(createLocalAgentRoomName);
   const [sessionStartRequestId, setSessionStartRequestId] = useState(0);
   const [tokenEndpoint, setTokenEndpoint] = useState(DEFAULT_TOKEN_ENDPOINT);
   const [probe, setProbe] = useState<TokenProbeState>({
@@ -557,7 +583,7 @@ export default function LiveKitAgentPage() {
   });
   const [isMobilePreset, setIsMobilePreset] = useState(false);
   const resolvedTokenEndpoint = useMemo(
-    () => resolveSameOriginPath(tokenEndpoint),
+    () => resolveAllowedTokenEndpoint(tokenEndpoint),
     [tokenEndpoint],
   );
 
@@ -593,7 +619,7 @@ export default function LiveKitAgentPage() {
     }
 
     try {
-      const response = await fetch(resolvedTokenEndpoint, {
+      const response = await fetchAllowedTokenEndpoint(resolvedTokenEndpoint, {
         body: JSON.stringify({
           dispatch_agent: false,
           participant_name: "Local QA",
@@ -652,6 +678,8 @@ export default function LiveKitAgentPage() {
   };
   const endLiveSession = () => {
     setSessionStartRequestId(0);
+    setManualState("intro");
+    setRoomName(createLocalAgentRoomName());
   };
 
   return (
@@ -702,7 +730,7 @@ export default function LiveKitAgentPage() {
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  setRoomName(`local_agent_${crypto.randomUUID()}`);
+                  setRoomName(createLocalAgentRoomName());
                   setManualState("intro");
                   setSessionStartRequestId(0);
                 }}
@@ -723,7 +751,7 @@ export default function LiveKitAgentPage() {
                 />
                 {!resolvedTokenEndpoint ? (
                   <p className="text-xs text-[var(--color-text-negative)]">
-                    Use a same-origin path, for example /api/livekit/token.
+                    Use /api/livekit/token or /api/livekit/missing.
                   </p>
                 ) : null}
               </div>
@@ -820,7 +848,7 @@ export default function LiveKitAgentPage() {
                 </a>
                 <a
                   className="text-[var(--color-text-accent)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  href="/livekit-agent?tokenEndpoint=/api/livekit/missing"
+                  href={`/livekit-agent?tokenEndpoint=${TOKEN_ERROR_ENDPOINT_LABEL}`}
                 >
                   Token error path
                 </a>

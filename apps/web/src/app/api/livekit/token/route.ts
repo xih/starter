@@ -65,7 +65,6 @@ function createId(prefix: string) {
 }
 
 function getAllowedOrigins() {
-  const env = getLiveKitEnv();
   const configuredOrigins = env.LIVEKIT_ALLOWED_ORIGINS?.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);

@@ -152,7 +152,6 @@ export function OPTIONS(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const env = getLiveKitEnv();
 
   if (!isOriginAllowed(request.headers.get("origin"))) {
     return jsonWithCors(

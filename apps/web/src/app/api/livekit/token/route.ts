@@ -3,8 +3,6 @@ import { AccessToken } from "livekit-server-sdk";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { env } from "~/env";
-
 export const runtime = "nodejs";
 
 const DEFAULT_AGENT_NAME = "dennis-portfolio-agent";
@@ -20,6 +18,49 @@ const CORS_BASE_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   Vary: "Origin",
 };
+
+const nodeEnvSchema = z.enum(["development", "test", "production"]);
+
+function optionalEnv(value: string | undefined) {
+  return value && value.length > 0 ? value : undefined;
+}
+
+function parseNodeEnv(value: string | undefined) {
+  if (value === undefined) {
+    return "development";
+  }
+
+  const parsed = nodeEnvSchema.safeParse(value);
+
+  return parsed.success ? parsed.data : "production";
+}
+
+const liveKitEnvSchema = z.object({
+  LIVEKIT_URL: z.string().url().optional(),
+  LIVEKIT_API_KEY: z.string().optional(),
+  LIVEKIT_API_SECRET: z.string().optional(),
+  LIVEKIT_AGENT_NAME: z.string().optional(),
+  LIVEKIT_ALLOWED_ORIGINS: z.string().optional(),
+  LIVEKIT_TOKEN_AUTH_SECRET: z.string().optional(),
+  NEXT_PUBLIC_LIVEKIT_AGENT_NAME: z.string().optional(),
+  NODE_ENV: nodeEnvSchema,
+});
+
+const rawEnv = {
+  LIVEKIT_URL: optionalEnv(process.env.LIVEKIT_URL),
+  LIVEKIT_API_KEY: optionalEnv(process.env.LIVEKIT_API_KEY),
+  LIVEKIT_API_SECRET: optionalEnv(process.env.LIVEKIT_API_SECRET),
+  LIVEKIT_AGENT_NAME: optionalEnv(process.env.LIVEKIT_AGENT_NAME),
+  LIVEKIT_ALLOWED_ORIGINS: optionalEnv(process.env.LIVEKIT_ALLOWED_ORIGINS),
+  LIVEKIT_TOKEN_AUTH_SECRET: optionalEnv(process.env.LIVEKIT_TOKEN_AUTH_SECRET),
+  NEXT_PUBLIC_LIVEKIT_AGENT_NAME: optionalEnv(
+    process.env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME,
+  ),
+  NODE_ENV: parseNodeEnv(process.env.NODE_ENV),
+};
+const parsedEnv = liveKitEnvSchema.safeParse(rawEnv);
+const env = parsedEnv.success ? parsedEnv.data : rawEnv;
+const envIssues = parsedEnv.success ? [] : parsedEnv.error.issues;
 
 const roomAgentSchema = z.object({
   agent_name: z.string().min(1).max(160).optional(),
@@ -154,6 +195,17 @@ export async function POST(request: Request) {
             : "Unauthorized LiveKit token request.",
       },
       { status: 401 },
+    );
+  }
+
+  if (envIssues.length > 0) {
+    return jsonWithCors(
+      request,
+      {
+        error: "LiveKit token endpoint has invalid environment configuration.",
+        issues: envIssues,
+      },
+      { status: 500 },
     );
   }
 

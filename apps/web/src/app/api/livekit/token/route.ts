@@ -3,8 +3,6 @@ import { AccessToken } from "livekit-server-sdk";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { env } from "~/env";
-
 export const runtime = "nodejs";
 
 const DEFAULT_AGENT_NAME = "dennis-portfolio-agent";
@@ -20,6 +18,23 @@ const CORS_BASE_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   Vary: "Origin",
 };
+
+const nodeEnvSchema = z
+  .enum(["development", "test", "production"])
+  .default("development");
+
+function getLiveKitEnv() {
+  return {
+    LIVEKIT_URL: process.env.LIVEKIT_URL,
+    LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY,
+    LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET,
+    LIVEKIT_AGENT_NAME: process.env.LIVEKIT_AGENT_NAME,
+    LIVEKIT_ALLOWED_ORIGINS: process.env.LIVEKIT_ALLOWED_ORIGINS,
+    LIVEKIT_TOKEN_AUTH_SECRET: process.env.LIVEKIT_TOKEN_AUTH_SECRET,
+    NEXT_PUBLIC_LIVEKIT_AGENT_NAME: process.env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME,
+    NODE_ENV: nodeEnvSchema.parse(process.env.NODE_ENV),
+  };
+}
 
 const roomAgentSchema = z.object({
   agent_name: z.string().min(1).max(160).optional(),
@@ -50,6 +65,7 @@ function createId(prefix: string) {
 }
 
 function getAllowedOrigins() {
+  const env = getLiveKitEnv();
   const configuredOrigins = env.LIVEKIT_ALLOWED_ORIGINS?.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -109,6 +125,7 @@ function getBearerToken(request: Request) {
 }
 
 function isAuthorizedForLiveKitToken(request: Request) {
+  const env = getLiveKitEnv();
   const expectedSecret = env.LIVEKIT_TOKEN_AUTH_SECRET;
 
   if (!expectedSecret) {
@@ -136,6 +153,8 @@ export function OPTIONS(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const env = getLiveKitEnv();
+
   if (!isOriginAllowed(request.headers.get("origin"))) {
     return jsonWithCors(
       request,

@@ -21,20 +21,24 @@ const CORS_BASE_HEADERS = {
 
 const nodeEnvSchema = z
   .enum(["development", "test", "production"])
-  .default("development");
+  .catch("development");
 
-function getLiveKitEnv() {
-  return {
-    LIVEKIT_URL: process.env.LIVEKIT_URL,
-    LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY,
-    LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET,
-    LIVEKIT_AGENT_NAME: process.env.LIVEKIT_AGENT_NAME,
-    LIVEKIT_ALLOWED_ORIGINS: process.env.LIVEKIT_ALLOWED_ORIGINS,
-    LIVEKIT_TOKEN_AUTH_SECRET: process.env.LIVEKIT_TOKEN_AUTH_SECRET,
-    NEXT_PUBLIC_LIVEKIT_AGENT_NAME: process.env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME,
-    NODE_ENV: nodeEnvSchema.parse(process.env.NODE_ENV),
-  };
+function optionalEnv(value: string | undefined) {
+  return value && value.length > 0 ? value : undefined;
 }
+
+const env = {
+  LIVEKIT_URL: optionalEnv(process.env.LIVEKIT_URL),
+  LIVEKIT_API_KEY: optionalEnv(process.env.LIVEKIT_API_KEY),
+  LIVEKIT_API_SECRET: optionalEnv(process.env.LIVEKIT_API_SECRET),
+  LIVEKIT_AGENT_NAME: optionalEnv(process.env.LIVEKIT_AGENT_NAME),
+  LIVEKIT_ALLOWED_ORIGINS: optionalEnv(process.env.LIVEKIT_ALLOWED_ORIGINS),
+  LIVEKIT_TOKEN_AUTH_SECRET: optionalEnv(process.env.LIVEKIT_TOKEN_AUTH_SECRET),
+  NEXT_PUBLIC_LIVEKIT_AGENT_NAME: optionalEnv(
+    process.env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME,
+  ),
+  NODE_ENV: nodeEnvSchema.parse(process.env.NODE_ENV),
+};
 
 const roomAgentSchema = z.object({
   agent_name: z.string().min(1).max(160).optional(),
@@ -124,7 +128,6 @@ function getBearerToken(request: Request) {
 }
 
 function isAuthorizedForLiveKitToken(request: Request) {
-  const env = getLiveKitEnv();
   const expectedSecret = env.LIVEKIT_TOKEN_AUTH_SECRET;
 
   if (!expectedSecret) {
@@ -152,7 +155,6 @@ export function OPTIONS(request: Request) {
 }
 
 export async function POST(request: Request) {
-
   if (!isOriginAllowed(request.headers.get("origin"))) {
     return jsonWithCors(
       request,

@@ -227,11 +227,15 @@ export function assertGuestSessionEnv() {
   const missing = [
     "UPSTASH_REDIS_REST_URL",
     "UPSTASH_REDIS_REST_TOKEN",
-    "QSTASH_URL",
-    "QSTASH_TOKEN",
-    "QSTASH_CURRENT_SIGNING_KEY",
-    "QSTASH_NEXT_SIGNING_KEY",
     "LIVEKIT_GUEST_RATE_LIMIT_SALT",
+    ...(LIVEKIT_GUEST_CLEANUP_ENABLED
+      ? [
+          "QSTASH_URL",
+          "QSTASH_TOKEN",
+          "QSTASH_CURRENT_SIGNING_KEY",
+          "QSTASH_NEXT_SIGNING_KEY",
+        ]
+      : []),
   ].filter((key) => !liveKitEnv[key as keyof typeof liveKitEnv]);
 
   if (missing.length > 0) {
@@ -250,8 +254,8 @@ export function assertGuestSessionEnv() {
     LIVEKIT_API_SECRET: liveKit.LIVEKIT_API_SECRET,
     UPSTASH_REDIS_REST_URL: liveKitEnv.UPSTASH_REDIS_REST_URL!,
     UPSTASH_REDIS_REST_TOKEN: liveKitEnv.UPSTASH_REDIS_REST_TOKEN!,
-    QSTASH_URL: liveKitEnv.QSTASH_URL!,
-    QSTASH_TOKEN: liveKitEnv.QSTASH_TOKEN!,
+    QSTASH_URL: liveKitEnv.QSTASH_URL,
+    QSTASH_TOKEN: liveKitEnv.QSTASH_TOKEN,
     LIVEKIT_GUEST_RATE_LIMIT_SALT: liveKitEnv.LIVEKIT_GUEST_RATE_LIMIT_SALT!,
   };
 }
@@ -276,7 +280,16 @@ export function createQStashClient() {
     throw new Error(env.error);
   }
 
-  return new QStashClient({ baseUrl: env.QSTASH_URL, token: env.QSTASH_TOKEN });
+  if (!env.QSTASH_URL || !env.QSTASH_TOKEN) {
+    throw new Error(
+      "LiveKit guest cleanup is not configured. Set QSTASH_URL and QSTASH_TOKEN.",
+    );
+  }
+
+  return new QStashClient({
+    baseUrl: env.QSTASH_URL,
+    token: env.QSTASH_TOKEN,
+  });
 }
 
 export function createRoomServiceClient() {

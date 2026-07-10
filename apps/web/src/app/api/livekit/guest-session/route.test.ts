@@ -215,6 +215,29 @@ describe("POST /api/livekit/guest-session", () => {
     expect(publishJSONMock).not.toHaveBeenCalled();
   });
 
+  it("does not require QStash env when cleanup is disabled", async () => {
+    delete process.env.QSTASH_URL;
+    delete process.env.QSTASH_TOKEN;
+    delete process.env.QSTASH_CURRENT_SIGNING_KEY;
+    delete process.env.QSTASH_NEXT_SIGNING_KEY;
+
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as {
+      cleanup_enabled: boolean;
+      participant_token: string;
+    };
+
+    expect(response.status).toBe(201);
+    expect(payload.participant_token).toBe("mock.jwt");
+    expect(payload.cleanup_enabled).toBe(false);
+    expect(publishJSONMock).not.toHaveBeenCalled();
+  });
+
   it("schedules the delayed expire callback when cleanup is enabled", async () => {
     vi.doMock("~/server/livekit/guest-session-config", async () => {
       const actual = await vi.importActual<typeof guestSessionConfig>(
@@ -496,6 +519,23 @@ describe("POST /api/livekit/guest-session/expire", () => {
     );
 
     expect(response.status).toBe(401);
+  });
+
+  it("does not expose expiration when QStash signing keys are missing", async () => {
+    delete process.env.QSTASH_CURRENT_SIGNING_KEY;
+    delete process.env.QSTASH_NEXT_SIGNING_KEY;
+
+    const { POST } = await importExpireRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session/expire", {
+        body: { session_id: "guest_session_test" },
+        headers: { "upstash-signature": "valid" },
+      }),
+    );
+    const payload = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(503);
+    expect(payload.error).toContain("QStash signing keys");
   });
 
   it("deletes the room and releases the active lock for signed QStash requests", async () => {

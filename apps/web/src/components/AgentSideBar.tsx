@@ -532,7 +532,7 @@ function LoadingState() {
 
 export function AgentSideBar({
   className,
-  errorMessage = "Error message here",
+  errorMessage = "Could not start voice session. Run the token probe and share the endpoint status with engineering.",
   inputValue = "",
   isMicrophoneEnabled = true,
   isSending = false,

@@ -24,6 +24,7 @@ import {
 import Link from "next/link";
 import {
   type CSSProperties,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -50,10 +51,12 @@ const DEFAULT_TOKEN_ENDPOINT =
 const STORYBOOK_ORIGIN =
   env.NEXT_PUBLIC_STORYBOOK_ORIGIN ?? "http://localhost:6006";
 const TOKEN_ENDPOINT_LABEL = "/api/livekit/token";
+const GUEST_TOKEN_ENDPOINT_LABEL = "/api/livekit/guest-session";
 const TOKEN_ERROR_ENDPOINT_LABEL = "/api/livekit/missing";
 
 type AllowedTokenEndpoint =
   | typeof TOKEN_ENDPOINT_LABEL
+  | typeof GUEST_TOKEN_ENDPOINT_LABEL
   | typeof TOKEN_ERROR_ENDPOINT_LABEL;
 
 const lightModeTokenStyle = {
@@ -84,6 +87,14 @@ type TokenProbeState =
   | { status: "success"; detail: string; statusCode: number }
   | { status: "error"; detail: string; statusCode?: number };
 
+type TokenEndpointPayload = {
+  code?: string;
+  error?: string;
+  participant_token?: string;
+  server_url?: string;
+  signup_url?: string;
+};
+
 function messageText(message: { message?: unknown; text?: unknown }) {
   const value = message.message ?? message.text;
   return typeof value === "string" ? value : "";
@@ -105,6 +116,8 @@ function resolveAllowedTokenEndpoint(
     switch (url.pathname) {
       case TOKEN_ENDPOINT_LABEL:
         return TOKEN_ENDPOINT_LABEL;
+      case GUEST_TOKEN_ENDPOINT_LABEL:
+        return GUEST_TOKEN_ENDPOINT_LABEL;
       case TOKEN_ERROR_ENDPOINT_LABEL:
         return TOKEN_ERROR_ENDPOINT_LABEL;
       default:
@@ -122,9 +135,118 @@ function fetchAllowedTokenEndpoint(
   switch (endpoint) {
     case TOKEN_ENDPOINT_LABEL:
       return fetch(TOKEN_ENDPOINT_LABEL, init);
+    case GUEST_TOKEN_ENDPOINT_LABEL:
+      return fetch(GUEST_TOKEN_ENDPOINT_LABEL, init);
     case TOKEN_ERROR_ENDPOINT_LABEL:
       return fetch(TOKEN_ERROR_ENDPOINT_LABEL, init);
   }
+}
+
+function statusLabel(statusCode: number) {
+  switch (statusCode) {
+    case 200:
+      return "OK";
+    case 201:
+      return "Created";
+    case 204:
+      return "No Content";
+    case 401:
+      return "Unauthorized";
+    case 403:
+      return "Forbidden";
+    case 404:
+      return "Not Found";
+    case 409:
+      return "Conflict";
+    case 429:
+      return "Too Many Requests";
+    case 500:
+      return "Server Error";
+    default:
+      return statusCode >= 200 && statusCode < 300 ? "Success" : "Error";
+  }
+}
+
+function humanizeTokenEndpointResult({
+  endpoint,
+  payload,
+  statusCode,
+}: {
+  endpoint: AllowedTokenEndpoint;
+  payload: TokenEndpointPayload | null;
+  statusCode: number;
+}) {
+  const engineerDetail = `Engineer detail: ${endpoint} returned HTTP ${statusCode} ${statusLabel(statusCode)}${
+    payload?.code ? ` with code "${payload.code}"` : ""
+  }${payload?.error ? ` and message "${payload.error}"` : ""}.`;
+
+  if (statusCode === 201) {
+    return `Token issued successfully. LiveKit can now attempt to connect with the returned server URL and participant token. ${engineerDetail}`;
+  }
+
+  if (statusCode === 204 && endpoint === GUEST_TOKEN_ENDPOINT_LABEL) {
+    return `Guest endpoint is reachable and this origin is allowed. This probe did not create a guest session; use Start voice session to request the actual token. ${engineerDetail}`;
+  }
+
+  if (statusCode === 401) {
+    return `The token route rejected the request because endpoint auth is missing or incorrect. Paste the QA/admin secret only when testing /api/livekit/token. ${engineerDetail}`;
+  }
+
+  if (statusCode === 403) {
+    return `This browser origin is not allowed to request LiveKit tokens. Add the current site origin to LIVEKIT_ALLOWED_ORIGINS and restart or redeploy the app. ${engineerDetail}`;
+  }
+
+  if (statusCode === 404) {
+    return `The configured token endpoint does not exist. Check the tokenEndpoint query string and route registration. ${engineerDetail}`;
+  }
+
+  if (statusCode === 409 || payload?.code === "active_session_exists") {
+    return `A guest voice session is already active for this browser or IP. End the current session or wait for the 30-second QStash cleanup before starting another one. ${engineerDetail}`;
+  }
+
+  if (statusCode === 429 || payload?.code === "guest_trial_used") {
+    return `The guest trial cooldown blocked this request. In dev, clear the livekit:guest Redis keys or turn off the guest cooldown flag; in prod, send the user to signup. ${engineerDetail}`;
+  }
+
+  if (statusCode >= 500) {
+    return `The server failed while issuing the LiveKit token. Check Vercel/local logs for LiveKit, Upstash Redis, QStash, and environment-variable configuration. ${engineerDetail}`;
+  }
+
+  if (payload?.participant_token && payload.server_url) {
+    return `Token endpoint responded with the expected LiveKit token payload. ${engineerDetail}`;
+  }
+
+  if (statusCode >= 200 && statusCode < 300) {
+    return `The endpoint returned success, but the LiveKit token payload was incomplete. ${engineerDetail}`;
+  }
+
+  return `${payload?.error ?? "Token endpoint returned an error."} ${engineerDetail}`;
+}
+
+function humanizeLiveKitStartError(error: unknown, endpoint: string) {
+  const message = error instanceof Error ? error.message : String(error);
+  const lowerMessage = message.toLowerCase();
+
+  if (
+    lowerMessage.includes("active_session_exists") ||
+    message.includes("409")
+  ) {
+    return `Could not start voice because a guest session is already active. Wait for the 30-second cleanup or end the current room, then try again. Engineer detail: ${endpoint} returned active_session_exists/HTTP 409 during LiveKit start.`;
+  }
+
+  if (lowerMessage.includes("guest_trial_used") || message.includes("429")) {
+    return `Could not start voice because the guest trial cooldown blocked the request. Engineer detail: ${endpoint} returned guest_trial_used/HTTP 429 during LiveKit start.`;
+  }
+
+  if (message.includes("401")) {
+    return `Could not start voice because the token endpoint rejected auth. Engineer detail: ${endpoint} returned HTTP 401 during LiveKit start.`;
+  }
+
+  if (message.includes("403")) {
+    return `Could not start voice because this origin is not allowed. Engineer detail: ${endpoint} returned HTTP 403 during LiveKit start.`;
+  }
+
+  return `Could not start voice session. Run the token probe and check browser/server logs for the exact endpoint status. Engineer detail: ${message}`;
 }
 
 function toAgentSideBarMessage(
@@ -266,6 +388,7 @@ function LiveAgentConsole({
         setInputValue={setInputValue}
         setManualState={setManualState}
         startRequestId={startRequestId}
+        tokenEndpoint={tokenEndpoint}
       />
       <RoomAudioRenderer />
     </SessionProvider>
@@ -281,6 +404,7 @@ function LiveAgentSession({
   setInputValue,
   setManualState,
   startRequestId,
+  tokenEndpoint,
 }: {
   agentName: string;
   inputValue: string;
@@ -290,10 +414,14 @@ function LiveAgentSession({
   setInputValue: (value: string) => void;
   setManualState: (state: AgentSideBarState) => void;
   startRequestId: number;
+  tokenEndpoint: string;
 }) {
   const agent = useAgent(session);
   const sessionMessages = useSessionMessages(session);
   const { microphoneToggle } = useInputControls();
+  const [sessionErrorMessage, setSessionErrorMessage] = useState(
+    "Could not start voice session. Run the token probe and share the endpoint status with engineering.",
+  );
   const startedRequestRef = useRef(0);
   const messages = sessionMessages.messages
     .map((message, index) =>
@@ -314,15 +442,15 @@ function LiveAgentSession({
   const endSession = () => {
     setInputValue("");
     setManualState("intro");
+    setSessionErrorMessage(
+      "Could not start voice session. Run the token probe and share the endpoint status with engineering.",
+    );
     void session.end().finally(onSessionEnded);
   };
-
-  useEffect(() => {
-    if (startRequestId <= 0 || startedRequestRef.current === startRequestId) {
-      return;
-    }
-
-    startedRequestRef.current = startRequestId;
+  const startSession = useCallback(() => {
+    setSessionErrorMessage(
+      "Connecting to LiveKit. If this fails, the endpoint status will be shown here.",
+    );
     setManualState("loading");
     void session
       .start({
@@ -334,9 +462,19 @@ function LiveAgentSession({
       })
       .catch((error) => {
         console.error("LiveKit session start failed", error);
+        setSessionErrorMessage(humanizeLiveKitStartError(error, tokenEndpoint));
         setManualState("error");
       });
-  }, [session, setManualState, startRequestId]);
+  }, [session, setManualState, tokenEndpoint]);
+
+  useEffect(() => {
+    if (startRequestId <= 0 || startedRequestRef.current === startRequestId) {
+      return;
+    }
+
+    startedRequestRef.current = startRequestId;
+    startSession();
+  }, [startRequestId, startSession]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_402px]">
@@ -385,19 +523,7 @@ function LiveAgentSession({
             type="button"
             onClick={() => {
               startedRequestRef.current = 0;
-              setManualState("loading");
-              void session
-                .start({
-                  tracks: {
-                    camera: { enabled: false },
-                    microphone: { enabled: true },
-                    screenShare: { enabled: false },
-                  },
-                })
-                .catch((error) => {
-                  console.error("LiveKit session start failed", error);
-                  setManualState("error");
-                });
+              startSession();
             }}
             disabled={session.connectionState !== ConnectionState.Disconnected}
           >
@@ -462,6 +588,7 @@ function LiveAgentSession({
       </section>
 
       <AgentSideBar
+        errorMessage={sessionErrorMessage}
         inputValue={inputValue}
         isMicrophoneEnabled={microphoneToggle.enabled}
         isSending={sessionMessages.isSending}
@@ -473,19 +600,7 @@ function LiveAgentSession({
           setInputValue("");
         }}
         onStart={() => {
-          setManualState("loading");
-          void session
-            .start({
-              tracks: {
-                camera: { enabled: false },
-                microphone: { enabled: true },
-                screenShare: { enabled: false },
-              },
-            })
-            .catch((error) => {
-              console.error("LiveKit session start failed", error);
-              setManualState("error");
-            });
+          startSession();
         }}
         onToggleMicrophone={() => {
           void microphoneToggle.toggle(!microphoneToggle.enabled);
@@ -619,6 +734,43 @@ export default function LiveKitAgentPage() {
     }
 
     try {
+      if (resolvedTokenEndpoint === GUEST_TOKEN_ENDPOINT_LABEL) {
+        const response = await fetchAllowedTokenEndpoint(
+          resolvedTokenEndpoint,
+          {
+            method: "OPTIONS",
+          },
+        );
+
+        if (!response.ok) {
+          const payload = (await response
+            .json()
+            .catch(() => null)) as TokenEndpointPayload | null;
+
+          setProbe({
+            status: "error",
+            statusCode: response.status,
+            detail: humanizeTokenEndpointResult({
+              endpoint: resolvedTokenEndpoint,
+              payload,
+              statusCode: response.status,
+            }),
+          });
+          return;
+        }
+
+        setProbe({
+          status: "success",
+          statusCode: response.status,
+          detail: humanizeTokenEndpointResult({
+            endpoint: resolvedTokenEndpoint,
+            payload: null,
+            statusCode: response.status,
+          }),
+        });
+        return;
+      }
+
       const response = await fetchAllowedTokenEndpoint(resolvedTokenEndpoint, {
         body: JSON.stringify({
           dispatch_agent: false,
@@ -634,17 +786,19 @@ export default function LiveKitAgentPage() {
         },
         method: "POST",
       });
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-        participant_token?: string;
-        server_url?: string;
-      } | null;
+      const payload = (await response
+        .json()
+        .catch(() => null)) as TokenEndpointPayload | null;
 
       if (!response.ok) {
         setProbe({
           status: "error",
           statusCode: response.status,
-          detail: payload?.error ?? "Token endpoint returned an error.",
+          detail: humanizeTokenEndpointResult({
+            endpoint: resolvedTokenEndpoint,
+            payload,
+            statusCode: response.status,
+          }),
         });
         return;
       }
@@ -652,15 +806,18 @@ export default function LiveKitAgentPage() {
       setProbe({
         status: "success",
         statusCode: response.status,
-        detail:
-          payload?.participant_token && payload.server_url
-            ? "Token issued and LiveKit server URL returned."
-            : "Endpoint responded, but token payload was incomplete.",
+        detail: humanizeTokenEndpointResult({
+          endpoint: resolvedTokenEndpoint,
+          payload,
+          statusCode: response.status,
+        }),
       });
     } catch (error) {
       setProbe({
         status: "error",
-        detail: error instanceof Error ? error.message : "Token probe failed.",
+        detail: `The browser could not reach the token endpoint. Check that the local server and ngrok tunnel are running, then share this with engineering. Engineer detail: ${
+          error instanceof Error ? error.message : "Token probe failed."
+        }`,
       });
     }
   };
@@ -751,7 +908,8 @@ export default function LiveKitAgentPage() {
                 />
                 {!resolvedTokenEndpoint ? (
                   <p className="text-xs text-[var(--color-text-negative)]">
-                    Use /api/livekit/token or /api/livekit/missing.
+                    Use /api/livekit/token, /api/livekit/guest-session, or
+                    /api/livekit/missing.
                   </p>
                 ) : null}
               </div>
@@ -851,6 +1009,12 @@ export default function LiveKitAgentPage() {
                   href={`/livekit-agent?tokenEndpoint=${TOKEN_ERROR_ENDPOINT_LABEL}`}
                 >
                   Token error path
+                </a>
+                <a
+                  className="text-[var(--color-text-accent)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  href={`/livekit-agent?tokenEndpoint=${GUEST_TOKEN_ENDPOINT_LABEL}`}
+                >
+                  Guest 30-second trial path
                 </a>
                 <a
                   className="text-[var(--color-text-accent)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

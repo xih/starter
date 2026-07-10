@@ -26,17 +26,19 @@ Guest policy constants live in
 LIVEKIT_GUEST_SESSION_SECONDS = 30;
 LIVEKIT_GUEST_TOKEN_TTL_SECONDS = 45;
 LIVEKIT_GUEST_ACTIVE_TTL_SECONDS = 60;
-LIVEKIT_GUEST_CLEANUP_ENABLED = false;
+LIVEKIT_GUEST_CLEANUP_ENABLED =
+  process.env.LIVEKIT_GUEST_CLEANUP_ENABLED === "true";
 LIVEKIT_GUEST_COOLDOWN_ENABLED = false;
 LIVEKIT_GUEST_COOLDOWN_SECONDS = 3_600;
 LIVEKIT_GUEST_SIGNUP_URL = "/api/auth/signin";
 ```
 
-These are product policy values, not secrets, so they are intentionally kept in
-code instead of Infisical. `LIVEKIT_GUEST_CLEANUP_ENABLED` controls whether
-QStash forcibly expires the room after `LIVEKIT_GUEST_SESSION_SECONDS`. It is
-currently off for local QA so conversations can run longer. Turn it back on
-before shipping the public guest flow if you want the 30-second cap.
+These are product policy values, not secrets. `LIVEKIT_GUEST_CLEANUP_ENABLED`
+is read from the environment so deployments can enable QStash cleanup without
+code changes. It controls whether QStash forcibly expires the room after
+`LIVEKIT_GUEST_SESSION_SECONDS`. Leave it unset or set to `false` for local QA
+so conversations can run longer. Set it to `true` when you want the 30-second
+cap.
 `LIVEKIT_GUEST_COOLDOWN_ENABLED` controls whether a browser/IP is limited to
 one completed guest trial per cooldown window. It is currently off for local
 QA, while the active-session lock still prevents parallel guest sessions from
@@ -54,6 +56,7 @@ LIVEKIT_API_SECRET
 LIVEKIT_AGENT_NAME
 LIVEKIT_ALLOWED_ORIGINS
 LIVEKIT_GUEST_RATE_LIMIT_SALT
+LIVEKIT_GUEST_CLEANUP_ENABLED
 UPSTASH_REDIS_REST_TOKEN
 UPSTASH_REDIS_REST_URL
 ```

@@ -91,9 +91,26 @@ async function expireGuestSession(request: Request) {
   });
 }
 
-export const POST = verifySignatureAppRouter(expireGuestSession, {
-  currentSigningKey:
-    process.env.QSTASH_CURRENT_SIGNING_KEY ?? "missing-current-signing-key",
-  nextSigningKey:
-    process.env.QSTASH_NEXT_SIGNING_KEY ?? "missing-next-signing-key",
-});
+function createExpireHandler() {
+  const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
+  const nextSigningKey = process.env.QSTASH_NEXT_SIGNING_KEY;
+
+  if (!currentSigningKey || !nextSigningKey) {
+    return function disabledExpireHandler() {
+      return NextResponse.json(
+        {
+          error:
+            "LiveKit guest session expiration is not configured. Set QStash signing keys.",
+        },
+        { status: 503 },
+      );
+    };
+  }
+
+  return verifySignatureAppRouter(expireGuestSession, {
+    currentSigningKey,
+    nextSigningKey,
+  });
+}
+
+export const POST = createExpireHandler();

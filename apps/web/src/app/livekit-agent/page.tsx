@@ -47,8 +47,7 @@ import { cn } from "~/lib/utils";
 const DEFAULT_AGENT_NAME =
   env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ?? "dennis-portfolio-agent";
 const DEFAULT_TOKEN_ENDPOINT = "/api/livekit/guest-session";
-const STORYBOOK_ORIGIN =
-  env.NEXT_PUBLIC_STORYBOOK_ORIGIN ?? "/storybook/";
+const STORYBOOK_ORIGIN = env.NEXT_PUBLIC_STORYBOOK_ORIGIN ?? "/storybook/";
 const STORYBOOK_URL = STORYBOOK_ORIGIN.replace(/\/?$/, "/");
 const TOKEN_ENDPOINT_LABEL = "/api/livekit/token";
 const GUEST_TOKEN_ENDPOINT_LABEL = "/api/livekit/guest-session";
@@ -738,19 +737,52 @@ export default function LiveKitAgentPage() {
     }
 
     try {
+      if (resolvedTokenEndpoint === GUEST_TOKEN_ENDPOINT_LABEL) {
+        const response = await fetchAllowedTokenEndpoint(
+          resolvedTokenEndpoint,
+          {
+            method: "OPTIONS",
+          },
+        );
+
+        if (!response.ok) {
+          const payload = (await response
+            .json()
+            .catch(() => null)) as TokenEndpointPayload | null;
+
+          setProbe({
+            status: "error",
+            statusCode: response.status,
+            detail: humanizeTokenEndpointResult({
+              endpoint: resolvedTokenEndpoint,
+              payload,
+              statusCode: response.status,
+            }),
+          });
+          return;
+        }
+
+        setProbe({
+          status: "success",
+          statusCode: response.status,
+          detail: humanizeTokenEndpointResult({
+            endpoint: resolvedTokenEndpoint,
+            payload: null,
+            statusCode: response.status,
+          }),
+        });
+        return;
+      }
+
       const response = await fetchAllowedTokenEndpoint(resolvedTokenEndpoint, {
-        body: JSON.stringify(
-          resolvedTokenEndpoint === GUEST_TOKEN_ENDPOINT_LABEL
-            ? {}
-            : {
-                dispatch_agent: false,
-                participant_name: "Local QA",
-                room_config: {
-                  agents: [{ agentName }],
-                },
-                room_name: roomName,
-              },
-        ),
+        body: JSON.stringify({
+          dispatch_agent: false,
+          participant_name: "Local QA",
+          room_config: {
+            agents: [{ agentName }],
+          },
+          room_name: roomName,
+        }),
         headers: {
           "Content-Type": "application/json",
           ...(resolvedTokenEndpoint === TOKEN_ENDPOINT_LABEL && endpointAuth

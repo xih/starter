@@ -521,6 +521,23 @@ describe("POST /api/livekit/guest-session/expire", () => {
     expect(response.status).toBe(401);
   });
 
+  it("does not expose expiration when QStash signing keys are missing", async () => {
+    delete process.env.QSTASH_CURRENT_SIGNING_KEY;
+    delete process.env.QSTASH_NEXT_SIGNING_KEY;
+
+    const { POST } = await importExpireRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session/expire", {
+        body: { session_id: "guest_session_test" },
+        headers: { "upstash-signature": "valid" },
+      }),
+    );
+    const payload = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(503);
+    expect(payload.error).toContain("QStash signing keys");
+  });
+
   it("deletes the room and releases the active lock for signed QStash requests", async () => {
     const { guestActiveKey, guestSessionKey } =
       await import("~/server/livekit/guest-session");

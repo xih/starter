@@ -228,14 +228,10 @@ export function assertGuestSessionEnv() {
     "UPSTASH_REDIS_REST_URL",
     "UPSTASH_REDIS_REST_TOKEN",
     "LIVEKIT_GUEST_RATE_LIMIT_SALT",
-    ...(LIVEKIT_GUEST_CLEANUP_ENABLED
-      ? [
-          "QSTASH_URL",
-          "QSTASH_TOKEN",
-          "QSTASH_CURRENT_SIGNING_KEY",
-          "QSTASH_NEXT_SIGNING_KEY",
-        ]
-      : []),
+    "QSTASH_URL",
+    "QSTASH_TOKEN",
+    "QSTASH_CURRENT_SIGNING_KEY",
+    "QSTASH_NEXT_SIGNING_KEY",
   ].filter((key) => !liveKitEnv[key as keyof typeof liveKitEnv]);
 
   if (missing.length > 0) {

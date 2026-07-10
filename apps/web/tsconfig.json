@@ -31,5 +31,5 @@
     "**/*.js",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next", "storybook-static"]
+  "exclude": ["node_modules", ".next", "public/storybook", "storybook-static"]
 }

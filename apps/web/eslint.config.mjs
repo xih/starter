@@ -21,6 +21,7 @@ export default [
       "next.config.js",
       "node_modules/**",
       "postcss.config.js",
+      "public/storybook/**",
       "storybook-static/**",
       "tailwind.config.ts",
       "vitest.config.ts",

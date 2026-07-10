@@ -63,5 +63,6 @@ coindesk_screenshot_*.png
 # Storybook environment file
 .env.storybook
 storybook-static/
+apps/web/public/storybook/
 
 *.txt

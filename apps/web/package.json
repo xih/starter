@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "SKIP_ENV_VALIDATION=1 next build",
+    "build:public-storybook": "SKIP_ENV_VALIDATION=1 storybook build && rm -rf public/storybook && mkdir -p public && cp -R storybook-static public/storybook",
+    "build:vercel": "corepack pnpm --filter @starter/tokens build && corepack pnpm build:public-storybook && SKIP_ENV_VALIDATION=1 next build",
     "check": "corepack pnpm lint && corepack pnpm typecheck",
     "dev": "next dev --turbo",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",

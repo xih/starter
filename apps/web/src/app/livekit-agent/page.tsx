@@ -46,10 +46,10 @@ import { cn } from "~/lib/utils";
 
 const DEFAULT_AGENT_NAME =
   env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ?? "dennis-portfolio-agent";
-const DEFAULT_TOKEN_ENDPOINT =
-  env.NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT ?? "/api/livekit/token";
+const DEFAULT_TOKEN_ENDPOINT = "/api/livekit/guest-session";
 const STORYBOOK_ORIGIN =
-  env.NEXT_PUBLIC_STORYBOOK_ORIGIN ?? "http://localhost:6006";
+  env.NEXT_PUBLIC_STORYBOOK_ORIGIN ?? "/storybook/";
+const STORYBOOK_URL = STORYBOOK_ORIGIN.replace(/\/?$/, "/");
 const TOKEN_ENDPOINT_LABEL = "/api/livekit/token";
 const GUEST_TOKEN_ENDPOINT_LABEL = "/api/livekit/guest-session";
 const TOKEN_ERROR_ENDPOINT_LABEL = "/api/livekit/missing";
@@ -179,6 +179,10 @@ function humanizeTokenEndpointResult({
   const engineerDetail = `Engineer detail: ${endpoint} returned HTTP ${statusCode} ${statusLabel(statusCode)}${
     payload?.code ? ` with code "${payload.code}"` : ""
   }${payload?.error ? ` and message "${payload.error}"` : ""}.`;
+
+  if (statusCode === 200 && endpoint === GUEST_TOKEN_ENDPOINT_LABEL) {
+    return `Guest session token reused successfully. LiveKit can now reconnect to the existing active room. ${engineerDetail}`;
+  }
 
   if (statusCode === 201) {
     return `Token issued successfully. LiveKit can now attempt to connect with the returned server URL and participant token. ${engineerDetail}`;
@@ -734,55 +738,24 @@ export default function LiveKitAgentPage() {
     }
 
     try {
-      if (resolvedTokenEndpoint === GUEST_TOKEN_ENDPOINT_LABEL) {
-        const response = await fetchAllowedTokenEndpoint(
-          resolvedTokenEndpoint,
-          {
-            method: "OPTIONS",
-          },
-        );
-
-        if (!response.ok) {
-          const payload = (await response
-            .json()
-            .catch(() => null)) as TokenEndpointPayload | null;
-
-          setProbe({
-            status: "error",
-            statusCode: response.status,
-            detail: humanizeTokenEndpointResult({
-              endpoint: resolvedTokenEndpoint,
-              payload,
-              statusCode: response.status,
-            }),
-          });
-          return;
-        }
-
-        setProbe({
-          status: "success",
-          statusCode: response.status,
-          detail: humanizeTokenEndpointResult({
-            endpoint: resolvedTokenEndpoint,
-            payload: null,
-            statusCode: response.status,
-          }),
-        });
-        return;
-      }
-
       const response = await fetchAllowedTokenEndpoint(resolvedTokenEndpoint, {
-        body: JSON.stringify({
-          dispatch_agent: false,
-          participant_name: "Local QA",
-          room_config: {
-            agents: [{ agentName }],
-          },
-          room_name: roomName,
-        }),
+        body: JSON.stringify(
+          resolvedTokenEndpoint === GUEST_TOKEN_ENDPOINT_LABEL
+            ? {}
+            : {
+                dispatch_agent: false,
+                participant_name: "Local QA",
+                room_config: {
+                  agents: [{ agentName }],
+                },
+                room_name: roomName,
+              },
+        ),
         headers: {
           "Content-Type": "application/json",
-          ...(endpointAuth ? { Authorization: `Bearer ${endpointAuth}` } : {}),
+          ...(resolvedTokenEndpoint === TOKEN_ENDPOINT_LABEL && endpointAuth
+            ? { Authorization: `Bearer ${endpointAuth}` }
+            : {}),
         },
         method: "POST",
       });
@@ -863,7 +836,13 @@ export default function LiveKitAgentPage() {
               </Link>
             </Button>
             <Button asChild variant="outline">
-              <a href={STORYBOOK_ORIGIN} target="_blank" rel="noreferrer">
+              <Link href="/docs/api">
+                API docs
+                <ExternalLink />
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <a href={STORYBOOK_URL} target="_blank" rel="noreferrer">
                 Storybook
                 <ExternalLink />
               </a>
@@ -936,7 +915,7 @@ export default function LiveKitAgentPage() {
                   value={endpointAuth}
                   type="password"
                   onChange={(event) => setEndpointAuth(event.target.value)}
-                  placeholder="Only for local/prod token endpoint diagnostics"
+                  placeholder="Only used by /api/livekit/token diagnostics"
                 />
               </div>
             </div>
@@ -1018,7 +997,7 @@ export default function LiveKitAgentPage() {
                 </a>
                 <a
                   className="text-[var(--color-text-accent)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  href={`${STORYBOOK_ORIGIN}/?path=/story/livekit-agent-session-panel--live-cloud-session`}
+                  href={`${STORYBOOK_URL}?path=/story/livekit-agent-session-panel--live-cloud-session`}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -1026,7 +1005,7 @@ export default function LiveKitAgentPage() {
                 </a>
                 <a
                   className="text-[var(--color-text-accent)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  href={`${STORYBOOK_ORIGIN}/?path=/story/dennis-design-system-agent-side-bar--live-cloud-session`}
+                  href={`${STORYBOOK_URL}?path=/story/dennis-design-system-agent-side-bar--live-cloud-session`}
                   target="_blank"
                   rel="noreferrer"
                 >

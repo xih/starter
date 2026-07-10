@@ -16,6 +16,7 @@ A modern, full-stack Next.js starter template with built-in Storybook integratio
 
 - Main Application: [https://starter2-ten.vercel.app](https://starter2-ten.vercel.app)
 - Storybook: [https://starter2-ten.vercel.app/storybook](https://starter2-ten.vercel.app/storybook)
+- LiveKit guest sessions: [docs/livekit-guest-sessions.md](docs/livekit-guest-sessions.md)
 
 ## 🚀 Getting Started
 

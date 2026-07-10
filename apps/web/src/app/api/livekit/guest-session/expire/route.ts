@@ -73,10 +73,17 @@ async function expireGuestSession(request: Request) {
     status: "expired",
   };
 
-  await Promise.all([
+  const activeKey = guestActiveKey(record.deviceHash, record.ipHash);
+  const activeSessionId = await redis.get<string>(activeKey);
+  const expireOperations: Array<Promise<unknown>> = [
     redis.set(key, expiredRecord, { ex: LIVEKIT_GUEST_COOLDOWN_SECONDS }),
-    redis.del(guestActiveKey(record.deviceHash, record.ipHash)),
-  ]);
+  ];
+
+  if (activeSessionId === record.sessionId) {
+    expireOperations.push(redis.del(activeKey));
+  }
+
+  await Promise.all(expireOperations);
 
   return NextResponse.json({
     status: "expired",

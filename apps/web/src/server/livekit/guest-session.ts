@@ -404,10 +404,13 @@ export async function issueGuestLiveKitToken(record: GuestSessionRecord) {
 }
 
 export function getGuestExpireUrl(request: Request) {
-  const origin = request.headers.get("origin");
+  const requestOrigin = new URL(request.url).origin;
 
-  if (origin && isOriginAllowed(origin)) {
-    return new URL("/api/livekit/guest-session/expire", origin).toString();
+  if (isOriginAllowed(requestOrigin)) {
+    return new URL(
+      "/api/livekit/guest-session/expire",
+      requestOrigin,
+    ).toString();
   }
 
   const forwardedHost = request.headers.get("x-forwarded-host");
@@ -424,15 +427,6 @@ export function getGuestExpireUrl(request: Request) {
         candidateOrigin,
       ).toString();
     }
-  }
-
-  const requestOrigin = new URL(request.url).origin;
-
-  if (isOriginAllowed(requestOrigin)) {
-    return new URL(
-      "/api/livekit/guest-session/expire",
-      requestOrigin,
-    ).toString();
   }
 
   throw new Error("Unable to build an allowed LiveKit guest expiration URL.");

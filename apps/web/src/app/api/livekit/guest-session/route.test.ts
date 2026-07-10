@@ -198,7 +198,7 @@ describe("POST /api/livekit/guest-session", () => {
 
   it("does not schedule the delayed expire callback when cleanup is disabled", async () => {
     process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "https://example.com,https://dev-tunnel.ngrok-free.app";
+      "http://localhost:3010,https://example.com,https://dev-tunnel.ngrok-free.app";
     const { POST } = await importGuestRoute();
     const response = await POST(
       new Request("http://localhost:3010/api/livekit/guest-session", {
@@ -227,7 +227,7 @@ describe("POST /api/livekit/guest-session", () => {
       };
     });
     process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "https://example.com,https://dev-tunnel.ngrok-free.app";
+      "http://localhost:3010,https://example.com,https://dev-tunnel.ngrok-free.app";
     const { POST } = await importGuestRoute();
     const response = await POST(
       new Request("http://localhost:3010/api/livekit/guest-session", {
@@ -243,7 +243,7 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.status).toBe(201);
     expect(publishJSONMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        url: "https://dev-tunnel.ngrok-free.app/api/livekit/guest-session/expire",
+        url: "http://localhost:3010/api/livekit/guest-session/expire",
       }),
     );
     vi.doUnmock("~/server/livekit/guest-session-config");
@@ -345,7 +345,7 @@ describe("POST /api/livekit/guest-session", () => {
     vi.doUnmock("~/server/livekit/guest-session-config");
   });
 
-  it("clears a stale active lock and creates a new guest session", async () => {
+  it("blocks stale active locks until the lock TTL expires", async () => {
     cookieValue = "existing-device";
     const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
       await import("~/server/livekit/guest-session");
@@ -373,17 +373,15 @@ describe("POST /api/livekit/guest-session", () => {
       }),
     );
     const payload = (await response.json()) as {
-      participant_token: string;
-      room_name: string;
+      code: string;
     };
 
-    expect(response.status).toBe(201);
-    expect(payload.participant_token).toBe("mock.jwt");
-    expect(payload.room_name).not.toBe("guest_guest_session_stale");
+    expect(response.status).toBe(409);
+    expect(payload.code).toBe("active_session_exists");
     expect(redisSetMock).toHaveBeenCalledWith(
       guestActiveKey(deviceHash, ipHash),
       expect.any(String),
-      { ex: 60 },
+      { ex: 60, nx: true },
     );
     expect(redisDelMock).not.toHaveBeenCalled();
     expect(publishJSONMock).not.toHaveBeenCalled();
@@ -456,6 +454,27 @@ describe("POST /api/livekit/guest-session", () => {
 
     expect(getGuestExpireUrl(request)).toBe(
       "https://example.com/api/livekit/guest-session/expire",
+    );
+  });
+
+  it("uses the API host instead of an allowed browser origin for QStash callbacks", async () => {
+    vi.resetModules();
+    process.env.LIVEKIT_ALLOWED_ORIGINS =
+      "https://api.example.com,https://storybook.example.com";
+    const { getGuestExpireUrl } =
+      await import("~/server/livekit/guest-session");
+    const request = new Request(
+      "https://api.example.com/api/livekit/guest-session",
+      {
+        headers: {
+          Origin: "https://storybook.example.com",
+        },
+        method: "POST",
+      },
+    );
+
+    expect(getGuestExpireUrl(request)).toBe(
+      "https://api.example.com/api/livekit/guest-session/expire",
     );
   });
 });
@@ -549,5 +568,38 @@ describe("POST /api/livekit/guest-session/expire", () => {
     expect(redisDelMock).toHaveBeenCalledWith(
       guestActiveKey("device-hash", "ip-hash"),
     );
+  });
+
+  it("does not release a newer active lock for an older expiration callback", async () => {
+    const { guestActiveKey, guestSessionKey } =
+      await import("~/server/livekit/guest-session");
+    const sessionId = "guest_session_old";
+    const activeKey = guestActiveKey("device-hash", "ip-hash");
+    redisStore.set(guestSessionKey(sessionId), {
+      agentName: "dennis-portfolio-agent",
+      createdAt: new Date().toISOString(),
+      deviceHash: "device-hash",
+      expiresAt: new Date().toISOString(),
+      ipHash: "ip-hash",
+      participantIdentity: "guest_guest_session_old",
+      roomName: "guest_guest_session_old",
+      sessionId,
+      status: "active",
+    });
+    redisStore.set(activeKey, "guest_session_new");
+
+    const { POST } = await importExpireRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session/expire", {
+        body: { session_id: sessionId },
+        headers: { "upstash-signature": "valid" },
+      }),
+    );
+    const payload = (await response.json()) as { status: string };
+
+    expect(response.status).toBe(200);
+    expect(payload.status).toBe("expired");
+    expect(redisDelMock).not.toHaveBeenCalledWith(activeKey);
+    expect(redisStore.get(activeKey)).toBe("guest_session_new");
   });
 });

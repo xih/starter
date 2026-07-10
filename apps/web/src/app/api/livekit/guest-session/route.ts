@@ -134,14 +134,10 @@ export async function POST(request: Request) {
     }
   }
 
-  const claimResult = activeSessionId
-    ? await redis.set(activeKey, sessionId, {
-        ex: LIVEKIT_GUEST_ACTIVE_TTL_SECONDS,
-      })
-    : await redis.set(activeKey, sessionId, {
-        ex: LIVEKIT_GUEST_ACTIVE_TTL_SECONDS,
-        nx: true,
-      });
+  const claimResult = await redis.set(activeKey, sessionId, {
+    ex: LIVEKIT_GUEST_ACTIVE_TTL_SECONDS,
+    nx: true,
+  });
 
   if (!claimResult) {
     const concurrentSessionId = await redis.get<string>(activeKey);

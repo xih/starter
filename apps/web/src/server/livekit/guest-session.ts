@@ -276,15 +276,15 @@ export function createQStashClient() {
     throw new Error(env.error);
   }
 
-  if (!liveKitEnv.QSTASH_URL || !liveKitEnv.QSTASH_TOKEN) {
+  if (!env.QSTASH_URL || !env.QSTASH_TOKEN) {
     throw new Error(
-      "LiveKit guest cleanup is not configured. Set QSTASH_URL and QSTASH_TOKEN.",
+      "LiveKit guest cleanup is not configured. Set QSTASH_URL and QSTASH_TOKEN."
     );
   }
 
-  return new QStashClient({
-    baseUrl: liveKitEnv.QSTASH_URL,
-    token: liveKitEnv.QSTASH_TOKEN,
+  return new QStashClient({ 
+    baseUrl: env.QSTASH_URL,
+    token: env.QSTASH_TOKEN,
   });
 }
 

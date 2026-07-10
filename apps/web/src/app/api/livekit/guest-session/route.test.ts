@@ -6,7 +6,11 @@ type RedisRecord = Record<string, unknown>;
 
 const redisStore = new Map<string, unknown>();
 const redisSetMock = vi.fn(
-  async (key: string, value: unknown, _options?: RedisRecord) => {
+  async (key: string, value: unknown, options?: RedisRecord) => {
+    if (options?.nx && redisStore.has(key)) {
+      return null;
+    }
+
     redisStore.set(key, value);
     return "OK";
   },
@@ -19,9 +23,6 @@ const redisDelMock = vi.fn(async (...keys: string[]) => {
   }
   return count;
 });
-let claimResult: "active" | "claimed" | "device_cooldown" | "ip_cooldown" =
-  "claimed";
-const redisEvalMock = vi.fn(async () => claimResult);
 const publishJSONMock = vi.fn(async () => ({ messageId: "msg_guest_expire" }));
 const deleteRoomMock = vi.fn(async () => undefined);
 const cookieSetMock = vi.fn();
@@ -30,9 +31,6 @@ let cookieValue: string | undefined;
 vi.mock("@upstash/redis", () => ({
   Redis: vi.fn(function RedisMock() {
     return {
-      createScript: vi.fn(() => ({
-        eval: redisEvalMock,
-      })),
       del: redisDelMock,
       get: redisGetMock,
       set: redisSetMock,
@@ -157,7 +155,6 @@ describe("POST /api/livekit/guest-session", () => {
     clearEnv();
     setEnv();
     redisStore.clear();
-    claimResult = "claimed";
     cookieValue = undefined;
     vi.clearAllMocks();
   });
@@ -253,7 +250,6 @@ describe("POST /api/livekit/guest-session", () => {
   });
 
   it("reuses an active guest session instead of failing duplicate token requests", async () => {
-    claimResult = "active";
     cookieValue = "existing-device";
     const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
       await import("~/server/livekit/guest-session");
@@ -293,8 +289,63 @@ describe("POST /api/livekit/guest-session", () => {
     expect(publishJSONMock).not.toHaveBeenCalled();
   });
 
+  it("reuses an active guest session before enforcing completed-trial cooldown", async () => {
+    vi.doMock("~/server/livekit/guest-session-config", async () => {
+      const actual = await vi.importActual<typeof guestSessionConfig>(
+        "~/server/livekit/guest-session-config",
+      );
+
+      return {
+        ...actual,
+        LIVEKIT_GUEST_COOLDOWN_ENABLED: true,
+      };
+    });
+    vi.resetModules();
+    cookieValue = "existing-device";
+    const {
+      guestActiveKey,
+      guestDeviceCooldownKey,
+      guestIpCooldownKey,
+      guestSessionKey,
+      hashGuestIdentifier,
+    } = await import("~/server/livekit/guest-session");
+    const [deviceHash, ipHash] = await Promise.all([
+      hashGuestIdentifier("existing-device"),
+      hashGuestIdentifier("203.0.113.10"),
+    ]);
+    const sessionId = "guest_session_existing";
+    redisStore.set(guestActiveKey(deviceHash, ipHash), sessionId);
+    redisStore.set(guestDeviceCooldownKey(deviceHash), sessionId);
+    redisStore.set(guestIpCooldownKey(ipHash), sessionId);
+    redisStore.set(guestSessionKey(sessionId), {
+      agentName: "dennis-portfolio-agent",
+      createdAt: new Date().toISOString(),
+      deviceHash,
+      expiresAt: new Date(Date.now() + 30_000).toISOString(),
+      ipHash,
+      participantIdentity: "guest_guest_session_existing",
+      roomName: "guest_guest_session_existing",
+      sessionId,
+      status: "active",
+    });
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as {
+      reused_session: boolean;
+      room_name: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.reused_session).toBe(true);
+    expect(payload.room_name).toBe("guest_guest_session_existing");
+    vi.doUnmock("~/server/livekit/guest-session-config");
+  });
+
   it("clears a stale active lock and creates a new guest session", async () => {
-    claimResult = "active";
     cookieValue = "existing-device";
     const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
       await import("~/server/livekit/guest-session");
@@ -329,20 +380,39 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.status).toBe(201);
     expect(payload.participant_token).toBe("mock.jwt");
     expect(payload.room_name).not.toBe("guest_guest_session_stale");
-    expect(redisDelMock).toHaveBeenCalledWith(
+    expect(redisSetMock).toHaveBeenCalledWith(
       guestActiveKey(deviceHash, ipHash),
+      expect.any(String),
+      { ex: 60 },
     );
+    expect(redisDelMock).not.toHaveBeenCalled();
     expect(publishJSONMock).not.toHaveBeenCalled();
   });
 
   it("rejects a used guest trial", async () => {
-    claimResult = "device_cooldown";
+    vi.doMock("~/server/livekit/guest-session-config", async () => {
+      const actual = await vi.importActual<typeof guestSessionConfig>(
+        "~/server/livekit/guest-session-config",
+      );
+
+      return {
+        ...actual,
+        LIVEKIT_GUEST_COOLDOWN_ENABLED: true,
+      };
+    });
+    vi.resetModules();
+    cookieValue = "existing-device";
+    const { guestDeviceCooldownKey, hashGuestIdentifier } =
+      await import("~/server/livekit/guest-session");
+    const deviceHash = await hashGuestIdentifier("existing-device");
+    redisStore.set(guestDeviceCooldownKey(deviceHash), "guest_session_used");
     const { POST } = await importGuestRoute();
     const response = await POST(createRequest("/api/livekit/guest-session"));
     const payload = (await response.json()) as { code: string };
 
     expect(response.status).toBe(429);
     expect(payload.code).toBe("guest_trial_used");
+    vi.doUnmock("~/server/livekit/guest-session-config");
   });
 
   it("rejects a disallowed origin", async () => {
@@ -354,6 +424,39 @@ describe("POST /api/livekit/guest-session", () => {
     );
 
     expect(response.status).toBe(403);
+  });
+
+  it("prefers trusted real-ip headers before x-forwarded-for", async () => {
+    const { getClientIp } = await import("~/server/livekit/guest-session");
+    const request = createRequest("/api/livekit/guest-session", {
+      headers: {
+        "x-forwarded-for": "198.51.100.99",
+        "x-real-ip": "203.0.113.22",
+      },
+    });
+
+    expect(getClientIp(request)).toBe("203.0.113.22");
+  });
+
+  it("does not use an unallowed forwarded host for QStash callbacks", async () => {
+    process.env.LIVEKIT_ALLOWED_ORIGINS =
+      "https://example.com,https://dev-tunnel.ngrok-free.app";
+    const { getGuestExpireUrl } =
+      await import("~/server/livekit/guest-session");
+    const request = new Request(
+      "https://example.com/api/livekit/guest-session",
+      {
+        headers: {
+          "x-forwarded-host": "attacker.example",
+          "x-forwarded-proto": "https",
+        },
+        method: "POST",
+      },
+    );
+
+    expect(getGuestExpireUrl(request)).toBe(
+      "https://example.com/api/livekit/guest-session/expire",
+    );
   });
 });
 

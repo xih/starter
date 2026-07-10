@@ -320,8 +320,8 @@ export function getClientIp(request: Request) {
 
   return (
     vercelForwardedFor ??
-    forwardedFor?.split(",")[0]?.trim() ??
     realIp ??
+    forwardedFor?.split(",")[0]?.trim() ??
     "unknown"
   );
 }
@@ -415,14 +415,27 @@ export function getGuestExpireUrl(request: Request) {
 
   if (forwardedHost) {
     const proto = forwardedProto?.split(",")[0]?.trim() ?? "https";
+    const host = forwardedHost.split(",")[0]?.trim();
+    const candidateOrigin = `${proto}://${host}`;
 
+    if (isOriginAllowed(candidateOrigin)) {
+      return new URL(
+        "/api/livekit/guest-session/expire",
+        candidateOrigin,
+      ).toString();
+    }
+  }
+
+  const requestOrigin = new URL(request.url).origin;
+
+  if (isOriginAllowed(requestOrigin)) {
     return new URL(
       "/api/livekit/guest-session/expire",
-      `${proto}://${forwardedHost.split(",")[0]?.trim()}`,
+      requestOrigin,
     ).toString();
   }
 
-  return new URL("/api/livekit/guest-session/expire", request.url).toString();
+  throw new Error("Unable to build an allowed LiveKit guest expiration URL.");
 }
 
 export {

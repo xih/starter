@@ -6,8 +6,8 @@ CONTEXT_DIR="$(mktemp -d)"
 SECRETS_FILE="$(mktemp)"
 
 cleanup() {
-  rm -rf "$CONTEXT_DIR"
-  rm -f "$SECRETS_FILE"
+  [[ -n "${CONTEXT_DIR:-}" ]] && rm -rf "$CONTEXT_DIR"
+  [[ -n "${SECRETS_FILE:-}" ]] && rm -f "$SECRETS_FILE"
 }
 trap cleanup EXIT
 

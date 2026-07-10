@@ -29,29 +29,6 @@ import { assertGuestSessionEnv } from "~/server/livekit/guest-session";
 
 export const runtime = "nodejs";
 
-const CLAIM_GUEST_SESSION_SCRIPT = `
-if ARGV[4] == "1" then
-  if redis.call("GET", KEYS[2]) then
-    return "device_cooldown"
-  end
-  if redis.call("GET", KEYS[3]) then
-    return "ip_cooldown"
-  end
-end
-if redis.call("GET", KEYS[1]) then
-  return "active"
-end
-
-redis.call("SET", KEYS[1], ARGV[1], "EX", ARGV[2])
-if ARGV[4] == "1" then
-  redis.call("SET", KEYS[2], ARGV[1], "EX", ARGV[3])
-  redis.call("SET", KEYS[3], ARGV[1], "EX", ARGV[3])
-end
-return "claimed"
-`;
-
-type ClaimResult = "active" | "claimed" | "device_cooldown" | "ip_cooldown";
-
 function jsonWithCors(
   request: Request,
   body: unknown,
@@ -116,30 +93,69 @@ export async function POST(request: Request) {
     hashGuestIdentifier(getClientIp(request)),
   ]);
   const activeKey = guestActiveKey(deviceHash, ipHash);
-  const claimScript = redis.createScript<ClaimResult>(
-    CLAIM_GUEST_SESSION_SCRIPT,
-  );
-  const claim = await claimScript.eval(
-    [activeKey, guestDeviceCooldownKey(deviceHash), guestIpCooldownKey(ipHash)],
-    [
-      sessionId,
-      String(LIVEKIT_GUEST_ACTIVE_TTL_SECONDS),
-      String(LIVEKIT_GUEST_COOLDOWN_SECONDS),
-      LIVEKIT_GUEST_COOLDOWN_ENABLED ? "1" : "0",
-    ],
-  );
 
-  if (claim === "active") {
-    const activeSessionId = await redis.get<string>(activeKey);
-    const activeRecord = activeSessionId
-      ? await redis.get<GuestSessionRecord>(guestSessionKey(activeSessionId))
+  const activeSessionId = await redis.get<string>(activeKey);
+  const activeRecord = activeSessionId
+    ? await redis.get<GuestSessionRecord>(guestSessionKey(activeSessionId))
+    : null;
+
+  if (
+    activeRecord?.status === "active" &&
+    Date.parse(activeRecord.expiresAt) > Date.now()
+  ) {
+    const payload = await issueGuestLiveKitToken(activeRecord);
+
+    return jsonWithCors(
+      request,
+      {
+        ...payload,
+        reused_session: true,
+      },
+      { status: 200 },
+    );
+  }
+
+  if (LIVEKIT_GUEST_COOLDOWN_ENABLED) {
+    const [deviceCooldown, ipCooldown] = await Promise.all([
+      redis.get(guestDeviceCooldownKey(deviceHash)),
+      redis.get(guestIpCooldownKey(ipHash)),
+    ]);
+
+    if (deviceCooldown || ipCooldown) {
+      return jsonWithCors(
+        request,
+        {
+          error: "Guest LiveKit trial has already been used.",
+          code: "guest_trial_used",
+          signup_url: LIVEKIT_GUEST_SIGNUP_URL,
+        },
+        { status: 429 },
+      );
+    }
+  }
+
+  const claimResult = activeSessionId
+    ? await redis.set(activeKey, sessionId, {
+        ex: LIVEKIT_GUEST_ACTIVE_TTL_SECONDS,
+      })
+    : await redis.set(activeKey, sessionId, {
+        ex: LIVEKIT_GUEST_ACTIVE_TTL_SECONDS,
+        nx: true,
+      });
+
+  if (!claimResult) {
+    const concurrentSessionId = await redis.get<string>(activeKey);
+    const concurrentRecord = concurrentSessionId
+      ? await redis.get<GuestSessionRecord>(
+          guestSessionKey(concurrentSessionId),
+        )
       : null;
 
     if (
-      activeRecord?.status === "active" &&
-      Date.parse(activeRecord.expiresAt) > Date.now()
+      concurrentRecord?.status === "active" &&
+      Date.parse(concurrentRecord.expiresAt) > Date.now()
     ) {
-      const payload = await issueGuestLiveKitToken(activeRecord);
+      const payload = await issueGuestLiveKitToken(concurrentRecord);
 
       return jsonWithCors(
         request,
@@ -151,22 +167,26 @@ export async function POST(request: Request) {
       );
     }
 
-    await redis.del(activeKey);
-    await redis.set(activeKey, sessionId, {
-      ex: LIVEKIT_GUEST_ACTIVE_TTL_SECONDS,
-    });
-  }
-
-  if (claim === "device_cooldown" || claim === "ip_cooldown") {
     return jsonWithCors(
       request,
       {
-        error: "Guest LiveKit trial has already been used.",
-        code: "guest_trial_used",
+        error: "A LiveKit guest session is already active.",
+        code: "active_session_exists",
         signup_url: LIVEKIT_GUEST_SIGNUP_URL,
       },
-      { status: 429 },
+      { status: 409 },
     );
+  }
+
+  if (LIVEKIT_GUEST_COOLDOWN_ENABLED) {
+    await Promise.all([
+      redis.set(guestDeviceCooldownKey(deviceHash), sessionId, {
+        ex: LIVEKIT_GUEST_COOLDOWN_SECONDS,
+      }),
+      redis.set(guestIpCooldownKey(ipHash), sessionId, {
+        ex: LIVEKIT_GUEST_COOLDOWN_SECONDS,
+      }),
+    ]);
   }
 
   const record: GuestSessionRecord = {

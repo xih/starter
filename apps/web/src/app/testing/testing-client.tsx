@@ -50,7 +50,13 @@ function StatusPill({
   );
 }
 
-function TestingLauncher({ onStart }: { onStart: () => void }) {
+function TestingLauncher({
+  errorMessage,
+  onStart,
+}: {
+  errorMessage?: string | null;
+  onStart: () => void;
+}) {
   const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
   const [voice, setVoice] = useState<VoiceOption>(DEFAULT_VOICE);
 
@@ -63,11 +69,16 @@ function TestingLauncher({ onStart }: { onStart: () => void }) {
             Live AgentSideBar on web, compact voice controls on mobile.
           </p>
         </div>
-        <StatusPill>
+        <StatusPill tone={errorMessage ? "bad" : "neutral"}>
           <WifiOff className="size-3.5" />
-          disconnected
+          {errorMessage ? "failed" : "disconnected"}
         </StatusPill>
       </header>
+      {errorMessage ? (
+        <div className="rounded-[18px] border border-red-200 bg-white p-4 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-[minmax(0,1fr)_402px]">
         <div className="hidden min-h-[420px] flex-col justify-center border border-border bg-background p-4 md:flex">
@@ -134,7 +145,11 @@ function TestingLauncher({ onStart }: { onStart: () => void }) {
   );
 }
 
-function TestingLauncherSkeleton() {
+function TestingLauncherSkeleton({
+  errorMessage,
+}: {
+  errorMessage?: string | null;
+}) {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-4 md:px-6">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
@@ -144,8 +159,15 @@ function TestingLauncherSkeleton() {
             Loading voice session...
           </p>
         </div>
-        <StatusPill tone="warn">loading</StatusPill>
+        <StatusPill tone={errorMessage ? "bad" : "warn"}>
+          {errorMessage ? "failed" : "loading"}
+        </StatusPill>
       </header>
+      {errorMessage ? (
+        <div className="rounded-[18px] border border-red-200 bg-white p-4 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -156,17 +178,30 @@ export function TestingClient() {
   const [roomName, setRoomName] = useState("testing_agent_pending");
   const [SessionComponent, setSessionComponent] =
     useState<TestingSessionComponent | null>(null);
+  const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
   const [sessionKey, setSessionKey] = useState(0);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [tokenEndpoint, setTokenEndpoint] = useState(DEFAULT_TOKEN_ENDPOINT);
 
   const startSession = async () => {
+    setLoadErrorMessage(null);
     setSessionKey((key) => key + 1);
     setSessionStarted(true);
 
     if (SessionComponent) return;
-    const mod = await import("./testing-session");
-    setSessionComponent(() => mod.TestingSession);
+
+    try {
+      const mod = await import("./testing-session");
+      setSessionComponent(() => mod.TestingSession);
+    } catch (error) {
+      console.error("Failed to load testing session component", error);
+      setLoadErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load the testing session. Refresh and try again.",
+      );
+      setSessionStarted(false);
+    }
   };
 
   useEffect(() => {
@@ -192,10 +227,11 @@ export function TestingClient() {
             tokenEndpoint={tokenEndpoint}
           />
         ) : (
-          <TestingLauncherSkeleton />
+          <TestingLauncherSkeleton errorMessage={loadErrorMessage} />
         )
       ) : (
         <TestingLauncher
+          errorMessage={loadErrorMessage}
           onStart={() => {
             void startSession();
           }}

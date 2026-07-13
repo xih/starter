@@ -19,6 +19,7 @@ import { ConnectionState, TokenSource } from "livekit-client";
 import { Loader2, Mic, Play, Square, Wifi, WifiOff } from "lucide-react";
 import {
   useEffect,
+  useCallback,
   useMemo,
   useRef,
   useState,
@@ -61,12 +62,12 @@ function toAgentSideBarMessage(
     timestamp?: number;
     type?: string;
   },
-  localIdentity: string,
+  localIdentity: string | undefined,
   index: number,
 ): OrderedAgentSideBarMessage {
   const isUser =
     message.type === "userTranscript" ||
-    message.from?.identity === localIdentity;
+    (!!localIdentity && message.from?.identity === localIdentity);
   const rawTimestamp =
     typeof message.timestamp === "number" ? message.timestamp : Date.now();
   const timestamp =
@@ -251,7 +252,7 @@ function TestingSessionContent({
     .map((message, index) =>
       toAgentSideBarMessage(
         message,
-        session.room.localParticipant.identity,
+        session.room?.localParticipant?.identity,
         index,
       ),
     )
@@ -273,27 +274,51 @@ function TestingSessionContent({
       : state === "agent-streaming" || isConnecting
         ? "agent-streaming"
         : "default";
+  const hasStartupError = state === "error";
   const mobileOrbSize = isConnecting ? 162 : 66;
-  const sendMessage = async (message: string) => {
-    const trimmedMessage = message.trim();
+  const sendMessage = useCallback(
+    async (message: string) => {
+      const trimmedMessage = message.trim();
 
-    if (!trimmedMessage) return;
+      if (!trimmedMessage) return;
 
-    setInputValue("");
-    setOptimisticMessages((currentMessages) => [
-      ...currentMessages,
-      {
-        id: `local-user-${Date.now()}`,
-        order: Date.now(),
-        role: "user",
-        source: "optimistic",
-        text: trimmedMessage,
-      },
-    ]);
-    await sessionMessages.send(trimmedMessage);
-  };
+      const timestamp = Date.now();
+      const tempId = `local-user-${timestamp}`;
 
-  const startSession = () => {
+      setInputValue("");
+      setOptimisticMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: tempId,
+          order: timestamp,
+          role: "user",
+          source: "optimistic",
+          text: trimmedMessage,
+        },
+      ]);
+
+      try {
+        await sessionMessages.send(trimmedMessage);
+      } catch (error) {
+        console.error("Testing message send failed", error);
+        setOptimisticMessages((currentMessages) =>
+          currentMessages.filter(
+            (currentMessage) => currentMessage.id !== tempId,
+          ),
+        );
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Could not send that message. Check the LiveKit session and try again.",
+        );
+        setManualState("error");
+        setInputValue(trimmedMessage);
+      }
+    },
+    [sessionMessages, setErrorMessage, setInputValue, setManualState],
+  );
+
+  const startSession = useCallback(() => {
     setErrorMessage(
       "Connecting to LiveKit. If this fails, check the endpoint and browser console.",
     );
@@ -315,9 +340,9 @@ function TestingSessionContent({
         );
         setManualState("error");
       });
-  };
+  }, [session, setErrorMessage, setManualState]);
 
-  const endSession = () => {
+  const endSession = useCallback(() => {
     setInputValue("");
     setManualState("intro");
     void Promise.allSettled([
@@ -327,13 +352,13 @@ function TestingSessionContent({
         keepalive: true,
       }),
     ]).finally(onSessionEnded);
-  };
+  }, [onSessionEnded, session, setInputValue, setManualState]);
 
   useEffect(() => {
     if (didAutoStartRef.current) return;
     didAutoStartRef.current = true;
     startSession();
-  });
+  }, [startSession]);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-[14px] py-0 md:px-6 md:py-4">
@@ -425,12 +450,15 @@ function TestingSessionContent({
         <MobileAgentControlSurface
           agentState={agent.state}
           controlState={mobileControlState}
+          errorMessage={errorMessage}
+          hasStartupError={hasStartupError}
           inputValue={inputValue}
           isMicrophoneEnabled={microphoneToggle.enabled}
           messages={messages.map(toChatMessageData)}
           onChangeInput={setInputValue}
           orbSize={mobileOrbSize}
           onEnd={endSession}
+          onRetry={startSession}
           onSend={sendMessage}
           onToggleMicrophone={() => {
             void microphoneToggle.toggle(!microphoneToggle.enabled);
@@ -463,22 +491,28 @@ function TestingSessionContent({
 function MobileAgentControlSurface({
   agentState,
   controlState,
+  errorMessage,
+  hasStartupError,
   inputValue,
   isMicrophoneEnabled,
   messages,
   onChangeInput,
   onEnd,
+  onRetry,
   onSend,
   onToggleMicrophone,
   orbSize,
 }: {
   agentState: string;
   controlState: "default" | "user-typing" | "agent-streaming";
+  errorMessage: string;
+  hasStartupError: boolean;
   inputValue: string;
   isMicrophoneEnabled: boolean;
   messages: ChatMessageData[];
   onChangeInput: (value: string) => void;
   onEnd: () => void;
+  onRetry: () => void;
   onSend: (value: string) => void | Promise<void>;
   onToggleMicrophone: () => void | Promise<void>;
   orbSize: number;
@@ -497,14 +531,22 @@ function MobileAgentControlSurface({
   return (
     <div className="relative min-h-svh md:hidden" style={orbStyle}>
       <MobileChatTranscript agentState={agentState} messages={messages} />
-      <OrbShader
-        className={cn(
-          "absolute bottom-[var(--mobile-orb-bottom)] left-1/2 -translate-x-1/2 transition-[bottom] duration-300 ease-out",
-          isVoicePanelOpen && "bottom-[124px]",
-        )}
-        size={orbSize}
-        state={controlState === "agent-streaming" ? "thinking" : "loading"}
-      />
+      {hasStartupError ? (
+        <MobileStartupError
+          errorMessage={errorMessage}
+          onEnd={onEnd}
+          onRetry={onRetry}
+        />
+      ) : (
+        <OrbShader
+          className={cn(
+            "absolute bottom-[var(--mobile-orb-bottom)] left-1/2 -translate-x-1/2 transition-[bottom] duration-300 ease-out",
+            isVoicePanelOpen && "bottom-[124px]",
+          )}
+          size={orbSize}
+          state={controlState === "agent-streaming" ? "thinking" : "loading"}
+        />
+      )}
       <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-[8px]">
         <AnimatePresence initial={false}>
           {isVoicePanelOpen ? (
@@ -537,6 +579,43 @@ function MobileAgentControlSurface({
           state={controlState}
           voice={voice}
         />
+      </div>
+    </div>
+  );
+}
+
+function MobileStartupError({
+  errorMessage,
+  onEnd,
+  onRetry,
+}: {
+  errorMessage: string;
+  onEnd: () => void;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="absolute bottom-[var(--mobile-orb-bottom)] left-0 right-0 rounded-[18px] border border-red-200 bg-white p-[16px] shadow-[0_18px_40px_rgba(18,19,24,0.08)]">
+      <p className="text-[15px] font-[700] leading-[20px] text-[#1e1f24]">
+        Voice could not start
+      </p>
+      <p className="mt-[6px] text-[13px] leading-[18px] text-[#595a5d]">
+        {errorMessage}
+      </p>
+      <div className="mt-[14px] flex gap-[8px]">
+        <button
+          className="h-[36px] rounded-[12px] bg-[#050505] px-[16px] text-[14px] font-[700] leading-[18px] text-white"
+          onClick={onRetry}
+          type="button"
+        >
+          Try Again
+        </button>
+        <button
+          className="h-[36px] rounded-[12px] border border-[#dcdcdc] bg-white px-[16px] text-[14px] font-[700] leading-[18px] text-[#1e1f24]"
+          onClick={onEnd}
+          type="button"
+        >
+          End Chat
+        </button>
       </div>
     </div>
   );

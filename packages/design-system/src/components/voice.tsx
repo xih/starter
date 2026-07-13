@@ -401,8 +401,7 @@ export function ChatMessage({
       <div
         className={cn(
           "font-body text-[16px] leading-[26px] font-[400] text-[#1e1f24]",
-          pending &&
-            "animate-[text-shimmer_1.8s_ease-in-out_infinite] bg-[linear-gradient(110deg,#9a9a9a_20%,#d9d9d9_40%,#9a9a9a_60%)] bg-[length:200%_100%] bg-clip-text text-transparent",
+          pending && "ds-text-shimmer",
           isUser &&
             "max-w-[343px] rounded-[22px] bg-[#050505] px-[16px] py-[10px] text-white md:max-w-[404px]",
         )}

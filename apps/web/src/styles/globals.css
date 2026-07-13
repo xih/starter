@@ -82,15 +82,6 @@
   }
 }
 
-@keyframes text-shimmer {
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: -100% 0;
-  }
-}
-
 /* Sonner toast styles */
 .sonner-toast[data-styled="true"] {
   white-space: pre-line;

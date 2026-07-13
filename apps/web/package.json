@@ -8,7 +8,7 @@
     "build:public-storybook": "rm -rf public/storybook storybook-static && SKIP_ENV_VALIDATION=1 storybook build && mkdir -p public && cp -R storybook-static public/storybook",
     "build:vercel": "corepack pnpm --filter @starter/tokens build && corepack pnpm build:public-storybook && SKIP_ENV_VALIDATION=1 next build",
     "check": "corepack pnpm lint && corepack pnpm typecheck",
-    "dev": "infisical run --projectId ${INFISICAL_PROJECT_ID:?Set INFISICAL_PROJECT_ID or run infisical init} --env=${INFISICAL_ENV:-dev} -- next dev --turbo",
+    "dev": "infisical run --env=${INFISICAL_ENV:-dev} -- next dev --turbo",
     "dev:local": "next dev --turbo",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",

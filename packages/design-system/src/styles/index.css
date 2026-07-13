@@ -1,5 +1,22 @@
 @import "@starter/tokens/css";
 
+:root {
+  --ds-agent-control-bar-width: 448px;
+  --ds-agent-control-voice-panel-width: 375px;
+  --ds-agent-control-bar-height: 108px;
+  --ds-agent-control-bar-preconnected-height: 70px;
+  --ds-agent-control-voice-panel-height: 181px;
+  --ds-agent-control-stack-gap: var(--spacing-8);
+  --ds-agent-control-mobile-open-stack-height: calc(
+    var(--ds-agent-control-voice-panel-height) +
+      var(--ds-agent-control-stack-gap) + var(--ds-agent-control-bar-height)
+  );
+  --ds-agent-mobile-orb-gap: var(--spacing-16);
+  --ds-agent-mobile-transcript-gap: var(--spacing-24);
+  --ds-agent-mobile-orb-size: 66px;
+  --ds-agent-mobile-orb-connecting-size: 162px;
+}
+
 @keyframes ds-text-shimmer {
   0% {
     background-position: 100% 0;

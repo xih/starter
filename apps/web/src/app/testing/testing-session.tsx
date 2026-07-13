@@ -11,6 +11,7 @@ import {
   AgentControlBar as DesignAgentControlBar,
   ChatMessage as DesignChatMessage,
   VoiceParameterPanel,
+  agentControlBarLayout,
   type ChatMessageData,
   type VoiceOption,
 } from "@starter/design-system";
@@ -244,6 +245,7 @@ function TestingSessionContent({
   const agent = useAgent(session);
   const sessionMessages = useSessionMessages(session);
   const { microphoneToggle } = useInputControls();
+  const startAbortControllerRef = useRef<AbortController | null>(null);
   const didAutoStartRef = useRef(false);
   const [optimisticMessages, setOptimisticMessages] = useState<
     OrderedAgentSideBarMessage[]
@@ -275,7 +277,9 @@ function TestingSessionContent({
         ? "agent-streaming"
         : "default";
   const hasStartupError = state === "error";
-  const mobileOrbSize = isConnecting ? 162 : 66;
+  const mobileOrbSize = isConnecting
+    ? agentControlBarLayout.mobileConnectingOrbSize
+    : agentControlBarLayout.mobileOrbSize;
   const sendMessage = useCallback(
     async (message: string) => {
       const trimmedMessage = message.trim();
@@ -319,6 +323,10 @@ function TestingSessionContent({
   );
 
   const startSession = useCallback(() => {
+    startAbortControllerRef.current?.abort();
+    const startAbortController = new AbortController();
+    startAbortControllerRef.current = startAbortController;
+
     setErrorMessage(
       "Connecting to LiveKit. If this fails, check the endpoint and browser console.",
     );
@@ -330,8 +338,11 @@ function TestingSessionContent({
           microphone: { enabled: true },
           screenShare: { enabled: false },
         },
+        signal: startAbortController.signal,
       })
       .catch((error) => {
+        if (startAbortController.signal.aborted) return;
+
         console.error("Testing LiveKit session start failed", error);
         setErrorMessage(
           error instanceof Error
@@ -339,19 +350,41 @@ function TestingSessionContent({
             : "LiveKit session start failed.",
         );
         setManualState("error");
+      })
+      .finally(() => {
+        if (startAbortControllerRef.current === startAbortController) {
+          startAbortControllerRef.current = null;
+        }
       });
   }, [session, setErrorMessage, setManualState]);
 
   const endSession = useCallback(() => {
     setInputValue("");
     setManualState("intro");
-    void Promise.allSettled([
-      session.end(),
-      fetch("/api/livekit/guest-session", {
-        method: "DELETE",
-        keepalive: true,
-      }),
-    ]).finally(onSessionEnded);
+    startAbortControllerRef.current?.abort();
+    startAbortControllerRef.current = null;
+
+    void (async () => {
+      const sessionEndResult = await Promise.allSettled([session.end()]);
+
+      const deleteResult = await Promise.allSettled([
+        fetch("/api/livekit/guest-session", {
+          method: "DELETE",
+          keepalive: true,
+        }),
+      ]);
+
+      for (const result of [...sessionEndResult, ...deleteResult]) {
+        if (result.status === "rejected") {
+          console.error(
+            "Testing LiveKit session cleanup failed",
+            result.reason,
+          );
+        }
+      }
+
+      onSessionEnded();
+    })();
   }, [onSessionEnded, session, setInputValue, setManualState]);
 
   useEffect(() => {
@@ -460,6 +493,7 @@ function TestingSessionContent({
           onEnd={endSession}
           onRetry={startSession}
           onSend={sendMessage}
+          onStopResponse={endSession}
           onToggleMicrophone={() => {
             void microphoneToggle.toggle(!microphoneToggle.enabled);
           }}
@@ -476,6 +510,7 @@ function TestingSessionContent({
             onEnd={endSession}
             onSend={sendMessage}
             onStart={startSession}
+            onStopResponse={endSession}
             onToggleMicrophone={() => {
               void microphoneToggle.toggle(!microphoneToggle.enabled);
             }}
@@ -500,6 +535,7 @@ function MobileAgentControlSurface({
   onEnd,
   onRetry,
   onSend,
+  onStopResponse,
   onToggleMicrophone,
   orbSize,
 }: {
@@ -514,18 +550,20 @@ function MobileAgentControlSurface({
   onEnd: () => void;
   onRetry: () => void;
   onSend: (value: string) => void | Promise<void>;
+  onStopResponse: () => void | Promise<void>;
   onToggleMicrophone: () => void | Promise<void>;
   orbSize: number;
 }) {
   const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
   const [voice, setVoice] = useState<VoiceOption>(DEFAULT_MOBILE_VOICE);
   const toggleVoicePanel = () => setIsVoicePanelOpen((open) => !open);
-  const controlStackHeight = isVoicePanelOpen ? 297 : 108;
-  const orbBottom = controlStackHeight + 16;
+  const controlStackHeight = isVoicePanelOpen
+    ? "var(--ds-agent-control-mobile-open-stack-height)"
+    : "var(--ds-agent-control-bar-height)";
   const orbStyle = {
-    "--mobile-orb-bottom": `${orbBottom}px`,
+    "--mobile-orb-bottom": `calc(${controlStackHeight} + var(--ds-agent-mobile-orb-gap))`,
     "--mobile-orb-size": `${orbSize}px`,
-    "--mobile-transcript-bottom": `${orbBottom + orbSize + 24}px`,
+    "--mobile-transcript-bottom": `calc(var(--mobile-orb-bottom) + var(--mobile-orb-size) + var(--ds-agent-mobile-transcript-gap))`,
   } as CSSProperties;
 
   return (
@@ -541,7 +579,6 @@ function MobileAgentControlSurface({
         <OrbShader
           className={cn(
             "absolute bottom-[var(--mobile-orb-bottom)] left-1/2 -translate-x-1/2 transition-[bottom] duration-300 ease-out",
-            isVoicePanelOpen && "bottom-[124px]",
           )}
           size={orbSize}
           state={controlState === "agent-streaming" ? "thinking" : "loading"}
@@ -575,6 +612,7 @@ function MobileAgentControlSurface({
           onEnd={onEnd}
           onOpenVoicePanel={toggleVoicePanel}
           onSend={onSend}
+          onStopResponse={onStopResponse}
           onToggleMicrophone={onToggleMicrophone}
           state={controlState}
           voice={voice}

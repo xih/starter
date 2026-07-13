@@ -36,6 +36,7 @@ export type AgentControlBarProps = {
   onEnd?: () => void;
   onOpenVoicePanel?: () => void;
   onSend?: (value: string) => void | Promise<void>;
+  onStopResponse?: () => void | Promise<void>;
   onToggleMicrophone?: () => void | Promise<void>;
   onUseVoice?: () => void;
   state?: AgentControlBarState;
@@ -47,6 +48,11 @@ export type ChatMessageData = {
   role: "system" | "user";
   text: string;
 };
+
+export const agentControlBarLayout = {
+  mobileConnectingOrbSize: 162,
+  mobileOrbSize: 66,
+} as const;
 
 const defaultVoice: VoiceOption = {
   avatar: "/agent-sidebar/avatar-1.png",
@@ -220,7 +226,7 @@ export function VoiceParameterPanel({
   return (
     <div
       className={cn(
-        "font-body flex h-[181px] w-[375px] flex-col gap-[10px] rounded-[18px] border border-[#dcdcdc] bg-[#f7f7f7] px-[20px] py-[18px] text-[#121318] shadow-[0_18px_40px_rgba(18,19,24,0.08)]",
+        "font-body flex h-[var(--ds-agent-control-voice-panel-height)] w-[var(--ds-agent-control-voice-panel-width)] flex-col gap-[10px] rounded-[18px] border border-[#dcdcdc] bg-[#f7f7f7] px-[20px] py-[18px] text-[#121318] shadow-[0_18px_40px_rgba(18,19,24,0.08)]",
         className,
       )}
     >
@@ -268,6 +274,7 @@ export function AgentControlBar({
   onEnd,
   onOpenVoicePanel,
   onSend,
+  onStopResponse,
   onToggleMicrophone,
   onUseVoice,
   state = "default",
@@ -290,7 +297,7 @@ export function AgentControlBar({
     return (
       <div
         className={cn(
-          "flex h-[70px] w-[448px] items-center justify-between rounded-[35px] border border-[#dcdcdc] bg-white px-[14px] shadow-[0_3px_12px_rgba(0,0,0,0.03)]",
+          "flex h-[var(--ds-agent-control-bar-preconnected-height)] w-[var(--ds-agent-control-bar-width)] items-center justify-between rounded-[35px] border border-[#dcdcdc] bg-white px-[14px] shadow-[0_3px_12px_rgba(0,0,0,0.03)]",
           className,
         )}
         data-state={state}
@@ -319,7 +326,7 @@ export function AgentControlBar({
   return (
     <div
       className={cn(
-        "flex h-[108px] w-[448px] flex-col justify-between rounded-[31px] border border-[#dcdcdc] bg-white px-[20px] py-[16px] shadow-[0_3px_12px_rgba(0,0,0,0.06)]",
+        "flex h-[var(--ds-agent-control-bar-height)] w-[var(--ds-agent-control-bar-width)] flex-col justify-between rounded-[31px] border border-[#dcdcdc] bg-white px-[20px] py-[16px] shadow-[0_3px_12px_rgba(0,0,0,0.06)]",
         className,
       )}
       data-state={state}
@@ -349,6 +356,7 @@ export function AgentControlBar({
           <button
             aria-label="Stop response"
             className="flex size-[36px] items-center justify-center rounded-full bg-[#121318] text-white"
+            onClick={onStopResponse}
             type="button"
           >
             <Square className="size-[14px] fill-current" />

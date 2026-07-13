@@ -4,6 +4,7 @@ import {
   createId,
   createQStashClient,
   createRedis,
+  expireGuestSessionRecord,
   getClientIp,
   getCorsHeaders,
   getGuestExpireUrl,
@@ -247,4 +248,57 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+export async function DELETE(request: Request) {
+  if (!isOriginAllowed(request.headers.get("origin"))) {
+    return jsonWithCors(
+      request,
+      { error: "Origin is not allowed to end LiveKit guest sessions." },
+      { status: 403 },
+    );
+  }
+
+  const env = assertGuestSessionEnv();
+
+  if (!env.ok) {
+    return jsonWithCors(
+      request,
+      {
+        error: env.error,
+        issues: env.issues,
+      },
+      { status: 500 },
+    );
+  }
+
+  const redis = createRedis();
+  const { deviceId } = await getOrCreateGuestDeviceId();
+  const [deviceHash, ipHash] = await Promise.all([
+    hashGuestIdentifier(deviceId),
+    hashGuestIdentifier(getClientIp(request)),
+  ]);
+  const activeKey = guestActiveKey(deviceHash, ipHash);
+  const activeSessionId = await redis.get<string>(activeKey);
+
+  if (!activeSessionId) {
+    return jsonWithCors(request, { status: "missing" });
+  }
+
+  const record = await redis.get<GuestSessionRecord>(
+    guestSessionKey(activeSessionId),
+  );
+
+  if (record?.status !== "active") {
+    await redis.del(activeKey);
+
+    return jsonWithCors(request, { status: "missing" });
+  }
+
+  await expireGuestSessionRecord(record);
+
+  return jsonWithCors(request, {
+    status: "expired",
+    room_name: record.roomName,
+  });
 }

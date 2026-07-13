@@ -1,12 +1,4 @@
-import {
-  ArrowUp,
-  ChevronDown,
-  Mic,
-  MicOff,
-  Settings2,
-  SlidersHorizontal,
-  Square,
-} from "lucide-react";
+import { ArrowUp, ChevronDown, Mic, MicOff, Square } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "../utils";
@@ -20,6 +12,7 @@ export type VoiceOption = {
 
 export type MicSelectorProps = {
   className?: string;
+  onClick?: () => void;
   state?: "muted" | "listening" | "outlined";
 };
 
@@ -31,12 +24,20 @@ export type VoiceSelectorProps = {
 
 export type AgentControlBarState =
   | "default"
+  | "pre-connected"
   | "user-typing"
   | "agent-streaming";
 
 export type AgentControlBarProps = {
   className?: string;
   inputValue?: string;
+  isMicrophoneEnabled?: boolean;
+  onChangeInput?: (value: string) => void;
+  onEnd?: () => void;
+  onOpenVoicePanel?: () => void;
+  onSend?: (value: string) => void | Promise<void>;
+  onToggleMicrophone?: () => void | Promise<void>;
+  onUseVoice?: () => void;
   state?: AgentControlBarState;
   voice?: VoiceOption;
 };
@@ -49,7 +50,7 @@ export type ChatMessageData = {
 
 const defaultVoice: VoiceOption = {
   avatar: "/agent-sidebar/avatar-1.png",
-  description: "Apple founder",
+  description: "Softbank",
   name: "Masa Son",
 };
 
@@ -109,6 +110,7 @@ export function MultipleHosts({ className }: { className?: string }) {
 
 export function MicSelector({
   className,
+  onClick,
   state = "listening",
 }: MicSelectorProps) {
   const muted = state === "muted";
@@ -117,6 +119,7 @@ export function MicSelector({
 
   return (
     <button
+      aria-label={muted ? "Unmute microphone" : "Mute microphone"}
       className={cn(
         "inline-flex h-[36px] min-w-[72px] items-center justify-center rounded-full text-[#121318]",
         outlined
@@ -127,6 +130,7 @@ export function MicSelector({
         className,
       )}
       data-state={state}
+      onClick={onClick}
       type="button"
     >
       <span className="flex h-full items-center px-[12px]">
@@ -170,9 +174,11 @@ export function VoiceSelector({
 
 export function VoiceSelectorPill({
   className,
+  onClick,
   voice = defaultVoice,
 }: {
   className?: string;
+  onClick?: () => void;
   voice?: VoiceOption;
 }) {
   return (
@@ -181,6 +187,7 @@ export function VoiceSelectorPill({
         "inline-flex h-[36px] items-center gap-[8px] rounded-full border border-[#e5e5e5] bg-white px-[15px] text-[#121318]",
         className,
       )}
+      onClick={onClick}
       type="button"
     >
       <VoiceAvatar avatar={voice.avatar} name={voice.name} size={16} />
@@ -192,31 +199,63 @@ export function VoiceSelectorPill({
   );
 }
 
-export function VoiceParameterPanel({ className }: { className?: string }) {
+export function VoiceParameterPanel({
+  className,
+  onSelectVoice,
+  selectedVoiceName = defaultVoice.name,
+  voices = [
+    {
+      avatar: "/agent-sidebar/avatar-1.png",
+      description: "Apple founder",
+      name: "Steve Jobs",
+    },
+    defaultVoice,
+  ],
+}: {
+  className?: string;
+  onSelectVoice?: (voice: VoiceOption) => void;
+  selectedVoiceName?: string;
+  voices?: VoiceOption[];
+}) {
   return (
     <div
       className={cn(
-        "font-body flex h-[181px] w-[341px] flex-col gap-[14px] rounded-[12px] border border-[#e5e5e5] bg-white p-[16px] text-[#121318]",
+        "font-body flex h-[181px] w-[375px] flex-col gap-[10px] rounded-[18px] border border-[#dcdcdc] bg-[#f7f7f7] px-[20px] py-[18px] text-[#121318] shadow-[0_18px_40px_rgba(18,19,24,0.08)]",
         className,
       )}
     >
-      {["Stability", "Similarity", "Style"].map((label, index) => (
-        <label
-          className="grid grid-cols-[86px_1fr_34px] items-center gap-[10px]"
-          key={label}
-        >
-          <span className="text-[13px] leading-[18px] font-[600]">{label}</span>
-          <span className="relative h-[4px] rounded-full bg-[#eeeeee]">
-            <span
-              className="absolute top-0 left-0 h-full rounded-full bg-[#121318]"
-              style={{ width: `${[58, 72, 36][index]}%` }}
-            />
-          </span>
-          <span className="text-right text-[12px] text-[#595a5d]">
-            {[58, 72, 36][index]}
-          </span>
-        </label>
-      ))}
+      <h2 className="text-[14px] leading-[20px] font-[700]">Voice</h2>
+      <div className="grid grid-cols-2 gap-[12px]">
+        {voices.map((option) => {
+          const selected = option.name === selectedVoiceName;
+
+          return (
+            <button
+              className={cn(
+                "flex h-[112px] flex-col items-start justify-end rounded-[12px] border p-[12px] text-left transition-colors",
+                selected
+                  ? "border-[#dcdcdc] bg-[#e8e8e8]"
+                  : "border-[#e5e5e5] bg-white",
+              )}
+              key={option.name}
+              onClick={() => onSelectVoice?.(option)}
+              type="button"
+            >
+              <VoiceAvatar
+                avatar={option.avatar}
+                name={option.name}
+                size={48}
+              />
+              <span className="mt-[8px] text-[16px] leading-[18px] font-[700]">
+                {option.name}
+              </span>
+              <span className="text-[14px] leading-[18px] text-[#595a5d]">
+                {option.description}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -224,11 +263,58 @@ export function VoiceParameterPanel({ className }: { className?: string }) {
 export function AgentControlBar({
   className,
   inputValue,
+  isMicrophoneEnabled = true,
+  onChangeInput,
+  onEnd,
+  onOpenVoicePanel,
+  onSend,
+  onToggleMicrophone,
+  onUseVoice,
   state = "default",
   voice = defaultVoice,
 }: AgentControlBarProps) {
+  const isPreConnected = state === "pre-connected";
   const isTyping = state === "user-typing";
   const isStreaming = state === "agent-streaming";
+  const resolvedInputValue = inputValue ?? (isTyping ? "Bonjourno" : "");
+  const micState = isMicrophoneEnabled ? "listening" : "muted";
+  const sendInput = () => {
+    const trimmedValue = resolvedInputValue.trim();
+
+    if (trimmedValue.length > 0) {
+      void onSend?.(trimmedValue);
+    }
+  };
+
+  if (isPreConnected) {
+    return (
+      <div
+        className={cn(
+          "flex h-[70px] w-[448px] items-center justify-between rounded-[35px] border border-[#dcdcdc] bg-white px-[14px] shadow-[0_3px_12px_rgba(0,0,0,0.03)]",
+          className,
+        )}
+        data-state={state}
+      >
+        <div className="flex min-w-0 items-center gap-[8px]">
+          <MicSelector state="outlined" onClick={onToggleMicrophone} />
+          <VoiceSelectorPill
+            className="max-w-[160px] [&>span:nth-child(2)]:truncate"
+            onClick={onOpenVoicePanel}
+            voice={voice}
+          />
+        </div>
+        <DesignSystemButton
+          buttonType="primary"
+          className="h-[36px] w-auto shrink-0 rounded-[12px] bg-[#050505] px-[16px] text-white"
+          onClick={onUseVoice}
+          showIcon={false}
+          size="small"
+        >
+          Use Voice
+        </DesignSystemButton>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -241,26 +327,27 @@ export function AgentControlBar({
       <div className="flex h-[28px] items-center gap-[8px]">
         <input
           aria-label="Message"
-          className="font-body min-w-0 flex-1 bg-transparent text-[14px] leading-[20px] text-[#1e1f24] outline-none placeholder:text-[#595a5d]"
+          className="font-body min-w-0 flex-1 bg-transparent text-[14px] leading-[20px] font-[400] text-[#595a5d] outline-none placeholder:text-[#595a5d]"
+          onChange={(event) => onChangeInput?.(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              sendInput();
+            }
+          }}
           placeholder="How are you feeling today?"
-          readOnly
-          value={inputValue ?? (isTyping ? "Bonjourno" : "")}
+          readOnly={!onChangeInput}
+          value={resolvedInputValue}
         />
-        <Settings2 className="size-[18px] text-[#d0d0d1]" />
       </div>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-[4px]">
-          <MicSelector />
-          <button
-            className="inline-flex size-[36px] items-center justify-center rounded-full border border-[#eeeeee] bg-white text-[#d0d0d1]"
-            type="button"
-          >
-            <SlidersHorizontal className="size-[16px]" />
-          </button>
-          <VoiceSelectorPill voice={voice} />
+          <MicSelector state={micState} onClick={onToggleMicrophone} />
+          <VoiceSelectorPill onClick={onOpenVoicePanel} voice={voice} />
         </div>
         {isStreaming ? (
           <button
+            aria-label="Stop response"
             className="flex size-[36px] items-center justify-center rounded-full bg-[#121318] text-white"
             type="button"
           >
@@ -268,7 +355,9 @@ export function AgentControlBar({
           </button>
         ) : isTyping ? (
           <button
+            aria-label="Send message"
             className="flex size-[36px] items-center justify-center rounded-full bg-[#121318] text-white"
+            onClick={sendInput}
             type="button"
           >
             <ArrowUp className="size-[20px]" />
@@ -277,6 +366,7 @@ export function AgentControlBar({
           <DesignSystemButton
             buttonType="primary"
             className="h-[36px] w-auto rounded-[12px] bg-[#050505] px-[16px] text-white"
+            onClick={onEnd}
             showIcon={false}
             size="small"
           >
@@ -288,18 +378,33 @@ export function AgentControlBar({
   );
 }
 
-export function ChatMessage({ message }: { message: ChatMessageData }) {
+export function ChatMessage({
+  className,
+  message,
+  pending = false,
+}: {
+  className?: string;
+  message: ChatMessageData;
+  pending?: boolean;
+}) {
   const isUser = message.role === "user";
 
   return (
     <div
-      className={cn("flex w-[477px]", isUser ? "justify-end" : "justify-start")}
+      className={cn(
+        "flex w-full md:w-[477px]",
+        isUser ? "justify-end" : "justify-start",
+        className,
+      )}
+      data-testid={isUser ? "chat-message-user" : "chat-message-ai"}
     >
       <div
         className={cn(
           "font-body text-[16px] leading-[26px] font-[400] text-[#1e1f24]",
+          pending &&
+            "animate-[text-shimmer_1.8s_ease-in-out_infinite] bg-[linear-gradient(110deg,#9a9a9a_20%,#d9d9d9_40%,#9a9a9a_60%)] bg-[length:200%_100%] bg-clip-text text-transparent",
           isUser &&
-            "max-w-[404px] rounded-[22px] bg-[#050505] px-[16px] py-[10px] text-white",
+            "max-w-[343px] rounded-[22px] bg-[#050505] px-[16px] py-[10px] text-white md:max-w-[404px]",
         )}
       >
         {message.text}

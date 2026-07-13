@@ -28,7 +28,7 @@ const DEV_ALLOWED_ORIGINS = new Set([
 const CORS_BASE_HEADERS = {
   "Access-Control-Allow-Headers":
     "Authorization, Content-Type, X-LiveKit-Token-Auth",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
   Vary: "Origin",
 };
 const nodeEnvSchema = z.enum(["development", "test", "production"]);
@@ -64,6 +64,19 @@ function parseNodeEnv(value: string | undefined) {
   const parsed = nodeEnvSchema.safeParse(value);
 
   return parsed.success ? parsed.data : "production";
+}
+
+function isLocalDevelopmentOrigin(origin: string) {
+  try {
+    const { hostname, protocol } = new URL(origin);
+
+    return (
+      protocol === "http:" &&
+      (hostname === "localhost" || hostname === "127.0.0.1")
+    );
+  } catch {
+    return false;
+  }
 }
 
 const rawEnv = {
@@ -137,6 +150,13 @@ export function getAllowedOrigins() {
 
 export function isOriginAllowed(origin: string | null) {
   if (!origin) {
+    return true;
+  }
+
+  if (
+    liveKitEnv.NODE_ENV !== "production" &&
+    isLocalDevelopmentOrigin(origin)
+  ) {
     return true;
   }
 
@@ -306,6 +326,26 @@ export function createRoomServiceClient() {
   );
 }
 
+export function isRoomNotFoundError(error: unknown) {
+  if (typeof error !== "object" || error === null) {
+    return String(error).toLowerCase().includes("not found");
+  }
+
+  const maybeError = error as {
+    code?: unknown;
+    message?: unknown;
+    status?: unknown;
+  };
+  const message =
+    typeof maybeError.message === "string" ? maybeError.message : "";
+
+  return (
+    maybeError.status === 404 ||
+    maybeError.code === "not_found" ||
+    message.toLowerCase().includes("not found")
+  );
+}
+
 export function createId(prefix: string) {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
 }
@@ -324,6 +364,37 @@ export function guestIpCooldownKey(ipHash: string) {
 
 export function guestActiveKey(deviceHash: string, ipHash: string) {
   return `${LIVEKIT_GUEST_REDIS_PREFIX}:active:${deviceHash}:${ipHash}`;
+}
+
+export async function expireGuestSessionRecord(record: GuestSessionRecord) {
+  try {
+    await createRoomServiceClient().deleteRoom(record.roomName);
+  } catch (error) {
+    if (!isRoomNotFoundError(error)) {
+      throw error;
+    }
+  }
+
+  const redis = createRedis();
+  const expiredRecord: GuestSessionRecord = {
+    ...record,
+    status: "expired",
+  };
+  const activeKey = guestActiveKey(record.deviceHash, record.ipHash);
+  const activeSessionId = await redis.get<string>(activeKey);
+  const expireOperations: Array<Promise<unknown>> = [
+    redis.set(guestSessionKey(record.sessionId), expiredRecord, {
+      ex: LIVEKIT_GUEST_COOLDOWN_SECONDS,
+    }),
+  ];
+
+  if (activeSessionId === record.sessionId) {
+    expireOperations.push(redis.del(activeKey));
+  }
+
+  await Promise.all(expireOperations);
+
+  return expiredRecord;
 }
 
 export function getClientIp(request: Request) {

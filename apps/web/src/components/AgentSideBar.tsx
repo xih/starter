@@ -462,6 +462,9 @@ export function ChatMessage({ message }: { message: AgentSideBarMessage }) {
         "flex w-full flex-col",
         isUser ? "items-end pb-token-16 pt-0" : "items-start pb-token-20",
       )}
+      data-testid={
+        isUser ? "desktop-chat-message-user" : "desktop-chat-message-ai"
+      }
     >
       <div
         className={cn(

@@ -8,7 +8,7 @@ const meta = {
   argTypes: {
     state: {
       control: "inline-radio",
-      options: ["default", "user-typing", "agent-streaming"],
+      options: ["pre-connected", "default", "user-typing", "agent-streaming"],
     },
   },
   args: {
@@ -21,6 +21,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const PreConnected: Story = {
+  args: { state: "pre-connected" },
+};
+
 export const UserTyping: Story = {
   args: { state: "user-typing" },
 };
@@ -32,6 +36,7 @@ export const AgentStreaming: Story = {
 export const FigmaStates: Story = {
   render: () => (
     <div className="grid gap-[72px]">
+      <AgentControlBar state="pre-connected" />
       <AgentControlBar state="default" />
       <AgentControlBar state="user-typing" />
       <AgentControlBar state="agent-streaming" />

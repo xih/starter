@@ -469,15 +469,13 @@ export function ChatMessage({ message }: { message: AgentSideBarMessage }) {
       <div
         className={cn(
           "font-body text-[length:var(--font-font-size-subtext)] font-[var(--font-font-weight-regular)] tracking-normal",
+          message.isStreaming && "ds-text-shimmer inline-block",
           isUser
             ? "max-w-[404px] rounded-[22px] bg-[var(--color-core-primary-a)] px-token-16 py-token-8 leading-[var(--font-line-height-lh-heading)] text-[var(--color-text-inverse-primary)]"
             : "max-w-[477px] pb-token-4 leading-[var(--font-line-height-lh-title)] text-[var(--color-text-primary)]",
         )}
       >
         {message.text}
-        {message.isStreaming ? (
-          <span className="ml-token-2 inline-block animate-pulse">|</span>
-        ) : null}
       </div>
     </div>
   );
@@ -560,7 +558,7 @@ export function AgentSideBar({
               id: "streaming",
               isStreaming: true,
               role: "agent" as const,
-              text: "Thinking through that now",
+              text: "Thinking",
             },
           ]
         : messages;

@@ -25,6 +25,7 @@ import Link from "next/link";
 import {
   type CSSProperties,
   useCallback,
+  useReducer,
   useEffect,
   useMemo,
   useRef,
@@ -43,6 +44,11 @@ import { Toggle } from "~/components/ui/toggle";
 import { env } from "~/env";
 import { useInputControls } from "~/hooks/agents-ui/use-agent-control-bar";
 import { cn } from "~/lib/utils";
+import {
+  registerToolCallStatusRpc,
+  ToolCallStatusPanel,
+  toolCallStatusReducer,
+} from "./tool-call-status";
 
 const DEFAULT_AGENT_NAME =
   env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ?? "dennis-portfolio-agent";
@@ -422,6 +428,10 @@ function LiveAgentSession({
   const agent = useAgent(session);
   const sessionMessages = useSessionMessages(session);
   const { microphoneToggle } = useInputControls();
+  const [toolCallStatus, dispatchToolCallStatus] = useReducer(
+    toolCallStatusReducer,
+    null,
+  );
   const [sessionErrorMessage, setSessionErrorMessage] = useState(
     "Could not start voice session. Run the token probe and share the endpoint status with engineering.",
   );
@@ -444,6 +454,7 @@ function LiveAgentSession({
   });
   const endSession = () => {
     setInputValue("");
+    dispatchToolCallStatus({ type: "reset" });
     setManualState("intro");
     setSessionErrorMessage(
       "Could not start voice session. Run the token probe and share the endpoint status with engineering.",
@@ -478,6 +489,10 @@ function LiveAgentSession({
     startedRequestRef.current = startRequestId;
     startSession();
   }, [startRequestId, startSession]);
+
+  useEffect(() => {
+    return registerToolCallStatusRpc(session.room, dispatchToolCallStatus);
+  }, [session.room]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_402px]">
@@ -520,6 +535,8 @@ function LiveAgentSession({
             tone={messages.length > 0 ? "good" : "neutral"}
           />
         </div>
+
+        <ToolCallStatusPanel className="mt-4" status={toolCallStatus} />
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button

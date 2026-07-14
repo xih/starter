@@ -7,6 +7,7 @@
     "dev": "infisical run --projectId 87922978-15ad-4880-add7-5ae10dbff217 --env=dev -- uv run python src/agent.py dev --no-reload",
     "start": "infisical run --projectId 87922978-15ad-4880-add7-5ae10dbff217 --env=dev -- uv run python src/agent.py start",
     "check": "uv run python -m compileall src",
+    "test": "uv run python -m unittest discover -s tests",
     "doctor": "infisical run --projectId 87922978-15ad-4880-add7-5ae10dbff217 --env=dev -- uv run python src/agent.py doctor",
     "doctor:local": "uv run python src/agent.py doctor",
     "dev:lk": "infisical run --projectId 87922978-15ad-4880-add7-5ae10dbff217 --env=dev -- lk agent dev src/agent.py",

@@ -1,4 +1,4 @@
-.PHONY: ci ci-install ci-format ci-lint ci-typecheck ci-test ci-build
+.PHONY: ci ci-install ci-format ci-lint ci-typecheck ci-test ci-build livekit-agent-e2e
 
 ci: ci-install ci-format ci-lint ci-typecheck ci-test ci-build
 
@@ -22,3 +22,8 @@ ci-test:
 
 ci-build:
 	corepack pnpm build
+
+livekit-agent-e2e:
+	corepack pnpm exec concurrently -k -s first -n agent,web \
+		"corepack pnpm --filter @starter/agent dev" \
+		"infisical run --projectId 87922978-15ad-4880-add7-5ae10dbff217 --env=dev -- corepack pnpm --filter @starter/web dev"

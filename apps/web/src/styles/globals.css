@@ -37,6 +37,34 @@
 }
 
 @font-face {
+  font-family: Windsor;
+  src: url("/fonts/Windsor-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ABC Diatype Hebrew Unlicensed Trial";
+  src: url("/fonts/ABCDiatypeHebrew-Regular-Trial.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ABC Diatype Hebrew Unlicensed Trial";
+  src: url("/fonts/ABCDiatypeHebrew-Medium-Trial.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ABC Diatype Hebrew Unlicensed Trial";
+  src: url("/fonts/ABCDiatypeHebrew-Bold-Trial.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Open Runde";
   src:
     url("/fonts/OpenRunde-Regular.woff2") format("woff2"),
@@ -78,7 +106,9 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "Open Runde", sans-serif;
+    font-family:
+      var(--font-font-family-body), "ABC Diatype Hebrew Unlicensed Trial",
+      sans-serif;
   }
 }
 

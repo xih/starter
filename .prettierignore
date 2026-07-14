@@ -11,3 +11,5 @@ storybook-static/
 __pycache__/
 
 packages/tokens/dist/
+
+apps/web/public/vad.worklet.bundle.min.js

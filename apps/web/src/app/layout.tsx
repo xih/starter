@@ -1,4 +1,5 @@
 import "@starter/tokens/css";
+import "@starter/design-system/styles";
 import "~/styles/globals.css";
 import "dialkit/styles.css";
 

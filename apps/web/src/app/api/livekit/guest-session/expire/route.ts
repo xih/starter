@@ -4,11 +4,9 @@ import { z } from "zod";
 
 import {
   createRedis,
-  createRoomServiceClient,
-  guestActiveKey,
+  expireGuestSessionRecord,
   guestSessionKey,
   type GuestSessionRecord,
-  LIVEKIT_GUEST_COOLDOWN_SECONDS,
 } from "~/server/livekit/guest-session";
 
 export const runtime = "nodejs";
@@ -16,26 +14,6 @@ export const runtime = "nodejs";
 const expireRequestSchema = z.object({
   session_id: z.string().min(1),
 });
-
-function isRoomNotFoundError(error: unknown) {
-  if (typeof error !== "object" || error === null) {
-    return String(error).toLowerCase().includes("not found");
-  }
-
-  const maybeError = error as {
-    code?: unknown;
-    message?: unknown;
-    status?: unknown;
-  };
-  const message =
-    typeof maybeError.message === "string" ? maybeError.message : "";
-
-  return (
-    maybeError.status === 404 ||
-    maybeError.code === "not_found" ||
-    message.toLowerCase().includes("not found")
-  );
-}
 
 async function expireGuestSession(request: Request) {
   const json: unknown = await request.json().catch(() => null);
@@ -60,30 +38,7 @@ async function expireGuestSession(request: Request) {
     return NextResponse.json({ status: "already_expired" });
   }
 
-  try {
-    await createRoomServiceClient().deleteRoom(record.roomName);
-  } catch (error) {
-    if (!isRoomNotFoundError(error)) {
-      throw error;
-    }
-  }
-
-  const expiredRecord: GuestSessionRecord = {
-    ...record,
-    status: "expired",
-  };
-
-  const activeKey = guestActiveKey(record.deviceHash, record.ipHash);
-  const activeSessionId = await redis.get<string>(activeKey);
-  const expireOperations: Array<Promise<unknown>> = [
-    redis.set(key, expiredRecord, { ex: LIVEKIT_GUEST_COOLDOWN_SECONDS }),
-  ];
-
-  if (activeSessionId === record.sessionId) {
-    expireOperations.push(redis.del(activeKey));
-  }
-
-  await Promise.all(expireOperations);
+  await expireGuestSessionRecord(record);
 
   return NextResponse.json({
     status: "expired",

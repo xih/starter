@@ -2,6 +2,7 @@ import React from "react";
 import type { Preview } from "@storybook/react";
 import { ThemeProvider } from "next-themes";
 import "@starter/tokens/css";
+import "@starter/design-system/styles";
 import "@livekit/components-styles";
 import "../src/styles/globals.css";
 

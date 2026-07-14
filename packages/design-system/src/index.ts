@@ -15,6 +15,7 @@ export {
   VoiceParameterPanel,
   VoiceSelector,
   VoiceSelectorPill,
+  agentControlBarLayout,
   type AgentControlBarProps,
   type AgentControlBarState,
   type AgentSideBarProps,

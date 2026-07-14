@@ -81,11 +81,11 @@ export function AppSidebar() {
   const pathname = usePathname();
   const navigationHoverRef = useSuperHoverRef({
     sweptHitTest: true,
-    sweptHitTestMargin: 480,
+    sweptHitTestMargin: 80,
   });
   const footerHoverRef = useSuperHoverRef({
     sweptHitTest: true,
-    sweptHitTestMargin: 240,
+    sweptHitTestMargin: 80,
   });
 
   return (

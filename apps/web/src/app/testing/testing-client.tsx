@@ -17,15 +17,50 @@ import type { TestingSessionProps } from "./testing-session";
 
 const DEFAULT_AGENT_NAME = "dennis-portfolio-agent";
 const DEFAULT_TOKEN_ENDPOINT = "/api/livekit/guest-session";
+const TOKEN_ENDPOINT_LABEL = "/api/livekit/token";
+const GUEST_TOKEN_ENDPOINT_LABEL = "/api/livekit/guest-session";
+const TOKEN_ERROR_ENDPOINT_LABEL = "/api/livekit/missing";
 const DEFAULT_VOICE: VoiceOption = {
   avatar: "/agent-sidebar/avatar-1.png",
   description: "Softbank founder",
   name: "Masa Son",
 };
 type TestingSessionComponent = ComponentType<TestingSessionProps>;
+type AllowedTestingTokenEndpoint =
+  | typeof TOKEN_ENDPOINT_LABEL
+  | typeof GUEST_TOKEN_ENDPOINT_LABEL
+  | typeof TOKEN_ERROR_ENDPOINT_LABEL;
 
 function createRoomName() {
   return `testing_agent_${crypto.randomUUID()}`;
+}
+
+function resolveAllowedTestingTokenEndpoint(
+  endpoint: string | null,
+): AllowedTestingTokenEndpoint {
+  if (!endpoint) {
+    return DEFAULT_TOKEN_ENDPOINT;
+  }
+
+  try {
+    const url = new URL(endpoint, "http://local.invalid");
+    if (url.origin !== "http://local.invalid" || url.search) {
+      return DEFAULT_TOKEN_ENDPOINT;
+    }
+
+    switch (url.pathname) {
+      case TOKEN_ENDPOINT_LABEL:
+        return TOKEN_ENDPOINT_LABEL;
+      case GUEST_TOKEN_ENDPOINT_LABEL:
+        return GUEST_TOKEN_ENDPOINT_LABEL;
+      case TOKEN_ERROR_ENDPOINT_LABEL:
+        return TOKEN_ERROR_ENDPOINT_LABEL;
+      default:
+        return DEFAULT_TOKEN_ENDPOINT;
+    }
+  } catch {
+    return DEFAULT_TOKEN_ENDPOINT;
+  }
 }
 
 function StatusPill({
@@ -208,7 +243,9 @@ export function TestingClient() {
     setTheme("light");
     const params = new URLSearchParams(window.location.search);
     setAgentName(params.get("agentName") ?? DEFAULT_AGENT_NAME);
-    setTokenEndpoint(params.get("tokenEndpoint") ?? DEFAULT_TOKEN_ENDPOINT);
+    setTokenEndpoint(
+      resolveAllowedTestingTokenEndpoint(params.get("tokenEndpoint")),
+    );
     setRoomName(params.get("roomName") ?? createRoomName());
   }, [setTheme]);
 

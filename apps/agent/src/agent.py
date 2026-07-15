@@ -91,7 +91,7 @@ class PortfolioAgent(Agent):
         notifier_factory=_default_notifier_factory,
     ) -> None:
         super().__init__(id=agent_id, instructions=instructions)
-        self.search_settings = search_settings
+        self.search_settings = search_settings or load_web_search_settings(os.environ)
         self.provider_factory = provider_factory
         self.http_client_factory = http_client_factory
         self.notifier_factory = notifier_factory
@@ -110,15 +110,14 @@ class PortfolioAgent(Agent):
             summary: A short user-friendly summary of what is being searched.
             query: The full freshness-sensitive web search query.
         """
-        settings = self.search_settings or load_web_search_settings(os.environ)
         async with self.http_client_factory() as http_client:
             return await run_web_search_tool(
                 summary=summary,
                 query=query,
-                provider=self.provider_factory(settings, http_client),
+                provider=self.provider_factory(self.search_settings, http_client),
                 notifier=self.notifier_factory(),
-                max_results=settings.max_results,
-                timeout_seconds=settings.timeout_seconds,
+                max_results=self.search_settings.max_results,
+                timeout_seconds=self.search_settings.timeout_seconds,
             )
 
 

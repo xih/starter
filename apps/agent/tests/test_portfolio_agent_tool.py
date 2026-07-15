@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -83,6 +84,14 @@ class PortfolioAgentToolTests(unittest.IsolatedAsyncioTestCase):
         tool = PortfolioAgent.search_web
 
         self.assertIn("function", tool.__class__.__name__.lower())
+
+    def test_search_settings_are_loaded_during_agent_initialization(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            with self.assertRaisesRegex(ValueError, "PARALLEL_API_KEY is missing"):
+                PortfolioAgent(
+                    agent_id="dennis-portfolio-agent",
+                    instructions="Test agent.",
+                )
 
     async def test_search_web_closes_default_http_client(self) -> None:
         notifier = RecordingNotifier()

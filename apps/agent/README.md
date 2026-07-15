@@ -83,7 +83,8 @@ The app intentionally keeps `package.json` for monorepo scripts. The LiveKit
 CLI auto-detects that file as a Node agent, so do not deploy directly from this
 directory. Use `scripts/deploy-livekit-cloud.sh`; it creates a Python-only temp
 context with the committed `Dockerfile`, `livekit.toml`, `pyproject.toml`,
-`uv.lock`, and `src/agent.py`.
+`uv.lock`, and the full `src` tree. The script also writes the LiveKit,
+agent, and web-search provider secrets into the LiveKit Cloud secrets file.
 
 Deploy the current agent code to LiveKit Cloud with prod Infisical secrets:
 

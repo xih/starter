@@ -56,6 +56,18 @@ describe("createToolCallStatusRpcHandler", () => {
     expect(response).toBe("invalid");
     expect(dispatch).not.toHaveBeenCalled();
   });
+
+  it("rejects invalid JSON without throwing", async () => {
+    const dispatch = vi.fn();
+    const handler = createToolCallStatusRpcHandler(dispatch);
+
+    const response = await handler({
+      payload: "{bad json",
+    });
+
+    expect(response).toBe("invalid");
+    expect(dispatch).not.toHaveBeenCalled();
+  });
 });
 
 describe("registerToolCallStatusRpc", () => {

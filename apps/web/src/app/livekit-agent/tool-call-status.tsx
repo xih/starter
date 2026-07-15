@@ -4,7 +4,7 @@ import { cn } from "~/lib/utils";
 
 export type ToolCallStatus = {
   error?: string;
-  provider: "parallel" | "exa" | "perplexity" | string;
+  provider: string;
   startedAt: number;
   state: "running" | "failed";
   summary: string;
@@ -105,44 +105,48 @@ export function createToolCallStatusRpcHandler(
   dispatch: (action: ToolCallStatusAction) => void,
 ) {
   return async ({ payload }: ToolCallStatusRpcRequest) => {
-    const parsed = JSON.parse(payload) as {
-      error?: unknown;
-      provider?: unknown;
-      state?: unknown;
-      summary?: unknown;
-    };
+    try {
+      const parsed = JSON.parse(payload) as {
+        error?: unknown;
+        provider?: unknown;
+        state?: unknown;
+        summary?: unknown;
+      };
 
-    if (parsed.state === "completed") {
-      dispatch({ type: "completed" });
-      return "ok";
-    }
+      if (parsed.state === "completed") {
+        dispatch({ type: "completed" });
+        return "ok";
+      }
 
-    if (
-      parsed.state === "running" &&
-      typeof parsed.provider === "string" &&
-      typeof parsed.summary === "string"
-    ) {
-      dispatch({
-        provider: parsed.provider,
-        summary: parsed.summary,
-        type: "started",
-      });
-      return "ok";
-    }
+      if (
+        parsed.state === "running" &&
+        typeof parsed.provider === "string" &&
+        typeof parsed.summary === "string"
+      ) {
+        dispatch({
+          provider: parsed.provider,
+          summary: parsed.summary,
+          type: "started",
+        });
+        return "ok";
+      }
 
-    if (
-      parsed.state === "failed" &&
-      typeof parsed.error === "string" &&
-      typeof parsed.provider === "string" &&
-      typeof parsed.summary === "string"
-    ) {
-      dispatch({
-        error: parsed.error,
-        provider: parsed.provider,
-        summary: parsed.summary,
-        type: "failed",
-      });
-      return "ok";
+      if (
+        parsed.state === "failed" &&
+        typeof parsed.error === "string" &&
+        typeof parsed.provider === "string" &&
+        typeof parsed.summary === "string"
+      ) {
+        dispatch({
+          error: parsed.error,
+          provider: parsed.provider,
+          summary: parsed.summary,
+          type: "failed",
+        });
+        return "ok";
+      }
+    } catch {
+      return "invalid";
     }
 
     return "invalid";

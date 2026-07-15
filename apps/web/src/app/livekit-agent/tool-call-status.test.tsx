@@ -51,12 +51,10 @@ describe("ToolCallStatusPanel", () => {
       type: "failed",
     });
 
-    expect(next).toEqual({
-      error: "Search provider timed out",
-      provider: "perplexity",
-      startedAt: expect.any(Number),
-      state: "failed",
-      summary: "Looking up current docs",
-    });
+    expect(next?.error).toBe("Search provider timed out");
+    expect(next?.provider).toBe("perplexity");
+    expect(typeof next?.startedAt).toBe("number");
+    expect(next?.state).toBe("failed");
+    expect(next?.summary).toBe("Looking up current docs");
   });
 });

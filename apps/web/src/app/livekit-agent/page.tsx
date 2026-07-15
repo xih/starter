@@ -492,7 +492,7 @@ function LiveAgentSession({
 
   useEffect(() => {
     return registerToolCallStatusRpc(session.room, dispatchToolCallStatus);
-  }, [session.room]);
+  }, [session.room, session.room.localParticipant]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_402px]">

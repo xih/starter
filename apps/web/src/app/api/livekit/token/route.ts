@@ -35,6 +35,19 @@ function parseNodeEnv(value: string | undefined) {
   return parsed.success ? parsed.data : "production";
 }
 
+function isLocalDevelopmentOrigin(origin: string) {
+  try {
+    const { hostname, protocol } = new URL(origin);
+
+    return (
+      protocol === "http:" &&
+      (hostname === "localhost" || hostname === "127.0.0.1")
+    );
+  } catch {
+    return false;
+  }
+}
+
 const liveKitEnvSchema = z.object({
   LIVEKIT_URL: z.string().url().optional(),
   LIVEKIT_API_KEY: z.string().optional(),
@@ -106,6 +119,10 @@ function getAllowedOrigins() {
 
 function isOriginAllowed(origin: string | null) {
   if (!origin) {
+    return true;
+  }
+
+  if (env.NODE_ENV !== "production" && isLocalDevelopmentOrigin(origin)) {
     return true;
   }
 

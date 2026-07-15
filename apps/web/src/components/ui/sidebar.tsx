@@ -28,6 +28,7 @@ type SidebarContext = {
   openMobile: boolean;
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
+  portalStyle?: React.CSSProperties;
   toggleSidebar: () => void;
 };
 
@@ -132,9 +133,10 @@ const SidebarProvider = React.forwardRef<
         isMobile,
         openMobile,
         setOpenMobile,
+        portalStyle: style,
         toggleSidebar,
       }),
-      [state, open, setOpen, isMobile, openMobile, toggleSidebar],
+      [state, open, setOpen, isMobile, openMobile, style, toggleSidebar],
     );
 
     return (
@@ -184,7 +186,8 @@ const Sidebar = React.forwardRef<
     },
     ref,
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+    const { isMobile, state, openMobile, portalStyle, setOpenMobile } =
+      useSidebar();
 
     if (collapsible === "none") {
       return (
@@ -211,6 +214,7 @@ const Sidebar = React.forwardRef<
             className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
             style={
               {
+                ...portalStyle,
                 "--sidebar-width-mobile": SIDEBAR_WIDTH_MOBILE,
               } as React.CSSProperties
             }

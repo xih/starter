@@ -232,7 +232,7 @@ export function VideoPlayer() {
       <Button
         variant="secondary"
         size="icon"
-        className="bg-background/90 absolute left-1/2 top-6 z-20 -translate-x-1/2 rounded-full shadow-md hover:bg-background"
+        className="absolute left-1/2 top-6 z-20 -translate-x-1/2 rounded-token-round border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)] shadow-md hover:bg-[var(--color-background-hovered)]"
         onClick={navigateToPrevious}
         disabled={isAnimating}
       >
@@ -261,11 +261,11 @@ export function VideoPlayer() {
               initial={direction > 0 ? "enterFromBottom" : "enterFromTop"}
               animate="center"
               exit={direction < 0 ? "exitToTop" : "exitToBottom"}
-              className="transform-3d absolute inset-0 rounded-2xl bg-muted shadow-lg"
+              className="transform-3d absolute inset-0 rounded-token-l border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] shadow-lg"
             >
               {/* Video content */}
               <div className="flex h-full w-full items-center justify-center">
-                <div className="text-xl font-medium text-muted-foreground">
+                <div className="text-heading font-body font-medium text-[var(--color-text-secondary)]">
                   {currentVideo.title}
                   {isMuted && <span className="ml-2">(Muted)</span>}
                 </div>
@@ -279,12 +279,12 @@ export function VideoPlayer() {
                       top: `${heartPosition.y}%`,
                     }}
                   >
-                    <Heart className="h-16 w-16 fill-red-500 text-red-500" />
+                    <Heart className="h-16 w-16 fill-[var(--color-state-errored)] text-[var(--color-state-errored)]" />
                   </div>
                 )}
 
                 {/* Video navigation indicator */}
-                <div className="absolute right-4 top-4 rounded-full bg-black/50 px-3 py-1 text-white">
+                <div className="absolute right-token-16 top-token-16 rounded-token-round bg-[var(--color-background-inverse-primary)] px-token-12 py-token-4 font-body text-body font-semibold text-[var(--color-text-inverse-primary)]">
                   {safeVideoIndex + 1} / {videos.length}
                 </div>
               </div>
@@ -303,10 +303,10 @@ export function VideoPlayer() {
                 }}
                 animate="stackedBelow"
                 variants={variants}
-                className="transform-3d absolute inset-0 rounded-2xl bg-secondary shadow-lg"
+                className="transform-3d absolute inset-0 rounded-token-l border border-[var(--color-border-opaque)] bg-[var(--color-background-hovered)] shadow-lg"
               >
                 <div className="flex h-full w-full items-center justify-center">
-                  <div className="text-xl font-medium text-white opacity-50">
+                  <div className="text-heading font-body font-medium text-[var(--color-text-secondary)] opacity-70">
                     {videos[getNextIndex(currentVideoIndex)]?.title}
                   </div>
                 </div>
@@ -320,7 +320,7 @@ export function VideoPlayer() {
       <Button
         variant="secondary"
         size="icon"
-        className="bg-background/90 absolute bottom-6 left-1/2 z-20 -translate-x-1/2 rounded-full shadow-md hover:bg-background"
+        className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 rounded-token-round border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)] shadow-md hover:bg-[var(--color-background-hovered)]"
         onClick={navigateToNext}
         disabled={isAnimating}
       >

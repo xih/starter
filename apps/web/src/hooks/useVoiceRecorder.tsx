@@ -43,6 +43,8 @@ export function VoiceRecorderProvider({
 
   // Hook up VAD to stop on silence and save the WAV
   const vad = useMicVAD({
+    baseAssetPath: "/",
+    onnxWASMBasePath: "/",
     startOnLoad: false,
     onSpeechEnd: async (audioBuffer) => {
       console.log("[VoiceRecorder] VAD detected end of speech");

@@ -21,6 +21,8 @@ export default [
       "next.config.js",
       "node_modules/**",
       "postcss.config.js",
+      "public/ort-wasm-simd-threaded.mjs",
+      "public/vad.worklet.bundle.min.js",
       "public/storybook/**",
       "storybook-static/**",
       "tailwind.config.ts",

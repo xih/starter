@@ -93,6 +93,11 @@ export default {
       },
       colors: {
         ...tokens.colors,
+        text: {
+          ...tokens.colors.text,
+          primary: cssColor("--color-text-primary"),
+          secondary: cssColor("--color-text-secondary"),
+        },
         background: cssColor("--background"),
         foreground: cssColor("--foreground"),
         card: {

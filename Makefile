@@ -1,4 +1,7 @@
-.PHONY: ci ci-install ci-format ci-lint ci-typecheck ci-test ci-build agent-check agent-deploy-check pr-ready livekit-agent-e2e
+.PHONY: ci ci-install ci-format ci-lint ci-typecheck ci-test ci-build voice-dev agent-check agent-deploy-check pr-ready livekit-agent-e2e
+
+voice-dev:
+	corepack pnpm exec concurrently -k -s first -n web,agent -c cyan,magenta "corepack pnpm dev" "corepack pnpm --filter @starter/agent dev"
 
 ci: ci-install ci-format ci-lint ci-typecheck ci-test ci-build
 

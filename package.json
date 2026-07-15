@@ -7,6 +7,7 @@
     "build": "corepack pnpm -r --filter './packages/*' build && corepack pnpm --filter @starter/web build",
     "check": "corepack pnpm -r check",
     "dev": "corepack pnpm --filter @starter/web dev",
+    "dev:local": "corepack pnpm --filter @starter/web dev:local",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx,json,css}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx,json,css}\" --cache",
     "lint": "corepack pnpm --filter @starter/web lint",

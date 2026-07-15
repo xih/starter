@@ -256,6 +256,9 @@ function TestingSessionContent({
   const startAbortControllerRef = useRef<AbortController | null>(null);
   const noSpeechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didAutoStartRef = useRef(false);
+  const endSessionRef = useRef<() => void>(() => {
+    console.warn("Testing session end requested before it was initialized.");
+  });
   const [toolCallStatus, dispatchToolCallStatus] = useReducer(
     toolCallStatusReducer,
     null,
@@ -414,8 +417,14 @@ function TestingSessionContent({
   }, [startSession]);
 
   useEffect(() => {
+    endSessionRef.current = endSession;
+  });
+
+  useEffect(() => {
+    if (!session.room) return;
+
     return registerToolCallStatusRpc(session.room, dispatchToolCallStatus);
-  }, [session.room, session.room.localParticipant]);
+  }, [session.room, session.room?.localParticipant]);
 
   useEffect(() => {
     if (noSpeechTimeoutRef.current) {
@@ -435,7 +444,7 @@ function TestingSessionContent({
       setErrorMessage(
         `No speech detected for ${TESTING_NO_SPEECH_TIMEOUT_SECONDS} seconds. Ending the LiveKit test session.`,
       );
-      endSession();
+      endSessionRef.current();
     }, TESTING_NO_SPEECH_TIMEOUT_SECONDS * 1000);
 
     return () => {
@@ -444,13 +453,7 @@ function TestingSessionContent({
         noSpeechTimeoutRef.current = null;
       }
     };
-  }, [
-    agent.state,
-    endSession,
-    isConnected,
-    latestUserMessageOrder,
-    setErrorMessage,
-  ]);
+  }, [agent.state, isConnected, latestUserMessageOrder, setErrorMessage]);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-[14px] py-0 md:px-6 md:py-4">

@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTEXT_DIR="$(mktemp -d)"
 SECRETS_FILE="$(mktemp)"
+DRY_RUN="${LIVEKIT_AGENT_DEPLOY_DRY_RUN:-0}"
 
 cleanup() {
   [[ -n "${CONTEXT_DIR:-}" ]] && rm -rf "$CONTEXT_DIR"
@@ -16,6 +17,9 @@ required_env=(
   LIVEKIT_API_KEY
   LIVEKIT_API_SECRET
   LIVEKIT_AGENT_TTS_VOICE_ID
+  PARALLEL_API_KEY
+  EXA_API_KEY
+  PERPLEXITY_API_KEY
 )
 
 for name in "${required_env[@]}"; do
@@ -30,8 +34,7 @@ cp "$ROOT_DIR/.dockerignore" "$CONTEXT_DIR/.dockerignore"
 cp "$ROOT_DIR/livekit.toml" "$CONTEXT_DIR/livekit.toml"
 cp "$ROOT_DIR/pyproject.toml" "$CONTEXT_DIR/pyproject.toml"
 cp "$ROOT_DIR/uv.lock" "$CONTEXT_DIR/uv.lock"
-mkdir -p "$CONTEXT_DIR/src"
-cp "$ROOT_DIR/src/agent.py" "$CONTEXT_DIR/src/agent.py"
+cp -R "$ROOT_DIR/src" "$CONTEXT_DIR/src"
 
 {
   printf "LIVEKIT_URL=%s\n" "$LIVEKIT_URL"
@@ -43,7 +46,63 @@ cp "$ROOT_DIR/src/agent.py" "$CONTEXT_DIR/src/agent.py"
   printf "LIVEKIT_AGENT_LLM_MODEL=%s\n" "${LIVEKIT_AGENT_LLM_MODEL:-google/gemini-2.5-flash-lite}"
   printf "LIVEKIT_AGENT_TTS_MODEL=%s\n" "${LIVEKIT_AGENT_TTS_MODEL:-cartesia/sonic-3.5}"
   printf "LIVEKIT_AGENT_TTS_VOICE_ID=%s\n" "$LIVEKIT_AGENT_TTS_VOICE_ID"
+  printf "WEB_SEARCH_PROVIDER=%s\n" "${WEB_SEARCH_PROVIDER:-parallel}"
+  printf "WEB_SEARCH_MAX_RESULTS=%s\n" "${WEB_SEARCH_MAX_RESULTS:-5}"
+  printf "WEB_SEARCH_TIMEOUT_SECONDS=%s\n" "${WEB_SEARCH_TIMEOUT_SECONDS:-8}"
+  printf "PARALLEL_API_KEY=%s\n" "$PARALLEL_API_KEY"
+  printf "EXA_API_KEY=%s\n" "$EXA_API_KEY"
+  printf "PERPLEXITY_API_KEY=%s\n" "$PERPLEXITY_API_KEY"
 } > "$SECRETS_FILE"
+
+verify_deploy_context() {
+  local required_files=(
+    Dockerfile
+    livekit.toml
+    pyproject.toml
+    uv.lock
+    src/agent.py
+    src/agent_web_search.py
+    src/web_search.py
+    src/web_search_constants.py
+    src/web_search_providers.py
+  )
+
+  local required_secret_names=(
+    LIVEKIT_URL
+    LIVEKIT_API_KEY
+    LIVEKIT_API_SECRET
+    LIVEKIT_AGENT_NAME
+    LIVEKIT_AGENT_TTS_VOICE_ID
+    WEB_SEARCH_PROVIDER
+    WEB_SEARCH_MAX_RESULTS
+    WEB_SEARCH_TIMEOUT_SECONDS
+    PARALLEL_API_KEY
+    EXA_API_KEY
+    PERPLEXITY_API_KEY
+  )
+
+  for path in "${required_files[@]}"; do
+    if [[ ! -f "$CONTEXT_DIR/$path" ]]; then
+      echo "Deploy context is missing required file: $path" >&2
+      return 1
+    fi
+  done
+
+  for name in "${required_secret_names[@]}"; do
+    if ! grep -q "^${name}=" "$SECRETS_FILE"; then
+      echo "Deploy secrets file is missing required value: $name" >&2
+      return 1
+    fi
+  done
+}
+
+verify_deploy_context
+
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "LiveKit deploy context verified: $CONTEXT_DIR"
+  echo "LiveKit deploy secrets verified: $SECRETS_FILE"
+  exit 0
+fi
 
 echo "Deploying LiveKit Cloud Agent from Python-only context: $CONTEXT_DIR"
 lk agent deploy --yes --secrets-file "$SECRETS_FILE" "$CONTEXT_DIR"

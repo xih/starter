@@ -35,6 +35,9 @@ LIVEKIT_API_KEY
 LIVEKIT_API_SECRET
 LIVEKIT_AGENT_TTS_VOICE_ID
 OPENAI_API_KEY
+PARALLEL_API_KEY
+EXA_API_KEY
+PERPLEXITY_API_KEY
 ```
 
 Optional agent tuning variables:
@@ -45,6 +48,27 @@ LIVEKIT_AGENT_STT_MODEL
 LIVEKIT_AGENT_STT_LANGUAGE
 LIVEKIT_AGENT_LLM_MODEL
 LIVEKIT_AGENT_TTS_MODEL
+WEB_SEARCH_PROVIDER
+WEB_SEARCH_MAX_RESULTS
+WEB_SEARCH_TIMEOUT_SECONDS
+```
+
+Web search providers:
+
+```text
+WEB_SEARCH_PROVIDER=parallel
+```
+
+Supported values are `parallel`, `exa`, and `perplexity`. Add
+`PARALLEL_API_KEY`, `EXA_API_KEY`, and `PERPLEXITY_API_KEY` to Infisical in
+both `dev` and `prod` before running the full benchmark. The agent uses only the
+selected provider at runtime, but keeping all three keys available lets the
+benchmark compare providers without editing secrets.
+
+Run the web search benchmark after the keys are present:
+
+```sh
+uv run python src/benchmark_search_providers.py
 ```
 
 ## Production Deployment
@@ -59,7 +83,8 @@ The app intentionally keeps `package.json` for monorepo scripts. The LiveKit
 CLI auto-detects that file as a Node agent, so do not deploy directly from this
 directory. Use `scripts/deploy-livekit-cloud.sh`; it creates a Python-only temp
 context with the committed `Dockerfile`, `livekit.toml`, `pyproject.toml`,
-`uv.lock`, and `src/agent.py`.
+`uv.lock`, and the full `src` tree. The script also writes the LiveKit,
+agent, and web-search provider secrets into the LiveKit Cloud secrets file.
 
 Deploy the current agent code to LiveKit Cloud with prod Infisical secrets:
 

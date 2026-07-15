@@ -5,6 +5,7 @@ description = "Python LiveKit voice agent for the portfolio realtime test path."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
+  "httpx>=0.28.1",
   "livekit-agents~=1.5",
   "python-dotenv>=1.2.1",
 ]

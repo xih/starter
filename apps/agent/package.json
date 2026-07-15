@@ -7,6 +7,7 @@
     "dev": "infisical run --env=${INFISICAL_ENV:-dev} -- uv run python src/agent.py dev --no-reload",
     "start": "infisical run --env=${INFISICAL_ENV:-dev} -- uv run python src/agent.py start",
     "check": "uv run python -m compileall src",
+    "test": "uv run python -m unittest discover -s tests",
     "doctor": "infisical run --env=${INFISICAL_ENV:-dev} -- uv run python src/agent.py doctor",
     "doctor:local": "uv run python src/agent.py doctor",
     "dev:lk": "infisical run --env=${INFISICAL_ENV:-dev} -- lk agent dev src/agent.py",

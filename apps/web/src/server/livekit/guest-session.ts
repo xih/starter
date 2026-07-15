@@ -11,6 +11,7 @@ import {
   LIVEKIT_GUEST_COOKIE_NAME,
   LIVEKIT_GUEST_COOLDOWN_ENABLED,
   LIVEKIT_GUEST_COOLDOWN_SECONDS,
+  LIVEKIT_GUEST_NO_SPEECH_TIMEOUT_SECONDS,
   LIVEKIT_GUEST_REDIS_PREFIX,
   LIVEKIT_GUEST_SESSION_SECONDS,
   LIVEKIT_GUEST_SIGNUP_URL,
@@ -128,6 +129,7 @@ export type LiveKitGuestTokenPayload = {
   room_name: string;
   expires_at: string;
   duration_seconds: number;
+  no_speech_timeout_seconds: number;
   cleanup_enabled: boolean;
   signup_url: string;
   agent_dispatch_mode: "token_room_config";
@@ -480,6 +482,7 @@ export async function issueGuestLiveKitToken(record: GuestSessionRecord) {
     room_name: record.roomName,
     expires_at: record.expiresAt,
     duration_seconds: LIVEKIT_GUEST_SESSION_SECONDS,
+    no_speech_timeout_seconds: LIVEKIT_GUEST_NO_SPEECH_TIMEOUT_SECONDS,
     cleanup_enabled: LIVEKIT_GUEST_CLEANUP_ENABLED,
     signup_url: LIVEKIT_GUEST_SIGNUP_URL,
     agent_dispatch_mode: "token_room_config",
@@ -522,6 +525,7 @@ export {
   LIVEKIT_GUEST_COOKIE_NAME,
   LIVEKIT_GUEST_COOLDOWN_ENABLED,
   LIVEKIT_GUEST_COOLDOWN_SECONDS,
+  LIVEKIT_GUEST_NO_SPEECH_TIMEOUT_SECONDS,
   LIVEKIT_GUEST_SESSION_SECONDS,
   LIVEKIT_GUEST_SIGNUP_URL,
 };

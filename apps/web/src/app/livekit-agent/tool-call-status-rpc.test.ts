@@ -42,6 +42,48 @@ describe("createToolCallStatusRpcHandler", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "completed" });
   });
 
+  it("dispatches completed sources from agent RPC payload", async () => {
+    const actions: ToolCallStatusAction[] = [];
+    const handler = createToolCallStatusRpcHandler((action) => {
+      actions.push(action);
+    });
+
+    const response = await handler({
+      payload: JSON.stringify({
+        provider: "parallel",
+        sources: [
+          {
+            description: "Argentina beat England 2-1.",
+            provider: "parallel",
+            published_at: "2026-07-15",
+            title: "Argentina beats England",
+            url: "https://example.com/argentina-england",
+          },
+        ],
+        state: "completed",
+        summary: "Find today's Argentina England match result",
+      }),
+    });
+
+    expect(response).toBe("ok");
+    expect(actions).toEqual([
+      {
+        provider: "parallel",
+        sources: [
+          {
+            description: "Argentina beat England 2-1.",
+            provider: "parallel",
+            publishedAt: "2026-07-15",
+            title: "Argentina beats England",
+            url: "https://example.com/argentina-england",
+          },
+        ],
+        summary: "Find today's Argentina England match result",
+        type: "completed",
+      },
+    ]);
+  });
+
   it("rejects malformed RPC payloads without dispatching secrets", async () => {
     const dispatch = vi.fn();
     const handler = createToolCallStatusRpcHandler(dispatch);

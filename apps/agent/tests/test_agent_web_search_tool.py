@@ -74,8 +74,8 @@ class RecordingNotifier(SearchToolStatusNotifier):
     async def started(self, summary: str, provider: str) -> None:
         self.events.append(("started", f"{provider}:{summary}"))
 
-    async def finished(self) -> None:
-        self.events.append(("finished", ""))
+    async def finished(self, results: list[SearchResult]) -> None:
+        self.events.append(("finished", results[0].url if results else ""))
 
     async def failed(self, message: str) -> None:
         self.events.append(("failed", message))
@@ -101,7 +101,7 @@ class AgentWebSearchToolTests(unittest.IsolatedAsyncioTestCase):
             ("started", "parallel:Compare search provider pricing"),
             notifier.events,
         )
-        self.assertIn(("finished", ""), notifier.events)
+        self.assertIn(("finished", "https://parallel.ai/pricing"), notifier.events)
 
     async def test_tool_returns_safe_message_for_missing_provider_key(self) -> None:
         notifier = RecordingNotifier()

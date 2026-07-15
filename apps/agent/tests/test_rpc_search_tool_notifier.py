@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from agent_web_search import LiveKitRpcSearchToolStatusNotifier  # noqa: E402
+from web_search import SearchResult  # noqa: E402
 
 
 class FakeLocalParticipant:
@@ -84,15 +85,39 @@ class RpcSearchToolNotifierTests(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
-    async def test_finished_clears_browser_rpc_status(self) -> None:
+    async def test_finished_sends_sources_to_browser_rpc_status(self) -> None:
         room = FakeRoom()
         notifier = LiveKitRpcSearchToolStatusNotifier(room)
 
-        await notifier.finished()
+        await notifier.started("Find today's match result", "parallel")
+        await notifier.finished(
+            [
+                SearchResult(
+                    title="Argentina beats England",
+                    url="https://example.com/argentina-england",
+                    snippet="Argentina beat England 2-1 after goals from...",
+                    published_at="2026-07-15",
+                    provider="parallel",
+                )
+            ]
+        )
 
         self.assertEqual(
-            room.local_participant.calls[0]["payload"],
-            {"state": "completed"},
+            room.local_participant.calls[-1]["payload"],
+            {
+                "provider": "parallel",
+                "sources": [
+                    {
+                        "description": "Argentina beat England 2-1 after goals from...",
+                        "provider": "parallel",
+                        "published_at": "2026-07-15",
+                        "title": "Argentina beats England",
+                        "url": "https://example.com/argentina-england",
+                    }
+                ],
+                "state": "completed",
+                "summary": "Find today's match result",
+            },
         )
 
     async def test_failed_sends_provider_summary_and_error(self) -> None:

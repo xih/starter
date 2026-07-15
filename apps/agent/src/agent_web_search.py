@@ -25,7 +25,7 @@ class SearchToolStatusNotifier:
     async def started(self, summary: str, provider: str) -> None:
         return None
 
-    async def finished(self) -> None:
+    async def finished(self, results: list[SearchResult]) -> None:
         return None
 
     async def failed(self, message: str) -> None:
@@ -38,7 +38,7 @@ class LiveKitRpcSearchToolStatusNotifier(SearchToolStatusNotifier):
         self.active_provider: str | None = None
         self.active_summary: str | None = None
 
-    async def _send(self, payload: dict[str, str]) -> None:
+    async def _send(self, payload: dict[str, object]) -> None:
         remote_participants = getattr(self.room, "remote_participants", {})
         if not remote_participants:
             return
@@ -69,12 +69,27 @@ class LiveKitRpcSearchToolStatusNotifier(SearchToolStatusNotifier):
             }
         )
 
-    async def finished(self) -> None:
-        await self._send(
+    async def finished(self, results: list[SearchResult]) -> None:
+        sources = [
             {
-                "state": "completed",
+                "description": result.snippet,
+                "provider": result.provider,
+                "published_at": result.published_at,
+                "title": result.title,
+                "url": result.url,
             }
-        )
+            for result in results
+            if result.url
+        ]
+        payload: dict[str, object] = {
+            "sources": sources,
+            "state": "completed",
+        }
+        if self.active_provider:
+            payload["provider"] = self.active_provider
+        if self.active_summary:
+            payload["summary"] = self.active_summary
+        await self._send(payload)
 
     async def failed(self, message: str) -> None:
         payload = {"error": message, "state": "failed"}
@@ -121,7 +136,7 @@ async def run_web_search_tool(
             return f"Web search is not configured: {message}."
         return f"Web search failed: {message}."
 
-    await notifier.finished()
+    await notifier.finished(results)
     return _format_results(results)
 
 

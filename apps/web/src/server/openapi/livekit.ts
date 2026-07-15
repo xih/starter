@@ -175,6 +175,9 @@ export const liveKitOpenApiSpec = {
                 type: "object",
                 properties: {
                   dispatch_agent: { type: "boolean" },
+                  persona_id: { type: "string" },
+                  user_id: { type: "string" },
+                  session_id: { type: "string" },
                   room_name: { type: "string" },
                   participant_identity: { type: "string" },
                   participant_name: { type: "string" },
@@ -223,6 +226,72 @@ export const liveKitOpenApiSpec = {
               },
             },
           },
+        },
+      },
+    },
+    "/api/personas": {
+      get: {
+        summary: "List voice personas",
+        tags: ["Voice Personas"],
+        responses: {
+          "200": {
+            description: "Personas available to the voice picker",
+          },
+        },
+      },
+      post: {
+        summary: "Create or update a voice persona",
+        tags: ["Voice Personas"],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "201": {
+            description: "Persona saved",
+          },
+          "400": {
+            description: "Invalid persona request",
+          },
+          "401": {
+            description: "Missing or invalid persona admin secret",
+          },
+        },
+      },
+    },
+    "/api/personas/{personaId}/ingest-youtube": {
+      post: {
+        summary: "Draft persona context from authorized YouTube transcript",
+        tags: ["Voice Personas"],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Draft system prompt created" },
+          "401": { description: "Missing or invalid persona admin secret" },
+          "403": { description: "Missing source rights or voice consent" },
+          "422": { description: "Transcript is required" },
+        },
+      },
+    },
+    "/api/personas/{personaId}/clone-voice": {
+      post: {
+        summary:
+          "Clone a private Cartesia voice for a consent-approved persona",
+        tags: ["Voice Personas"],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Cartesia voice cloned and persona updated" },
+          "401": { description: "Missing or invalid persona admin secret" },
+          "403": { description: "Missing consent or source rights" },
+          "500": { description: "Cartesia is not configured" },
+        },
+      },
+    },
+    "/api/personas/{personaId}/memories": {
+      post: {
+        summary: "Store an explicit persona-scoped memory",
+        tags: ["Voice Personas"],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "201": { description: "Memory stored" },
+          "401": { description: "Missing or invalid persona admin secret" },
+          "404": { description: "Persona not found" },
         },
       },
     },

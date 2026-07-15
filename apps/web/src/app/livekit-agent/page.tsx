@@ -34,6 +34,7 @@ import {
 
 import {
   AgentSideBar,
+  type AgentSideBarPersona,
   type AgentSideBarMessage,
   type AgentSideBarState,
 } from "~/components/AgentSideBar";
@@ -53,7 +54,8 @@ import {
 
 const DEFAULT_AGENT_NAME =
   env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ?? "dennis-portfolio-agent";
-const DEFAULT_TOKEN_ENDPOINT = "/api/livekit/guest-session";
+const DEFAULT_TOKEN_ENDPOINT =
+  env.NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT ?? "/api/livekit/token";
 const STORYBOOK_ORIGIN = env.NEXT_PUBLIC_STORYBOOK_ORIGIN ?? "/storybook/";
 const STORYBOOK_URL = STORYBOOK_ORIGIN.replace(/\/?$/, "/");
 const TOKEN_ENDPOINT_LABEL = "/api/livekit/token";
@@ -99,6 +101,10 @@ type TokenEndpointPayload = {
   participant_token?: string;
   server_url?: string;
   signup_url?: string;
+};
+
+type PersonaListPayload = {
+  personas?: AgentSideBarPersona[];
 };
 
 function messageText(message: { message?: unknown; text?: unknown }) {
@@ -306,6 +312,12 @@ function stateFromSession({
   manualState: AgentSideBarState;
 }): AgentSideBarState {
   if (manualState === "error") return "error";
+  if (
+    manualState === "switching" &&
+    connectionState !== ConnectionState.Connected
+  ) {
+    return "switching";
+  }
   if (hasInput) return "user-typing";
   if (connectionState === ConnectionState.Connecting) return "loading";
   if (agentState === "speaking" || agentState === "thinking") {
@@ -362,7 +374,11 @@ function LiveAgentConsole({
   endpointAuth,
   manualState,
   onSessionEnded,
+  onSelectPersona,
+  onRestartWithPersona,
+  personas,
   roomName,
+  selectedPersonaId,
   setManualState,
   startRequestId,
   tokenEndpoint,
@@ -371,7 +387,11 @@ function LiveAgentConsole({
   endpointAuth: string;
   manualState: AgentSideBarState;
   onSessionEnded: () => void;
+  onSelectPersona: (personaId: string) => void;
+  onRestartWithPersona: () => void;
+  personas: AgentSideBarPersona[];
   roomName: string;
+  selectedPersonaId: string;
   setManualState: (state: AgentSideBarState) => void;
   startRequestId: number;
   tokenEndpoint: string;
@@ -379,20 +399,20 @@ function LiveAgentConsole({
   const [inputValue, setInputValue] = useState("");
   const tokenSource = useMemo(
     () =>
-      TokenSource.endpoint(
-        tokenEndpoint,
-        endpointAuth
-          ? {
-              headers: {
-                Authorization: `Bearer ${endpointAuth}`,
-              },
-            }
-          : undefined,
-      ),
+      TokenSource.endpoint(tokenEndpoint, {
+        headers: {
+          ...(endpointAuth ? { Authorization: `Bearer ${endpointAuth}` } : {}),
+        },
+      }),
     [endpointAuth, tokenEndpoint],
   );
   const session = useSession(tokenSource, {
     agentName,
+    agentMetadata: JSON.stringify({
+      persona_id: selectedPersonaId,
+      session_id: roomName,
+      user_id: "local-qa",
+    }),
     participantName: "Local QA",
     roomName,
   });
@@ -403,7 +423,11 @@ function LiveAgentConsole({
         agentName={agentName}
         inputValue={inputValue}
         manualState={manualState}
+        onRestartWithPersona={onRestartWithPersona}
+        onSelectPersona={onSelectPersona}
         onSessionEnded={onSessionEnded}
+        personas={personas}
+        selectedPersonaId={selectedPersonaId}
         session={session}
         setInputValue={setInputValue}
         setManualState={setManualState}
@@ -419,7 +443,11 @@ function LiveAgentSession({
   agentName,
   inputValue,
   manualState,
+  onRestartWithPersona,
+  onSelectPersona,
   onSessionEnded,
+  personas,
+  selectedPersonaId,
   session,
   setInputValue,
   setManualState,
@@ -429,7 +457,11 @@ function LiveAgentSession({
   agentName: string;
   inputValue: string;
   manualState: AgentSideBarState;
+  onRestartWithPersona: () => void;
+  onSelectPersona: (personaId: string) => void;
   onSessionEnded: () => void;
+  personas: AgentSideBarPersona[];
+  selectedPersonaId: string;
   session: ReturnType<typeof useSession>;
   setInputValue: (value: string) => void;
   setManualState: (state: AgentSideBarState) => void;
@@ -477,11 +509,27 @@ function LiveAgentSession({
     );
     void session.end().finally(onSessionEnded);
   };
+  const selectPersona = (personaId: string) => {
+    if (personaId === selectedPersonaId) {
+      return;
+    }
+
+    onSelectPersona(personaId);
+
+    if (session.connectionState === ConnectionState.Disconnected) {
+      return;
+    }
+
+    setManualState("switching");
+    void session.end().finally(onRestartWithPersona);
+  };
   const startSession = useCallback(() => {
     setSessionErrorMessage(
       "Connecting to LiveKit. If this fails, the endpoint status will be shown here.",
     );
-    setManualState("loading");
+    if (manualState !== "switching") {
+      setManualState("loading");
+    }
     void session
       .start({
         tracks: {
@@ -495,7 +543,7 @@ function LiveAgentSession({
         setSessionErrorMessage(humanizeLiveKitStartError(error, tokenEndpoint));
         setManualState("error");
       });
-  }, [session, setManualState, tokenEndpoint]);
+  }, [manualState, session, setManualState, tokenEndpoint]);
 
   useEffect(() => {
     if (startRequestId <= 0 || startedRequestRef.current === startRequestId) {
@@ -647,6 +695,7 @@ function LiveAgentSession({
           await sessionMessages.send(message);
           setInputValue("");
         }}
+        onSelectPersona={selectPersona}
         onStart={() => {
           startSession();
         }}
@@ -654,7 +703,12 @@ function LiveAgentSession({
           void microphoneToggle.toggle(!microphoneToggle.enabled);
         }}
         state={state}
-        voiceName="Portfolio Agent"
+        personas={personas}
+        selectedPersonaId={selectedPersonaId}
+        voiceName={
+          personas.find((persona) => persona.id === selectedPersonaId)
+            ?.display_name ?? "Portfolio Agent"
+        }
       />
     </div>
   );
@@ -663,9 +717,15 @@ function LiveAgentSession({
 function LiveAgentLauncher({
   manualState,
   onStart,
+  onSelectPersona,
+  personas,
+  selectedPersonaId,
 }: {
   manualState: AgentSideBarState;
   onStart: () => void;
+  onSelectPersona: (personaId: string) => void;
+  personas: AgentSideBarPersona[];
+  selectedPersonaId: string;
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_402px]">
@@ -725,9 +785,15 @@ function LiveAgentLauncher({
       <AgentSideBar
         isMicrophoneEnabled={false}
         messages={[]}
+        onSelectPersona={onSelectPersona}
         onStart={onStart}
+        personas={personas}
+        selectedPersonaId={selectedPersonaId}
         state="intro"
-        voiceName="Portfolio Agent"
+        voiceName={
+          personas.find((persona) => persona.id === selectedPersonaId)
+            ?.display_name ?? "Portfolio Agent"
+        }
       />
     </div>
   );
@@ -737,6 +803,8 @@ export default function LiveKitAgentPage() {
   const [agentName, setAgentName] = useState(DEFAULT_AGENT_NAME);
   const [endpointAuth, setEndpointAuth] = useState("");
   const [manualState, setManualState] = useState<AgentSideBarState>("intro");
+  const [personas, setPersonas] = useState<AgentSideBarPersona[]>([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState("portfolio-agent");
   const [roomName, setRoomName] = useState(createLocalAgentRoomName);
   const [sessionStartRequestId, setSessionStartRequestId] = useState(0);
   const [tokenEndpoint, setTokenEndpoint] = useState(DEFAULT_TOKEN_ENDPOINT);
@@ -759,6 +827,32 @@ export default function LiveKitAgentPage() {
     if (nextAgentName) setAgentName(nextAgentName);
     if (nextTokenEndpoint) setTokenEndpoint(nextTokenEndpoint);
     setIsMobilePreset(nextViewport === "mobile");
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    void fetch("/api/personas")
+      .then((response) => response.json() as Promise<PersonaListPayload>)
+      .then((payload) => {
+        if (!isActive || !payload.personas?.length) {
+          return;
+        }
+
+        setPersonas(payload.personas);
+        setSelectedPersonaId((current) =>
+          payload.personas?.some((persona) => persona.id === current)
+            ? current
+            : (payload.personas?.[0]?.id ?? "portfolio-agent"),
+        );
+      })
+      .catch((error) => {
+        console.error("Could not load personas", error);
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   const probeTone =
@@ -822,6 +916,7 @@ export default function LiveKitAgentPage() {
       const response = await fetchAllowedTokenEndpoint(resolvedTokenEndpoint, {
         body: JSON.stringify({
           dispatch_agent: false,
+          persona_id: selectedPersonaId,
           participant_name: "Local QA",
           room_config: {
             agents: [{ agentName }],
@@ -888,6 +983,22 @@ export default function LiveKitAgentPage() {
     setManualState("intro");
     setRoomName(createLocalAgentRoomName());
   };
+  const restartLiveSessionWithPersona = () => {
+    setRoomName(createLocalAgentRoomName());
+    setManualState("switching");
+    setSessionStartRequestId((requestId) => requestId + 1);
+  };
+  const resolvedPersonas =
+    personas.length > 0
+      ? personas
+      : [
+          {
+            avatar_url: "/agent-sidebar/avatar-4.png",
+            description: "Warm, concise portfolio voice agent",
+            display_name: "Portfolio Agent",
+            id: "portfolio-agent",
+          },
+        ];
 
   return (
     <main
@@ -1096,8 +1207,12 @@ export default function LiveKitAgentPage() {
                 agentName={agentName}
                 endpointAuth={endpointAuth}
                 manualState={manualState}
+                onRestartWithPersona={restartLiveSessionWithPersona}
+                onSelectPersona={setSelectedPersonaId}
                 onSessionEnded={endLiveSession}
+                personas={resolvedPersonas}
                 roomName={roomName}
+                selectedPersonaId={selectedPersonaId}
                 setManualState={setManualState}
                 startRequestId={sessionStartRequestId}
                 tokenEndpoint={resolvedTokenEndpoint}
@@ -1106,6 +1221,9 @@ export default function LiveKitAgentPage() {
               <LiveAgentLauncher
                 manualState={manualState}
                 onStart={startLiveSession}
+                onSelectPersona={setSelectedPersonaId}
+                personas={resolvedPersonas}
+                selectedPersonaId={selectedPersonaId}
               />
             )}
           </div>

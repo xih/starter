@@ -83,6 +83,8 @@ export type GuestSessionRecord = {
   roomName: string;
   participantIdentity: string;
   agentName: string;
+  personaId: string;
+  userId: string;
   expiresAt: string;
   createdAt: string;
   deviceHash: string;
@@ -403,6 +405,8 @@ export async function issueGuestLiveKitToken(record: GuestSessionRecord) {
         agentName: record.agentName,
         metadata: JSON.stringify({
           source: "guest_session",
+          persona_id: record.personaId,
+          user_id: record.userId,
           session_id: record.sessionId,
           expires_at: record.expiresAt,
         }),

@@ -4,6 +4,7 @@ import {
   compilePersonaPrompt,
   getPersona,
   listPersonaMemories,
+  listPersonaTranscriptSources,
 } from "~/server/personas";
 
 export const runtime = "nodejs";
@@ -44,10 +45,16 @@ export async function GET(
     persona.memory_enabled && userId
       ? await listPersonaMemories(persona.id, userId)
       : [];
+  const transcript_sources = await listPersonaTranscriptSources(persona.id);
 
   return NextResponse.json({
     persona,
     memories,
-    compiled_prompt: compilePersonaPrompt({ memories, persona }),
+    transcript_sources,
+    compiled_prompt: compilePersonaPrompt({
+      memories,
+      persona,
+      transcriptSources: transcript_sources,
+    }),
   });
 }

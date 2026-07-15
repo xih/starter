@@ -37,7 +37,26 @@ export async function POST(
     );
   }
 
-  const memory = await addPersonaMemory(persona.id, parsed.data);
+  const memory = await addPersonaMemory(persona.id, parsed.data).catch(
+    (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Persona memory embedding failed.";
+
+      return NextResponse.json(
+        {
+          error: "Persona memory embedding failed.",
+          detail: message,
+        },
+        { status: 502 },
+      );
+    },
+  );
+
+  if (memory instanceof NextResponse) {
+    return memory;
+  }
 
   return NextResponse.json({ memory }, { status: 201 });
 }

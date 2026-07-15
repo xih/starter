@@ -6,6 +6,12 @@ import { basename } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  LOCAL_EMBEDDING_DIMENSIONS,
+  LOCAL_EMBEDDING_MODEL,
+  PERSONA_EMBEDDING_DIMENSIONS,
+  PERSONA_EMBEDDING_MODEL,
+} from "./personas";
+import {
   PERSONA_E2E_CARTESIA_VOICE_IDS,
   PERSONA_E2E_CONSTANTS,
 } from "./personas.e2e.constants";
@@ -35,6 +41,12 @@ const personaWriteSecret =
   process.env.PERSONA_E2E_PERSONA_ADMIN_SECRET ??
   process.env.PERSONA_ADMIN_SECRET ??
   agentReadSecret;
+const expectedEmbeddingModel = process.env.OPENAI_API_KEY
+  ? PERSONA_EMBEDDING_MODEL
+  : LOCAL_EMBEDDING_MODEL;
+const expectedEmbeddingDimensions = process.env.OPENAI_API_KEY
+  ? PERSONA_EMBEDDING_DIMENSIONS
+  : LOCAL_EMBEDDING_DIMENSIONS;
 
 function url(path: string) {
   return new URL(path, baseUrl).toString();
@@ -150,6 +162,43 @@ describeE2E("persona endpoints e2e", () => {
     expect(typeof body.draft_system_prompt).toBe("string");
     expect(Array.isArray(body.embedding_chunks)).toBe(true);
     expect((body.embedding_chunks as unknown[]).length).toBeGreaterThan(0);
+    expect(body.embedding_model).toBe(expectedEmbeddingModel);
+    expect(body.embedding_dimensions).toBe(expectedEmbeddingDimensions);
+
+    const chunks = body.embedding_chunks as Array<{
+      embedding?: unknown[];
+      embedding_dimensions?: number;
+      embedding_model?: string;
+      text?: string;
+    }>;
+    const firstChunk = chunks[0];
+
+    expect(firstChunk?.embedding).toHaveLength(expectedEmbeddingDimensions);
+    expect(firstChunk?.embedding_dimensions).toBe(expectedEmbeddingDimensions);
+    expect(firstChunk?.embedding_model).toBe(expectedEmbeddingModel);
+    expect(firstChunk?.text).toContain("authorized transcript text");
+
+    const transcriptSource = body.transcript_source as
+      | {
+          chunks?: unknown[];
+          embedding_dimensions?: number;
+          embedding_model?: string;
+          source_url?: string;
+          transcript?: string;
+        }
+      | undefined;
+
+    expect(transcriptSource?.source_url).toBe(
+      process.env.PERSONA_E2E_YOUTUBE_URL ?? PERSONA_E2E_CONSTANTS.youtubeUrl,
+    );
+    expect(transcriptSource?.transcript).toContain(
+      "authorized transcript text",
+    );
+    expect(transcriptSource?.embedding_model).toBe(expectedEmbeddingModel);
+    expect(transcriptSource?.embedding_dimensions).toBe(
+      expectedEmbeddingDimensions,
+    );
+    expect(transcriptSource?.chunks?.length).toBeGreaterThan(0);
   });
 
   it("stores persona-scoped memory and returns it in the compiled agent prompt", async () => {
@@ -177,6 +226,23 @@ describeE2E("persona endpoints e2e", () => {
 
     expect(agent.response.status).toBe(200);
     expect(body.compiled_prompt).toContain(memoryText);
+    expect(body.compiled_prompt).toContain("authorized transcript text");
+    expect(Array.isArray(body.transcript_sources)).toBe(true);
+
+    const transcriptSources = body.transcript_sources as Array<{
+      embedding_dimensions?: number;
+      embedding_model?: string;
+      chunks?: Array<{ embedding?: unknown[] }>;
+    }>;
+
+    expect(transcriptSources.length).toBeGreaterThan(0);
+    expect(transcriptSources[0]?.embedding_model).toBe(expectedEmbeddingModel);
+    expect(transcriptSources[0]?.embedding_dimensions).toBe(
+      expectedEmbeddingDimensions,
+    );
+    expect(transcriptSources[0]?.chunks?.[0]?.embedding).toHaveLength(
+      expectedEmbeddingDimensions,
+    );
   });
 
   it("creates personas for every supplied Cartesia voice id", async () => {

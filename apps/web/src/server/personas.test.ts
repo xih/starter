@@ -4,9 +4,12 @@ import {
   compilePersonaPrompt,
   createLocalEmbedding,
   listPersonaPickerItems,
+  LOCAL_EMBEDDING_DIMENSIONS,
+  LOCAL_EMBEDDING_MODEL,
   createPromptDraftFromTranscript,
   createTranscriptEmbeddingChunks,
   personaSchema,
+  type PersonaTranscriptSource,
   type PersonaMemory,
 } from "./personas";
 
@@ -53,6 +56,45 @@ describe("personas", () => {
     );
   });
 
+  it("compiles persona prompts with transcript context", () => {
+    const persona = personaSchema.parse({
+      id: "test-persona",
+      display_name: "Test Persona",
+      description: "A test voice",
+      system_prompt: "Be concise.",
+      greeting: "Say hello.",
+      safety_disclosure: "You are an AI voice agent.",
+      memory_enabled: true,
+    });
+    const transcriptSources: PersonaTranscriptSource[] = [
+      {
+        chunks: [
+          {
+            embedding: createLocalEmbedding(
+              "Transcript says the persona prefers calm short answers.",
+            ),
+            embedding_dimensions: LOCAL_EMBEDDING_DIMENSIONS,
+            embedding_model: LOCAL_EMBEDDING_MODEL,
+            id: "chunk-1",
+            text: "Transcript says the persona prefers calm short answers.",
+          },
+        ],
+        created_at: "2026-07-14T00:00:00.000Z",
+        embedding_dimensions: LOCAL_EMBEDDING_DIMENSIONS,
+        embedding_model: LOCAL_EMBEDDING_MODEL,
+        id: "source-1",
+        persona_id: "test-persona",
+        source_url: "https://www.youtube.com/watch?v=sCRpxq1XRUI",
+        transcript: "Transcript says the persona prefers calm short answers.",
+        transcript_character_count: 56,
+      },
+    ];
+
+    expect(
+      compilePersonaPrompt({ memories: [], persona, transcriptSources }),
+    ).toContain("Transcript says the persona prefers calm short answers.");
+  });
+
   it("creates a reviewed prompt draft from transcript context", () => {
     const draft = createPromptDraftFromTranscript(
       "This is a warm transcript sample with enough words to pass validation.",
@@ -62,13 +104,22 @@ describe("personas", () => {
     expect(draft).toContain("consent-approved");
   });
 
-  it("creates transcript embedding chunks for retrieval storage", () => {
-    const chunks = createTranscriptEmbeddingChunks(
-      "This transcript chunk should become a local embedding for later retrieval.",
-    );
+  it("creates transcript embedding chunks for retrieval storage", async () => {
+    const originalOpenAiApiKey = process.env.OPENAI_API_KEY;
 
-    expect(chunks).toHaveLength(1);
-    expect(chunks[0]?.embedding).toHaveLength(32);
+    delete process.env.OPENAI_API_KEY;
+
+    try {
+      const chunks = await createTranscriptEmbeddingChunks(
+        "This transcript chunk should become a local embedding for later retrieval.",
+      );
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.embedding).toHaveLength(LOCAL_EMBEDDING_DIMENSIONS);
+      expect(chunks[0]?.embedding_model).toBe(LOCAL_EMBEDDING_MODEL);
+    } finally {
+      process.env.OPENAI_API_KEY = originalOpenAiApiKey;
+    }
   });
 
   it("projects public picker personas without private prompt or voice fields", async () => {

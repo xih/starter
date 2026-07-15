@@ -2,6 +2,10 @@ import { Redis } from "@upstash/redis";
 import { z } from "zod";
 
 export const DEFAULT_PERSONA_ID = "portfolio-agent";
+export const PERSONA_EMBEDDING_MODEL = "text-embedding-3-large";
+export const PERSONA_EMBEDDING_DIMENSIONS = 3072;
+export const LOCAL_EMBEDDING_MODEL = "local-hash-v1";
+export const LOCAL_EMBEDDING_DIMENSIONS = 32;
 
 const personaIdSchema = z
   .string()
@@ -62,14 +66,30 @@ export type PersonaPickerItem = Pick<
 >;
 export type PersonaMemory = z.infer<typeof personaMemorySchema> & {
   embedding: number[];
+  embedding_dimensions?: number;
+  embedding_model?: string;
   id: string;
   persona_id: string;
   created_at: string;
 };
 export type PersonaEmbeddingChunk = {
   embedding: number[];
+  embedding_dimensions?: number;
+  embedding_model?: string;
   id: string;
   text: string;
+};
+export type PersonaTranscriptSource = {
+  chunks: PersonaEmbeddingChunk[];
+  created_at: string;
+  embedding_dimensions: number;
+  embedding_model: string;
+  id: string;
+  persona_id: string;
+  source_title?: string;
+  source_url: string;
+  transcript: string;
+  transcript_character_count: number;
 };
 
 const defaultPersonas: Persona[] = [
@@ -119,6 +139,7 @@ const memoryStore = new Map<string, PersonaMemory[]>();
 const personaStore = new Map(
   defaultPersonas.map((persona) => [persona.id, persona]),
 );
+const transcriptStore = new Map<string, PersonaTranscriptSource[]>();
 
 function redisFromEnv() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -137,6 +158,10 @@ function personasKey() {
 
 function memoriesKey(personaId: string, userId: string) {
   return `personas:v1:${personaId}:memories:${userId}`;
+}
+
+function transcriptSourcesKey(personaId: string) {
+  return `personas:v1:${personaId}:transcripts`;
 }
 
 function hashToken(token: string) {
@@ -168,9 +193,81 @@ export function createLocalEmbedding(text: string) {
   return vector.map((value) => Number((value / magnitude).toFixed(6)));
 }
 
-export function createTranscriptEmbeddingChunks(transcript: string) {
+async function createOpenAIEmbeddings(texts: string[]) {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "OPENAI_API_KEY is required to create persona embeddings.",
+      );
+    }
+
+    return texts.map((text) => ({
+      embedding: createLocalEmbedding(text),
+      embedding_dimensions: LOCAL_EMBEDDING_DIMENSIONS,
+      embedding_model: LOCAL_EMBEDDING_MODEL,
+    }));
+  }
+
+  const response = await fetch("https://api.openai.com/v1/embeddings", {
+    body: JSON.stringify({
+      encoding_format: "float",
+      input: texts,
+      model: PERSONA_EMBEDDING_MODEL,
+    }),
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+  const payload = (await response.json().catch(() => null)) as {
+    data?: Array<{ embedding?: unknown; index?: unknown }>;
+    error?: unknown;
+  } | null;
+
+  if (!response.ok) {
+    const errorMessage =
+      payload &&
+      typeof payload.error === "object" &&
+      payload.error !== null &&
+      "message" in payload.error &&
+      typeof payload.error.message === "string"
+        ? ` ${payload.error.message}`
+        : "";
+
+    throw new Error(
+      `OpenAI embedding request failed with HTTP ${response.status}.${errorMessage}`,
+    );
+  }
+
+  const embeddings = texts.map((_, index) => {
+    const item = payload?.data?.find((candidate) => candidate.index === index);
+    const embedding = item?.embedding;
+
+    if (
+      !Array.isArray(embedding) ||
+      !embedding.every((value) => typeof value === "number")
+    ) {
+      throw new Error(
+        "OpenAI embedding response did not include a valid vector.",
+      );
+    }
+
+    return {
+      embedding,
+      embedding_dimensions: embedding.length,
+      embedding_model: PERSONA_EMBEDDING_MODEL,
+    };
+  });
+
+  return embeddings;
+}
+
+function createTranscriptChunksWithoutEmbeddings(transcript: string) {
   const cleanTranscript = transcript.replace(/\s+/g, " ").trim();
-  const chunks: PersonaEmbeddingChunk[] = [];
+  const chunks: Array<{ id: string; text: string }> = [];
 
   for (let index = 0; index < cleanTranscript.length; index += 1_200) {
     const text = cleanTranscript.slice(index, index + 1_200).trim();
@@ -182,11 +279,34 @@ export function createTranscriptEmbeddingChunks(transcript: string) {
     chunks.push({
       id: crypto.randomUUID(),
       text,
-      embedding: createLocalEmbedding(text),
     });
   }
 
   return chunks;
+}
+
+export async function createTranscriptEmbeddingChunks(transcript: string) {
+  const chunks = createTranscriptChunksWithoutEmbeddings(transcript);
+  const embeddings = await createOpenAIEmbeddings(
+    chunks.map(
+      (chunk) => `Represent this persona transcript passage: ${chunk.text}`,
+    ),
+  );
+
+  return chunks.map((chunk, index) => {
+    const embedding = embeddings[index];
+
+    if (!embedding) {
+      throw new Error(
+        "Persona transcript embedding count did not match chunks.",
+      );
+    }
+
+    return {
+      ...chunk,
+      ...embedding,
+    };
+  }) satisfies PersonaEmbeddingChunk[];
 }
 
 export async function listPersonas() {
@@ -248,9 +368,25 @@ export async function addPersonaMemory(
   personaId: string,
   memory: z.infer<typeof personaMemorySchema>,
 ) {
+  const existingMemories = await listPersonaMemories(personaId, memory.user_id);
+  const duplicate = existingMemories.find(
+    (existing) =>
+      existing.text === memory.text && existing.source === memory.source,
+  );
+
+  if (duplicate) {
+    return duplicate;
+  }
+
+  const [embedding] = await createOpenAIEmbeddings([
+    `Represent this persona memory: ${memory.text}`,
+  ]);
   const record: PersonaMemory = {
     ...memory,
-    embedding: createLocalEmbedding(memory.text),
+    embedding: embedding?.embedding ?? createLocalEmbedding(memory.text),
+    embedding_dimensions:
+      embedding?.embedding_dimensions ?? LOCAL_EMBEDDING_DIMENSIONS,
+    embedding_model: embedding?.embedding_model ?? LOCAL_EMBEDDING_MODEL,
     id: crypto.randomUUID(),
     persona_id: personaId,
     created_at: new Date().toISOString(),
@@ -281,6 +417,62 @@ export async function listPersonaMemories(personaId: string, userId: string) {
   return memoryStore.get(memoriesKey(personaId, userId))?.slice(0, 10) ?? [];
 }
 
+export async function addPersonaTranscriptSource({
+  personaId,
+  sourceTitle,
+  sourceUrl,
+  transcript,
+}: {
+  personaId: string;
+  sourceTitle?: string;
+  sourceUrl: string;
+  transcript: string;
+}) {
+  const chunks = await createTranscriptEmbeddingChunks(transcript);
+  const firstChunk = chunks[0];
+  const record: PersonaTranscriptSource = {
+    chunks,
+    created_at: new Date().toISOString(),
+    embedding_dimensions:
+      firstChunk?.embedding_dimensions ?? PERSONA_EMBEDDING_DIMENSIONS,
+    embedding_model: firstChunk?.embedding_model ?? PERSONA_EMBEDDING_MODEL,
+    id: crypto.randomUUID(),
+    persona_id: personaId,
+    source_title: sourceTitle,
+    source_url: sourceUrl,
+    transcript,
+    transcript_character_count: transcript.length,
+  };
+  const redis = redisFromEnv();
+
+  if (redis) {
+    await redis.lpush(transcriptSourcesKey(personaId), record);
+    await redis.ltrim(transcriptSourcesKey(personaId), 0, 9);
+  } else {
+    const key = transcriptSourcesKey(personaId);
+    transcriptStore.set(
+      key,
+      [record, ...(transcriptStore.get(key) ?? [])].slice(0, 10),
+    );
+  }
+
+  return record;
+}
+
+export async function listPersonaTranscriptSources(personaId: string) {
+  const redis = redisFromEnv();
+
+  if (redis) {
+    return redis.lrange<PersonaTranscriptSource>(
+      transcriptSourcesKey(personaId),
+      0,
+      9,
+    );
+  }
+
+  return transcriptStore.get(transcriptSourcesKey(personaId)) ?? [];
+}
+
 export function createPromptDraftFromTranscript(transcript: string) {
   const cleanTranscript = transcript.replace(/\s+/g, " ").trim();
   const sample = cleanTranscript.slice(0, 1_200);
@@ -297,9 +489,11 @@ export function createPromptDraftFromTranscript(transcript: string) {
 export function compilePersonaPrompt({
   memories,
   persona,
+  transcriptSources = [],
 }: {
   memories: PersonaMemory[];
   persona: Persona;
+  transcriptSources?: PersonaTranscriptSource[];
 }) {
   const memoryBlock = memories.length
     ? [
@@ -308,9 +502,20 @@ export function compilePersonaPrompt({
       ].join("\n")
     : "No user-specific memories were retrieved for this persona.";
 
+  const transcriptBlock = transcriptSources.length
+    ? [
+        "Relevant transcript context for this persona:",
+        ...transcriptSources
+          .flatMap((source) => source.chunks.slice(0, 3))
+          .slice(0, 6)
+          .map((chunk) => `- ${chunk.text}`),
+      ].join("\n")
+    : "No transcript context was retrieved for this persona.";
+
   return [
     persona.safety_disclosure,
     persona.system_prompt,
+    transcriptBlock,
     persona.memory_enabled
       ? memoryBlock
       : "Memory is disabled for this persona.",

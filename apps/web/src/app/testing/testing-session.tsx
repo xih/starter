@@ -22,6 +22,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useReducer,
   useRef,
   useState,
   type CSSProperties,
@@ -37,6 +38,13 @@ import { Button } from "~/components/ui/button";
 import { OrbShader } from "~/components/OrbShader";
 import { useInputControls } from "~/hooks/agents-ui/use-agent-control-bar";
 import { cn } from "~/lib/utils";
+import {
+  registerToolCallStatusRpc,
+  ToolCallStatusPanel,
+  toolCallStatusReducer,
+} from "../livekit-agent/tool-call-status";
+
+export const TESTING_NO_SPEECH_TIMEOUT_SECONDS = 30;
 
 const DEFAULT_MOBILE_VOICE: VoiceOption = {
   avatar: "/agent-sidebar/avatar-1.png",
@@ -246,7 +254,12 @@ function TestingSessionContent({
   const sessionMessages = useSessionMessages(session);
   const { microphoneToggle } = useInputControls();
   const startAbortControllerRef = useRef<AbortController | null>(null);
+  const noSpeechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didAutoStartRef = useRef(false);
+  const [toolCallStatus, dispatchToolCallStatus] = useReducer(
+    toolCallStatusReducer,
+    null,
+  );
   const [optimisticMessages, setOptimisticMessages] = useState<
     OrderedAgentSideBarMessage[]
   >([]);
@@ -269,6 +282,8 @@ function TestingSessionContent({
   });
   const isConnected = session.connectionState === ConnectionState.Connected;
   const isConnecting = session.connectionState === ConnectionState.Connecting;
+  const latestUserMessageOrder =
+    messages.filter((message) => message.role === "user").at(-1)?.order ?? 0;
   const statusTone = isConnected ? "good" : isConnecting ? "warn" : "neutral";
   const mobileControlState =
     state === "user-typing"
@@ -361,6 +376,11 @@ function TestingSessionContent({
   const endSession = useCallback(() => {
     setInputValue("");
     setManualState("intro");
+    dispatchToolCallStatus({ type: "reset" });
+    if (noSpeechTimeoutRef.current) {
+      clearTimeout(noSpeechTimeoutRef.current);
+      noSpeechTimeoutRef.current = null;
+    }
     startAbortControllerRef.current?.abort();
     startAbortControllerRef.current = null;
 
@@ -393,6 +413,45 @@ function TestingSessionContent({
     startSession();
   }, [startSession]);
 
+  useEffect(() => {
+    return registerToolCallStatusRpc(session.room, dispatchToolCallStatus);
+  }, [session.room, session.room.localParticipant]);
+
+  useEffect(() => {
+    if (noSpeechTimeoutRef.current) {
+      clearTimeout(noSpeechTimeoutRef.current);
+      noSpeechTimeoutRef.current = null;
+    }
+
+    if (
+      !isConnected ||
+      agent.state === "speaking" ||
+      agent.state === "thinking"
+    ) {
+      return;
+    }
+
+    noSpeechTimeoutRef.current = setTimeout(() => {
+      setErrorMessage(
+        `No speech detected for ${TESTING_NO_SPEECH_TIMEOUT_SECONDS} seconds. Ending the LiveKit test session.`,
+      );
+      endSession();
+    }, TESTING_NO_SPEECH_TIMEOUT_SECONDS * 1000);
+
+    return () => {
+      if (noSpeechTimeoutRef.current) {
+        clearTimeout(noSpeechTimeoutRef.current);
+        noSpeechTimeoutRef.current = null;
+      }
+    };
+  }, [
+    agent.state,
+    endSession,
+    isConnected,
+    latestUserMessageOrder,
+    setErrorMessage,
+  ]);
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-[14px] py-0 md:px-6 md:py-4">
       <header className="hidden flex-wrap items-center justify-between gap-3 border-b border-border pb-4 md:flex">
@@ -400,6 +459,10 @@ function TestingSessionContent({
           <h1 className="text-xl font-semibold tracking-normal">/testing</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Live AgentSideBar on web, compact voice controls on mobile.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Ends automatically after {TESTING_NO_SPEECH_TIMEOUT_SECONDS} seconds
+            without user speech.
           </p>
         </div>
         <StatusPill tone={statusTone}>
@@ -411,6 +474,7 @@ function TestingSessionContent({
           {session.connectionState}
         </StatusPill>
       </header>
+      <ToolCallStatusPanel className="md:hidden" status={toolCallStatus} />
 
       <section className="grid gap-4 md:grid-cols-[minmax(0,1fr)_402px]">
         <div className="hidden min-h-[420px] flex-col border border-border bg-background p-4 md:flex">
@@ -432,6 +496,7 @@ function TestingSessionContent({
               <p className="break-all font-medium">{tokenEndpoint}</p>
             </div>
           </div>
+          <ToolCallStatusPanel className="mt-3" status={toolCallStatus} />
 
           <div className="flex flex-1 flex-col justify-center gap-4 py-6">
             <div className="mx-auto flex size-40 items-center justify-center rounded-full border border-border bg-muted text-center">

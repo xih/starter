@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from agent import PortfolioAgent  # noqa: E402
+from agent import INSTRUCTIONS, PortfolioAgent  # noqa: E402
 from agent_web_search import SearchToolStatusNotifier  # noqa: E402
 from web_search import SearchResult, WebSearchSettings  # noqa: E402
 
@@ -84,6 +84,11 @@ class PortfolioAgentToolTests(unittest.IsolatedAsyncioTestCase):
         tool = PortfolioAgent.search_web
 
         self.assertIn("function", tool.__class__.__name__.lower())
+
+    def test_agent_instructions_require_search_for_current_information(self) -> None:
+        self.assertIn("search_web", INSTRUCTIONS)
+        self.assertIn("weather", INSTRUCTIONS.lower())
+        self.assertIn("Do not say you cannot check", INSTRUCTIONS)
 
     def test_search_settings_are_loaded_during_agent_initialization(self) -> None:
         with patch.dict("os.environ", {}, clear=True):

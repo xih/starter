@@ -175,6 +175,7 @@ describe("POST /api/livekit/guest-session", () => {
       agent_dispatch_names: string[];
       cleanup_enabled: boolean;
       duration_seconds: number;
+      no_speech_timeout_seconds: number;
       participant_token: string;
       room_name: string;
       session_id: string;
@@ -185,6 +186,7 @@ describe("POST /api/livekit/guest-session", () => {
     expect(payload.participant_token).toBe("mock.jwt");
     expect(payload.cleanup_enabled).toBe(false);
     expect(payload.duration_seconds).toBe(30);
+    expect(payload.no_speech_timeout_seconds).toBe(30);
     expect(payload.signup_url).toBe("/api/auth/signin");
     expect(payload.room_name).toBe(`guest_${payload.session_id}`);
     expect(payload.room_name).not.toBe("attacker-room");

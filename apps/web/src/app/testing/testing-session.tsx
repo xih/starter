@@ -16,7 +16,12 @@ import {
   type VoiceOption,
 } from "@starter/design-system";
 import { AnimatePresence, motion } from "framer-motion";
-import { ConnectionState, TokenSource } from "livekit-client";
+import {
+  ConnectionState,
+  RoomEvent,
+  TokenSource,
+  type Participant,
+} from "livekit-client";
 import { Loader2, Mic, Play, Square, Wifi, WifiOff } from "lucide-react";
 import {
   useEffect,
@@ -266,6 +271,8 @@ function TestingSessionContent({
   const [optimisticMessages, setOptimisticMessages] = useState<
     OrderedAgentSideBarMessage[]
   >([]);
+  const [isLocalParticipantSpeaking, setIsLocalParticipantSpeaking] =
+    useState(false);
   const liveMessages = sessionMessages.messages
     .map((message, index) =>
       toAgentSideBarMessage(
@@ -427,6 +434,30 @@ function TestingSessionContent({
   }, [session.room, session.room?.localParticipant]);
 
   useEffect(() => {
+    const room = session.room;
+    if (!room) {
+      setIsLocalParticipantSpeaking(false);
+      return;
+    }
+
+    const handleActiveSpeakersChanged = (speakers: Participant[]) => {
+      setIsLocalParticipantSpeaking(
+        speakers.some(
+          (speaker) => speaker.identity === room.localParticipant.identity,
+        ),
+      );
+    };
+
+    handleActiveSpeakersChanged(room.activeSpeakers);
+    room.on(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakersChanged);
+
+    return () => {
+      room.off(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakersChanged);
+      setIsLocalParticipantSpeaking(false);
+    };
+  }, [session.room, session.room?.localParticipant.identity]);
+
+  useEffect(() => {
     if (noSpeechTimeoutRef.current) {
       clearTimeout(noSpeechTimeoutRef.current);
       noSpeechTimeoutRef.current = null;
@@ -434,6 +465,7 @@ function TestingSessionContent({
 
     if (
       !isConnected ||
+      isLocalParticipantSpeaking ||
       agent.state === "speaking" ||
       agent.state === "thinking"
     ) {
@@ -453,7 +485,13 @@ function TestingSessionContent({
         noSpeechTimeoutRef.current = null;
       }
     };
-  }, [agent.state, isConnected, latestUserMessageOrder, setErrorMessage]);
+  }, [
+    agent.state,
+    isConnected,
+    isLocalParticipantSpeaking,
+    latestUserMessageOrder,
+    setErrorMessage,
+  ]);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-[14px] py-0 md:px-6 md:py-4">

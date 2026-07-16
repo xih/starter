@@ -34,7 +34,10 @@ LIVEKIT_URL
 LIVEKIT_API_KEY
 LIVEKIT_API_SECRET
 LIVEKIT_AGENT_TTS_VOICE_ID
+CARTESIA_API_KEY
 OPENAI_API_KEY
+LIVEKIT_AGENT_PERSONA_BASE_URL
+PERSONA_AGENT_READ_SECRET
 PARALLEL_API_KEY
 EXA_API_KEY
 PERPLEXITY_API_KEY
@@ -83,21 +86,20 @@ The app intentionally keeps `package.json` for monorepo scripts. The LiveKit
 CLI auto-detects that file as a Node agent, so do not deploy directly from this
 directory. Use `scripts/deploy-livekit-cloud.sh`; it creates a Python-only temp
 context with the committed `Dockerfile`, `livekit.toml`, `pyproject.toml`,
-`uv.lock`, and the full `src` tree. The script also writes the LiveKit,
-agent, and web-search provider secrets into the LiveKit Cloud secrets file.
+`uv.lock`, and the full `src` tree. The script bootstraps itself through
+Infisical and writes the LiveKit, agent, Cartesia, persona, embedding, and
+web-search provider secrets from Infisical into the LiveKit Cloud secrets file.
 
 Deploy the current agent code to LiveKit Cloud with prod Infisical secrets:
 
 ```sh
-infisical run \
-  --projectId 87922978-15ad-4880-add7-5ae10dbff217 \
-  --env=prod \
-  --path=/ \
-  -- bash -lc '
-    cd apps/agent
-    scripts/deploy-livekit-cloud.sh
-  '
+cd apps/agent
+scripts/deploy-livekit-cloud.sh
 ```
+
+The deploy script defaults to project `87922978-15ad-4880-add7-5ae10dbff217`,
+`INFISICAL_ENV=prod`, and `INFISICAL_PATH=/`. Override those variables only
+when deploying a different Infisical environment.
 
 Validate the deployment:
 

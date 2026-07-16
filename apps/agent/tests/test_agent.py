@@ -183,6 +183,61 @@ class PersonaAgentTests(unittest.TestCase):
             language="en",
         )
 
+    def test_create_tts_uses_cartesia_plugin_for_default_voice_with_cartesia_key(self):
+        persona = agent.PersonaConfig(
+            id="portfolio-agent",
+            agent_id="agent",
+            instructions="Prompt",
+            greeting="Hello",
+            tts_model="cartesia/sonic-3.5",
+            tts_voice_id="default-voice-123",
+            tts_language="en",
+            tts_options={},
+            requires_cartesia_plugin=False,
+        )
+
+        with (
+            patch.object(agent, "CARTESIA_API_KEY", "cartesia-key"),
+            patch("src.agent.cartesia.TTS") as cartesia_tts,
+            patch("src.agent.inference.TTS") as inference_tts,
+        ):
+            agent.create_tts(persona)
+
+        cartesia_tts.assert_called_once_with(
+            api_key="cartesia-key",
+            model="sonic-3.5",
+            language="en",
+            voice="default-voice-123",
+            speed=None,
+            emotion=None,
+        )
+        inference_tts.assert_not_called()
+
+    def test_create_tts_falls_back_to_livekit_inference_for_default_voice_without_key(self):
+        persona = agent.PersonaConfig(
+            id="portfolio-agent",
+            agent_id="agent",
+            instructions="Prompt",
+            greeting="Hello",
+            tts_model="cartesia/sonic-3.5",
+            tts_voice_id="default-voice-123",
+            tts_language="en",
+            tts_options={},
+            requires_cartesia_plugin=False,
+        )
+
+        with (
+            patch.object(agent, "CARTESIA_API_KEY", None),
+            patch("src.agent.inference.TTS") as inference_tts,
+        ):
+            agent.create_tts(persona)
+
+        inference_tts.assert_called_once_with(
+            model="cartesia/sonic-3.5",
+            voice="default-voice-123",
+            language="en",
+        )
+
     def test_create_tts_requires_cartesia_key_for_private_voice(self):
         persona = agent.PersonaConfig(
             id="wife-e2e",

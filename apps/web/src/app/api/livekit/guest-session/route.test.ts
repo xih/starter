@@ -265,7 +265,9 @@ describe("POST /api/livekit/guest-session", () => {
     expect(record?.userId).toMatch(/^guest_/);
   });
 
-  it("rejects personas that are unavailable for public guest sessions", async () => {
+  it("accepts any existing persona for public guest sessions", async () => {
+    cookieValue = "guest-device";
+    const { guestSessionKey } = await import("~/server/livekit/guest-session");
     const { POST } = await importGuestRoute();
     const response = await POST(
       createRequest("/api/livekit/guest-session", {
@@ -275,10 +277,15 @@ describe("POST /api/livekit/guest-session", () => {
         headers: { "x-forwarded-for": "203.0.113.10" },
       }),
     );
-    const payload = (await response.json()) as { code?: string };
+    const payload = (await response.json()) as { session_id?: string };
+    const record = payload.session_id
+      ? (redisStore.get(guestSessionKey(payload.session_id)) as
+          | { personaId?: string }
+          | undefined)
+      : undefined;
 
-    expect(response.status).toBe(400);
-    expect(payload.code).toBe("persona_not_available");
+    expect(response.status).toBe(201);
+    expect(record?.personaId).toBe("wife");
   });
 
   it("does not schedule the delayed expire callback when cleanup is disabled", async () => {

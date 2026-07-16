@@ -345,14 +345,12 @@ export async function listPersonas() {
 export async function listPersonaPickerItems(): Promise<PersonaPickerItem[]> {
   const personas = await listPersonas();
 
-  return personas
-    .filter(isPersonaPubliclySelectable)
-    .map(({ avatar_url, description, display_name, id }) => ({
-      avatar_url,
-      description,
-      display_name,
-      id,
-    }));
+  return personas.map(({ avatar_url, description, display_name, id }) => ({
+    avatar_url,
+    description,
+    display_name,
+    id,
+  }));
 }
 
 export async function getPersona(personaId: string) {

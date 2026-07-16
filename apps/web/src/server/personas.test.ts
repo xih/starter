@@ -133,5 +133,6 @@ describe("personas", () => {
     expect(firstPersona).not.toHaveProperty("greeting");
     expect(firstPersona).not.toHaveProperty("cartesia_voice_id");
     expect(firstPersona).not.toHaveProperty("voice_consent_artifact_url");
+    expect(personas.map((persona) => persona.id)).not.toContain("wife");
   });
 });

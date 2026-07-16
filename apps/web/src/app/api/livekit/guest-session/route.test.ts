@@ -213,11 +213,12 @@ describe("POST /api/livekit/guest-session", () => {
     const response = await POST(
       createRequest("/api/livekit/guest-session", {
         body: {
+          user_id: "attacker-user",
           room_config: {
             agents: [
               {
-                metadata: JSON.stringify({
-                  persona_id: "wife-e2e",
+                agent_metadata: JSON.stringify({
+                  persona_id: "portfolio-agent",
                   user_id: "local-qa",
                 }),
               },
@@ -235,8 +236,10 @@ describe("POST /api/livekit/guest-session", () => {
       | undefined;
 
     expect(response.status).toBe(201);
-    expect(record?.personaId).toBe("wife-e2e");
-    expect(record?.userId).toBe("local-qa");
+    expect(record?.personaId).toBe("portfolio-agent");
+    expect(record?.userId).toMatch(/^guest_/);
+    expect(record?.userId).not.toBe("local-qa");
+    expect(record?.userId).not.toBe("attacker-user");
   });
 
   it("accepts selected persona metadata from top-level fallback requests", async () => {
@@ -245,7 +248,7 @@ describe("POST /api/livekit/guest-session", () => {
     const response = await POST(
       createRequest("/api/livekit/guest-session", {
         body: {
-          persona_id: "wife-e2e",
+          persona_id: "portfolio-agent",
         },
         headers: { "x-forwarded-for": "203.0.113.10" },
       }),
@@ -258,8 +261,24 @@ describe("POST /api/livekit/guest-session", () => {
       | undefined;
 
     expect(response.status).toBe(201);
-    expect(record?.personaId).toBe("wife-e2e");
-    expect(record?.userId).toBe("guest");
+    expect(record?.personaId).toBe("portfolio-agent");
+    expect(record?.userId).toMatch(/^guest_/);
+  });
+
+  it("rejects personas that are unavailable for public guest sessions", async () => {
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: {
+          persona_id: "wife",
+        },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as { code?: string };
+
+    expect(response.status).toBe(400);
+    expect(payload.code).toBe("persona_not_available");
   });
 
   it("does not schedule the delayed expire callback when cleanup is disabled", async () => {
@@ -334,6 +353,7 @@ describe("POST /api/livekit/guest-session", () => {
       hashGuestIdentifier("203.0.113.10"),
     ]);
     const sessionId = "guest_session_existing";
+    const userId = `guest_${deviceHash.slice(0, 16)}`;
     redisStore.set(guestActiveKey(deviceHash, ipHash), sessionId);
     redisStore.set(guestSessionKey(sessionId), {
       agentName: "dennis-portfolio-agent",
@@ -346,7 +366,7 @@ describe("POST /api/livekit/guest-session", () => {
       roomName: "guest_guest_session_existing",
       sessionId,
       status: "active",
-      userId: "guest",
+      userId,
     });
     const { POST } = await importGuestRoute();
     const response = await POST(
@@ -391,6 +411,7 @@ describe("POST /api/livekit/guest-session", () => {
       hashGuestIdentifier("203.0.113.10"),
     ]);
     const sessionId = "guest_session_existing";
+    const userId = `guest_${deviceHash.slice(0, 16)}`;
     redisStore.set(guestActiveKey(deviceHash, ipHash), sessionId);
     redisStore.set(guestDeviceCooldownKey(deviceHash), sessionId);
     redisStore.set(guestIpCooldownKey(ipHash), sessionId);
@@ -405,7 +426,7 @@ describe("POST /api/livekit/guest-session", () => {
       roomName: "guest_guest_session_existing",
       sessionId,
       status: "active",
-      userId: "guest",
+      userId,
     });
     const { POST } = await importGuestRoute();
     const response = await POST(

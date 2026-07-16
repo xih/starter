@@ -45,6 +45,8 @@ class PersonaAgentTests(unittest.TestCase):
                 "tts_language": "en",
                 "tts_speed": 1.2,
                 "tts_emotion": "positivity",
+                "voice_consent_status": "approved",
+                "source_rights_status": "authorized",
             },
         }
         response = Mock()
@@ -70,16 +72,63 @@ class PersonaAgentTests(unittest.TestCase):
         self.assertEqual(persona.greeting, "Say hello as this persona.")
         self.assertEqual(persona.tts_voice_id, "voice-123")
         self.assertEqual(persona.tts_options, {"speed": 1.2, "emotion": "positivity"})
+        self.assertTrue(persona.requires_cartesia_plugin)
 
     def test_fetch_persona_config_falls_back_on_fetch_failure(self):
         with (
             patch.object(agent, "PERSONA_BASE_URL", "http://localhost:3000"),
             patch("src.agent.urllib.request.urlopen", side_effect=OSError("offline")),
         ):
-            persona = agent.fetch_persona_config("wife-e2e", "user-123")
+            persona = agent.fetch_persona_config(agent.DEFAULT_PERSONA_ID, "user-123")
 
         self.assertEqual(persona.id, agent.DEFAULT_PERSONA_ID)
         self.assertEqual(persona.instructions, agent.DEFAULT_INSTRUCTIONS)
+
+    def test_fetch_persona_config_rejects_missing_base_url_for_switched_persona(self):
+        with patch.object(agent, "PERSONA_BASE_URL", None):
+            with self.assertRaises(RuntimeError):
+                agent.fetch_persona_config("wife-e2e", "user-123")
+
+    def test_fetch_persona_config_falls_back_on_non_object_payload(self):
+        response = Mock()
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=None)
+        response.read.return_value = json.dumps([]).encode("utf-8")
+
+        with (
+            patch.object(agent, "PERSONA_BASE_URL", "http://localhost:3000"),
+            patch("src.agent.urllib.request.urlopen", return_value=response),
+        ):
+            persona = agent.fetch_persona_config("wife-e2e", "user-123")
+
+        self.assertEqual(persona.id, agent.DEFAULT_PERSONA_ID)
+
+    def test_fetch_persona_config_ignores_unapproved_cloned_voice(self):
+        payload = {
+            "compiled_prompt": "Persona prompt.",
+            "persona": {
+                "id": "wife-e2e",
+                "greeting": "Hello.",
+                "tts_model": "cartesia/sonic-3.5",
+                "cartesia_voice_id": "voice-123",
+                "tts_language": "en",
+                "voice_consent_status": "missing",
+                "source_rights_status": "unknown",
+            },
+        }
+        response = Mock()
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=None)
+        response.read.return_value = json.dumps(payload).encode("utf-8")
+
+        with (
+            patch.object(agent, "PERSONA_BASE_URL", "http://localhost:3000"),
+            patch("src.agent.urllib.request.urlopen", return_value=response),
+        ):
+            persona = agent.fetch_persona_config("wife-e2e", "user-123")
+
+        self.assertFalse(persona.requires_cartesia_plugin)
+        self.assertEqual(persona.tts_voice_id, agent.TTS_VOICE_ID)
 
     def test_create_tts_uses_cartesia_plugin_for_custom_voice(self):
         persona = agent.PersonaConfig(
@@ -91,6 +140,7 @@ class PersonaAgentTests(unittest.TestCase):
             tts_voice_id="voice-123",
             tts_language="en",
             tts_options={"speed": 1.1, "emotion": "positivity"},
+            requires_cartesia_plugin=True,
         )
 
         with (
@@ -118,6 +168,7 @@ class PersonaAgentTests(unittest.TestCase):
             tts_voice_id="voice-123",
             tts_language="en",
             tts_options={},
+            requires_cartesia_plugin=False,
         )
 
         with (
@@ -131,6 +182,23 @@ class PersonaAgentTests(unittest.TestCase):
             voice="voice-123",
             language="en",
         )
+
+    def test_create_tts_requires_cartesia_key_for_private_voice(self):
+        persona = agent.PersonaConfig(
+            id="wife-e2e",
+            agent_id="agent",
+            instructions="Prompt",
+            greeting="Hello",
+            tts_model="cartesia/sonic-3.5",
+            tts_voice_id="voice-123",
+            tts_language="en",
+            tts_options={},
+            requires_cartesia_plugin=True,
+        )
+
+        with patch.object(agent, "CARTESIA_API_KEY", None):
+            with self.assertRaises(RuntimeError):
+                agent.create_tts(persona)
 
 
 if __name__ == "__main__":

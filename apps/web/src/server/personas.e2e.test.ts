@@ -45,8 +45,7 @@ const agentReadSecret =
   process.env.PERSONA_AGENT_READ_SECRET;
 const personaWriteSecret =
   process.env.PERSONA_E2E_PERSONA_ADMIN_SECRET ??
-  process.env.PERSONA_ADMIN_SECRET ??
-  agentReadSecret;
+  process.env.PERSONA_ADMIN_SECRET;
 const expectsOpenAIEmbeddings =
   process.env.PERSONA_E2E_EXPECT_OPENAI_EMBEDDINGS === "1" ||
   Boolean(process.env.OPENAI_API_KEY);
@@ -107,8 +106,8 @@ async function upsertPersona({
       greeting,
       safety_disclosure: safetyDisclosure,
       memory_enabled: true,
-      voice_consent_status: voiceId ? "approved" : "missing",
-      source_rights_status: voiceId ? "authorized" : "unknown",
+      voice_consent_status: "approved",
+      source_rights_status: "authorized",
     }),
     method: "POST",
   });
@@ -296,11 +295,15 @@ describeE2E("persona endpoints e2e", () => {
       "PERSONA_E2E_VOICE_CONSENT_ARTIFACT_URL is required",
     ).toBeTruthy();
 
-    const clip = await readFile(clipPath!);
+    if (!clipPath || !resolvedConsentUrl) {
+      throw new Error("Cartesia clone clip path and consent URL are required.");
+    }
+
+    const clip = await readFile(clipPath);
     const formData = new FormData();
     formData.set(
       "clip",
-      new File([clip], basename(clipPath!), {
+      new File([clip], basename(clipPath), {
         type:
           process.env.PERSONA_E2E_CLONE_CLIP_TYPE ??
           PERSONA_E2E_CONSTANTS.cloneClipType,

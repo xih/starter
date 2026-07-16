@@ -25,10 +25,12 @@ function setEnv() {
 
 function createRequest({
   consent = true,
+  consentArtifactUrl = "https://example.com/consent",
   headers = { Authorization: "Bearer persona-admin-secret" },
   rights = true,
 }: {
   consent?: boolean;
+  consentArtifactUrl?: string;
   headers?: Record<string, string>;
   rights?: boolean;
 } = {}) {
@@ -36,7 +38,7 @@ function createRequest({
   formData.set("clip", new File(["audio"], "clip.wav", { type: "audio/wav" }));
   formData.set("has_voice_consent", String(consent));
   formData.set("has_source_rights", String(rights));
-  formData.set("voice_consent_artifact_url", "https://example.com/consent");
+  formData.set("voice_consent_artifact_url", consentArtifactUrl);
 
   return new Request("https://example.com/api/personas/wife-e2e/clone-voice", {
     body: formData,
@@ -55,7 +57,7 @@ describe("POST /api/personas/[personaId]/clone-voice", () => {
     setEnv();
     vi.clearAllMocks();
     getPersona.mockResolvedValue(persona);
-    upsertPersona.mockImplementation(async (input) => input);
+    upsertPersona.mockResolvedValue(persona);
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -97,6 +99,20 @@ describe("POST /api/personas/[personaId]/clone-voice", () => {
     expect(upsertPersona).not.toHaveBeenCalled();
   });
 
+  it("rejects invalid consent artifact URLs before cloning", async () => {
+    const { POST } = await importRoute();
+    const response = await POST(
+      createRequest({ consentArtifactUrl: "not a url" }),
+      {
+        params: Promise.resolve({ personaId: "wife-e2e" }),
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(upsertPersona).not.toHaveBeenCalled();
+  });
+
   it("rejects successful Cartesia responses that omit a voice id", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(Response.json({}, { status: 200 }));
     const { POST } = await importRoute();
@@ -114,9 +130,7 @@ describe("POST /api/personas/[personaId]/clone-voice", () => {
       params: Promise.resolve({ personaId: "wife-e2e" }),
     });
     const payload = (await response.json()) as { voice_id?: string };
-    const cloneRequest = vi.mocked(fetch).mock.calls[0]?.[1] as
-      | RequestInit
-      | undefined;
+    const cloneRequest = vi.mocked(fetch).mock.calls[0]?.[1];
 
     expect(response.status).toBe(200);
     expect(payload.voice_id).toBe("cartesia-voice-id");

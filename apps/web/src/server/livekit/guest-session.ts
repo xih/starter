@@ -185,6 +185,15 @@ export function assertGuestSessionEnv() {
     return liveKit;
   }
 
+  if (!parsedGuestEnv.success) {
+    return {
+      ok: false as const,
+      error:
+        "LiveKit guest sessions are not configured. Fix invalid Upstash Redis, QStash, or guest rate limit environment values.",
+      issues: parsedGuestEnv.error.issues,
+    };
+  }
+
   const missing = [
     "UPSTASH_REDIS_REST_URL",
     "UPSTASH_REDIS_REST_TOKEN",

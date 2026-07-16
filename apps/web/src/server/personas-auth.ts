@@ -9,9 +9,7 @@ export function getBearerToken(request: Request) {
 }
 
 function getPersonaWriteSecret() {
-  return (
-    process.env.PERSONA_ADMIN_SECRET ?? process.env.PERSONA_AGENT_READ_SECRET
-  );
+  return process.env.PERSONA_ADMIN_SECRET;
 }
 
 export function isAuthorizedForPersonaWrite(request: Request) {

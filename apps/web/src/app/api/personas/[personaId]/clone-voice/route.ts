@@ -35,6 +35,11 @@ export async function POST(
   const hasVoiceConsent = formData.get("has_voice_consent") === "true";
   const hasSourceRights = formData.get("has_source_rights") === "true";
   const consentArtifactUrl = formData.get("voice_consent_artifact_url");
+  const normalizedConsentArtifactUrl =
+    typeof consentArtifactUrl === "string" &&
+    consentArtifactUrl.trim().length > 0
+      ? consentArtifactUrl.trim()
+      : undefined;
 
   if (!(clip instanceof File)) {
     return NextResponse.json(
@@ -51,6 +56,17 @@ export async function POST(
       },
       { status: 403 },
     );
+  }
+
+  if (normalizedConsentArtifactUrl) {
+    try {
+      new URL(normalizedConsentArtifactUrl);
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid voice_consent_artifact_url. Must be a valid URL." },
+        { status: 400 },
+      );
+    }
   }
 
   const cartesiaForm = new FormData();
@@ -99,9 +115,7 @@ export async function POST(
     cartesia_voice_id: voiceId,
     voice_consent_status: "approved",
     voice_consent_artifact_url:
-      typeof consentArtifactUrl === "string" && consentArtifactUrl.length > 0
-        ? consentArtifactUrl
-        : persona.voice_consent_artifact_url,
+      normalizedConsentArtifactUrl ?? persona.voice_consent_artifact_url,
     source_rights_status: "authorized",
   });
 

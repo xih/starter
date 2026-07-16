@@ -18,9 +18,9 @@ async function fetchYoutubeOEmbedTitle(youtubeUrl: string) {
   url.searchParams.set("url", youtubeUrl);
   url.searchParams.set("format", "json");
 
-  const response = await fetch(url);
+  const response = await fetch(url).catch(() => null);
 
-  if (!response.ok) {
+  if (!response?.ok) {
     return null;
   }
 
@@ -42,7 +42,7 @@ function extractYoutubeVideoId(youtubeUrl: string) {
     return url.searchParams.get("v");
   }
 
-  const shortsMatch = url.pathname.match(/\/shorts\/([^/?]+)/);
+  const shortsMatch = /\/shorts\/([^/?]+)/.exec(url.pathname);
   return shortsMatch?.[1] ?? null;
 }
 

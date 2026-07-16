@@ -25,7 +25,11 @@ export const personaSchema = z.object({
   tts_emotion: z.string().min(1).max(80).optional(),
   system_prompt: z.string().min(1).max(16_000),
   greeting: z.string().min(1).max(1_000),
-  safety_disclosure: z.string().min(1).max(2_000),
+  safety_disclosure: z
+    .string()
+    .min(1)
+    .max(2_000)
+    .default("You are an AI voice agent."),
   source_transcript_ids: z.array(z.string().min(1).max(120)).default([]),
   memory_enabled: z.boolean().default(true),
   created_by_user_id: z.string().min(1).max(160).optional(),
@@ -150,6 +154,20 @@ function redisFromEnv() {
   }
 
   return new Redis({ url, token });
+}
+
+function hasDurablePersonaStorage() {
+  return Boolean(
+    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN,
+  );
+}
+
+function assertPersonaWriteStorage() {
+  if (process.env.NODE_ENV === "production" && !hasDurablePersonaStorage()) {
+    throw new Error(
+      "Persona writes require Upstash Redis in production. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.",
+    );
+  }
 }
 
 function personasKey() {
@@ -327,12 +345,14 @@ export async function listPersonas() {
 export async function listPersonaPickerItems(): Promise<PersonaPickerItem[]> {
   const personas = await listPersonas();
 
-  return personas.map(({ avatar_url, description, display_name, id }) => ({
-    avatar_url,
-    description,
-    display_name,
-    id,
-  }));
+  return personas
+    .filter(isPersonaPubliclySelectable)
+    .map(({ avatar_url, description, display_name, id }) => ({
+      avatar_url,
+      description,
+      display_name,
+      id,
+    }));
 }
 
 export async function getPersona(personaId: string) {
@@ -340,9 +360,22 @@ export async function getPersona(personaId: string) {
   return personas.find((persona) => persona.id === personaId) ?? null;
 }
 
+export function isPersonaPubliclySelectable(persona: Persona) {
+  const voiceAllowed =
+    persona.voice_consent_status === "not_required" ||
+    (persona.voice_consent_status === "approved" &&
+      ["authorized", "licensed", "owned"].includes(
+        persona.source_rights_status,
+      ));
+
+  return voiceAllowed;
+}
+
 export async function upsertPersona(
   input: z.infer<typeof personaCreateSchema>,
 ) {
+  assertPersonaWriteStorage();
+
   const existing = (await getPersona(input.id)) ?? {};
   const persona = personaSchema.parse({ ...existing, ...input });
   const personas = await listPersonas();
@@ -368,6 +401,8 @@ export async function addPersonaMemory(
   personaId: string,
   memory: z.infer<typeof personaMemorySchema>,
 ) {
+  assertPersonaWriteStorage();
+
   const existingMemories = await listPersonaMemories(personaId, memory.user_id);
   const duplicate = existingMemories.find(
     (existing) =>
@@ -428,6 +463,8 @@ export async function addPersonaTranscriptSource({
   sourceUrl: string;
   transcript: string;
 }) {
+  assertPersonaWriteStorage();
+
   const chunks = await createTranscriptEmbeddingChunks(transcript);
   const firstChunk = chunks[0];
   const record: PersonaTranscriptSource = {

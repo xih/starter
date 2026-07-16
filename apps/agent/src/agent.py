@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 import subprocess
 import sys
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
 
 from dotenv import load_dotenv
 from livekit import agents
@@ -39,6 +42,8 @@ from web_search_constants import (
 
 load_dotenv()
 
+logger = logging.getLogger("portfolio_agent")
+
 INFISICAL_PROJECT_ID = os.getenv(
     "INFISICAL_PROJECT_ID",
     "87922978-15ad-4880-add7-5ae10dbff217",
@@ -65,8 +70,11 @@ INSTRUCTIONS = " ".join(
         "Keep responses short, warm, and useful for an end-to-end realtime voice test.",
         "When the user asks who you are, say you are the Dennis portfolio test agent.",
         "You have access to the search_web tool for live web information.",
-        "Use search_web before answering questions about current, latest, today, weather, news, prices, schedules, or other freshness-sensitive facts.",
+        "The search_web tool uses the configured web search provider: Parallel, Exa, or Perplexity.",
+        "Use search_web before answering questions about current, latest, today, weather, news, prices, schedules, docs, versions, recent releases, or other freshness-sensitive facts.",
+        "Live sports scores and match results are freshness-sensitive; search_web must be used before answering them.",
         "Do not say you cannot check the web or current weather; call search_web first and answer from the result.",
+        "If web search fails, say that web search failed and include the reason.",
         "Avoid long lists unless the user asks for detail.",
     ]
 )
@@ -107,21 +115,56 @@ class PortfolioAgent(Agent):
         query: str,
     ) -> str:
         """
-        Search the live web for current information.
+        Search the live web using the configured web search provider.
+
+        Use this tool whenever the user asks about current, latest, today,
+        live, realtime, weather, news, prices, schedules, sports scores,
+        match results, pricing, docs, versions, recent releases, or any fact
+        that may have changed since the model's training data. The configured
+        provider can be Parallel, Exa, or Perplexity depending on
+        WEB_SEARCH_PROVIDER.
 
         Args:
             summary: A short user-friendly summary of what is being searched.
             query: The full freshness-sensitive web search query.
         """
-        async with self.http_client_factory() as http_client:
-            return await run_web_search_tool(
-                summary=summary,
-                query=query,
-                provider=self.provider_factory(self.search_settings, http_client),
-                notifier=self.notifier_factory(),
-                max_results=self.search_settings.max_results,
-                timeout_seconds=self.search_settings.timeout_seconds,
-            )
+        logger.info(
+            "search_web_tool_invoked provider=%s summary=%r query=%r",
+            self.search_settings.provider,
+            summary,
+            _truncate_for_log(query),
+        )
+        async with _search_progress_context(context):
+            async with self.http_client_factory() as http_client:
+                return await run_web_search_tool(
+                    summary=summary,
+                    query=query,
+                    provider=self.provider_factory(self.search_settings, http_client),
+                    notifier=self.notifier_factory(),
+                    max_results=self.search_settings.max_results,
+                    timeout_seconds=self.search_settings.timeout_seconds,
+                )
+
+
+def _truncate_for_log(value: str, max_chars: int = 240) -> str:
+    value = " ".join(value.split())
+    if len(value) <= max_chars:
+        return value
+    return f"{value[: max_chars - 3].rstrip()}..."
+
+
+@asynccontextmanager
+async def _search_progress_context(context: RunContext | None) -> AsyncIterator[None]:
+    if context is None:
+        yield
+        return
+
+    async with context.with_filler(
+        "I'm checking the web now.",
+        delay=1.5,
+        max_steps=1,
+    ):
+        yield
 
 
 def missing_required_env() -> list[str]:
@@ -214,6 +257,13 @@ def bootstrap_from_infisical_if_needed() -> None:
 async def entrypoint(ctx: JobContext) -> None:
     await ctx.connect()
 
+    logger.info(
+        "portfolio_agent_job_connected agent_name=%s room=%s job_id=%s",
+        AGENT_NAME,
+        ctx.room.name,
+        getattr(ctx.job, "id", "unknown"),
+    )
+
     session = AgentSession(
         stt=inference.STT(
             model=STT_MODEL,
@@ -228,9 +278,24 @@ async def entrypoint(ctx: JobContext) -> None:
         ),
     )
 
+    register_session_observability(session)
+
     await session.start(
         room=ctx.room,
         agent=PortfolioAgent(agent_id=AGENT_NAME, instructions=INSTRUCTIONS),
+        record={
+            "audio": True,
+            "logs": True,
+            "traces": True,
+            "transcript": True,
+        },
+    )
+
+    logger.info(
+        "portfolio_agent_session_started agent_name=%s room=%s llm_model=%s",
+        AGENT_NAME,
+        ctx.room.name,
+        LLM_MODEL,
     )
 
     await session.generate_reply(
@@ -238,6 +303,63 @@ async def entrypoint(ctx: JobContext) -> None:
             "Greet the user briefly and say you are ready for a quick voice test."
         ),
     )
+
+
+def register_session_observability(session: AgentSession) -> None:
+    @session.on("user_input_transcribed")
+    def _on_user_input_transcribed(event) -> None:
+        if event.is_final:
+            logger.info(
+                "user_input_transcribed text=%r",
+                _truncate_for_log(event.transcript),
+            )
+
+    @session.on("agent_state_changed")
+    def _on_agent_state_changed(event) -> None:
+        logger.debug(
+            "agent_state_changed old=%s new=%s",
+            event.old_state,
+            event.new_state,
+        )
+
+    @session.on("conversation_item_added")
+    def _on_conversation_item_added(event) -> None:
+        item = event.item
+        text = getattr(item, "text_content", None)
+        role = getattr(item, "role", "unknown")
+        if text:
+            logger.info(
+                "conversation_item_added role=%s text=%r",
+                role,
+                _truncate_for_log(text),
+            )
+
+    @session.on("function_tools_executed")
+    def _on_function_tools_executed(event) -> None:
+        for function_call, function_output in event.zipped():
+            logger.info(
+                "function_tool_executed name=%s call_id=%s is_error=%s output_chars=%s arguments=%r",
+                function_call.name,
+                function_call.call_id,
+                getattr(function_output, "is_error", None),
+                len(function_output.output) if function_output else 0,
+                _truncate_for_log(function_call.arguments),
+            )
+
+    @session.on("error")
+    def _on_error(event) -> None:
+        error = event.error
+        exc_info = (
+            (type(error), error, error.__traceback__)
+            if isinstance(error, BaseException)
+            else None
+        )
+        logger.error(
+            "agent_session_error source=%r error=%r",
+            event.source,
+            error,
+            exc_info=exc_info,
+        )
 
 
 if __name__ == "__main__":

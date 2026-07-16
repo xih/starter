@@ -10,18 +10,14 @@ import {
 import {
   AgentControlBar as DesignAgentControlBar,
   ChatMessage as DesignChatMessage,
+  ChatMessageWithSources,
   VoiceParameterPanel,
   agentControlBarLayout,
   type ChatMessageData,
   type VoiceOption,
 } from "@starter/design-system";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ConnectionState,
-  RoomEvent,
-  TokenSource,
-  type Participant,
-} from "livekit-client";
+import { ConnectionState, TokenSource } from "livekit-client";
 import { Loader2, Mic, Play, Square, Wifi, WifiOff } from "lucide-react";
 import {
   useEffect,
@@ -46,10 +42,9 @@ import { cn } from "~/lib/utils";
 import {
   registerToolCallStatusRpc,
   ToolCallStatusPanel,
+  type ToolCallStatus,
   toolCallStatusReducer,
 } from "../livekit-agent/tool-call-status";
-
-export const TESTING_NO_SPEECH_TIMEOUT_SECONDS = 30;
 
 const DEFAULT_MOBILE_VOICE: VoiceOption = {
   avatar: "/agent-sidebar/avatar-1.png",
@@ -102,6 +97,16 @@ function toChatMessageData(message: AgentSideBarMessage): ChatMessageData {
     role: message.role === "user" ? "user" : "system",
     text: message.text,
   };
+}
+
+function getCompletedSources(toolCallStatus: ToolCallStatus | null) {
+  return toolCallStatus?.state === "completed"
+    ? (toolCallStatus.sources ?? [])
+    : [];
+}
+
+function getVisibleToolCallStatus(toolCallStatus: ToolCallStatus | null) {
+  return toolCallStatus?.state === "completed" ? null : toolCallStatus;
 }
 
 function mergeMessages(
@@ -259,20 +264,16 @@ function TestingSessionContent({
   const sessionMessages = useSessionMessages(session);
   const { microphoneToggle } = useInputControls();
   const startAbortControllerRef = useRef<AbortController | null>(null);
-  const noSpeechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didAutoStartRef = useRef(false);
-  const endSessionRef = useRef<() => void>(() => {
-    console.warn("Testing session end requested before it was initialized.");
-  });
   const [toolCallStatus, dispatchToolCallStatus] = useReducer(
     toolCallStatusReducer,
     null,
   );
+  const completedSources = getCompletedSources(toolCallStatus);
+  const visibleToolCallStatus = getVisibleToolCallStatus(toolCallStatus);
   const [optimisticMessages, setOptimisticMessages] = useState<
     OrderedAgentSideBarMessage[]
   >([]);
-  const [isLocalParticipantSpeaking, setIsLocalParticipantSpeaking] =
-    useState(false);
   const liveMessages = sessionMessages.messages
     .map((message, index) =>
       toAgentSideBarMessage(
@@ -283,6 +284,9 @@ function TestingSessionContent({
     )
     .filter((message) => message.text.length > 0);
   const messages = mergeMessages(optimisticMessages, liveMessages);
+  const latestUserMessageId =
+    messages.filter((message) => message.role === "user").at(-1)?.id ?? null;
+  const latestUserMessageIdRef = useRef<string | null>(latestUserMessageId);
   const state = stateFromSession({
     agentState: agent.state,
     connectionState: session.connectionState,
@@ -292,8 +296,6 @@ function TestingSessionContent({
   });
   const isConnected = session.connectionState === ConnectionState.Connected;
   const isConnecting = session.connectionState === ConnectionState.Connecting;
-  const latestUserMessageOrder =
-    messages.filter((message) => message.role === "user").at(-1)?.order ?? 0;
   const statusTone = isConnected ? "good" : isConnecting ? "warn" : "neutral";
   const mobileControlState =
     state === "user-typing"
@@ -314,6 +316,7 @@ function TestingSessionContent({
       const timestamp = Date.now();
       const tempId = `local-user-${timestamp}`;
 
+      dispatchToolCallStatus({ type: "reset" });
       setInputValue("");
       setOptimisticMessages((currentMessages) => [
         ...currentMessages,
@@ -387,10 +390,6 @@ function TestingSessionContent({
     setInputValue("");
     setManualState("intro");
     dispatchToolCallStatus({ type: "reset" });
-    if (noSpeechTimeoutRef.current) {
-      clearTimeout(noSpeechTimeoutRef.current);
-      noSpeechTimeoutRef.current = null;
-    }
     startAbortControllerRef.current?.abort();
     startAbortControllerRef.current = null;
 
@@ -424,74 +423,19 @@ function TestingSessionContent({
   }, [startSession]);
 
   useEffect(() => {
-    endSessionRef.current = endSession;
-  });
-
-  useEffect(() => {
     if (!session.room) return;
 
     return registerToolCallStatusRpc(session.room, dispatchToolCallStatus);
   }, [session.room, session.room?.localParticipant]);
 
   useEffect(() => {
-    const room = session.room;
-    if (!room) {
-      setIsLocalParticipantSpeaking(false);
+    if (latestUserMessageIdRef.current === latestUserMessageId) {
       return;
     }
 
-    const handleActiveSpeakersChanged = (speakers: Participant[]) => {
-      setIsLocalParticipantSpeaking(
-        speakers.some(
-          (speaker) => speaker.identity === room.localParticipant.identity,
-        ),
-      );
-    };
-
-    handleActiveSpeakersChanged(room.activeSpeakers);
-    room.on(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakersChanged);
-
-    return () => {
-      room.off(RoomEvent.ActiveSpeakersChanged, handleActiveSpeakersChanged);
-      setIsLocalParticipantSpeaking(false);
-    };
-  }, [session.room, session.room?.localParticipant.identity]);
-
-  useEffect(() => {
-    if (noSpeechTimeoutRef.current) {
-      clearTimeout(noSpeechTimeoutRef.current);
-      noSpeechTimeoutRef.current = null;
-    }
-
-    if (
-      !isConnected ||
-      isLocalParticipantSpeaking ||
-      agent.state === "speaking" ||
-      agent.state === "thinking"
-    ) {
-      return;
-    }
-
-    noSpeechTimeoutRef.current = setTimeout(() => {
-      setErrorMessage(
-        `No speech detected for ${TESTING_NO_SPEECH_TIMEOUT_SECONDS} seconds. Ending the LiveKit test session.`,
-      );
-      endSessionRef.current();
-    }, TESTING_NO_SPEECH_TIMEOUT_SECONDS * 1000);
-
-    return () => {
-      if (noSpeechTimeoutRef.current) {
-        clearTimeout(noSpeechTimeoutRef.current);
-        noSpeechTimeoutRef.current = null;
-      }
-    };
-  }, [
-    agent.state,
-    isConnected,
-    isLocalParticipantSpeaking,
-    latestUserMessageOrder,
-    setErrorMessage,
-  ]);
+    latestUserMessageIdRef.current = latestUserMessageId;
+    dispatchToolCallStatus({ type: "reset" });
+  }, [latestUserMessageId]);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-[14px] py-0 md:px-6 md:py-4">
@@ -500,10 +444,6 @@ function TestingSessionContent({
           <h1 className="text-xl font-semibold tracking-normal">/testing</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Live AgentSideBar on web, compact voice controls on mobile.
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Ends automatically after {TESTING_NO_SPEECH_TIMEOUT_SECONDS} seconds
-            without user speech.
           </p>
         </div>
         <StatusPill tone={statusTone}>
@@ -515,7 +455,10 @@ function TestingSessionContent({
           {session.connectionState}
         </StatusPill>
       </header>
-      <ToolCallStatusPanel className="md:hidden" status={toolCallStatus} />
+      <ToolCallStatusPanel
+        className="md:hidden"
+        status={visibleToolCallStatus}
+      />
 
       <section className="grid gap-4 md:grid-cols-[minmax(0,1fr)_402px]">
         <div className="hidden min-h-[420px] flex-col border border-border bg-background p-4 md:flex">
@@ -537,7 +480,10 @@ function TestingSessionContent({
               <p className="break-all font-medium">{tokenEndpoint}</p>
             </div>
           </div>
-          <ToolCallStatusPanel className="mt-3" status={toolCallStatus} />
+          <ToolCallStatusPanel
+            className="mt-3"
+            status={visibleToolCallStatus}
+          />
 
           <div className="flex flex-1 flex-col justify-center gap-4 py-6">
             <div className="mx-auto flex size-40 items-center justify-center rounded-full border border-border bg-muted text-center">
@@ -594,6 +540,7 @@ function TestingSessionContent({
           inputValue={inputValue}
           isMicrophoneEnabled={microphoneToggle.enabled}
           messages={messages.map(toChatMessageData)}
+          latestSearchSources={completedSources}
           onChangeInput={setInputValue}
           orbSize={mobileOrbSize}
           onEnd={endSession}
@@ -611,6 +558,7 @@ function TestingSessionContent({
             inputValue={inputValue}
             isMicrophoneEnabled={microphoneToggle.enabled}
             isSending={sessionMessages.isSending}
+            latestSearchSources={completedSources}
             messages={messages}
             onChangeInput={setInputValue}
             onEnd={endSession}
@@ -637,6 +585,7 @@ function MobileAgentControlSurface({
   inputValue,
   isMicrophoneEnabled,
   messages,
+  latestSearchSources,
   onChangeInput,
   onEnd,
   onRetry,
@@ -652,6 +601,7 @@ function MobileAgentControlSurface({
   inputValue: string;
   isMicrophoneEnabled: boolean;
   messages: ChatMessageData[];
+  latestSearchSources: ToolCallStatus["sources"];
   onChangeInput: (value: string) => void;
   onEnd: () => void;
   onRetry: () => void;
@@ -674,7 +624,11 @@ function MobileAgentControlSurface({
 
   return (
     <div className="relative min-h-svh md:hidden" style={orbStyle}>
-      <MobileChatTranscript agentState={agentState} messages={messages} />
+      <MobileChatTranscript
+        agentState={agentState}
+        messages={messages}
+        latestSearchSources={latestSearchSources ?? []}
+      />
       {hasStartupError ? (
         <MobileStartupError
           errorMessage={errorMessage}
@@ -767,9 +721,11 @@ function MobileStartupError({
 
 function MobileChatTranscript({
   agentState,
+  latestSearchSources,
   messages,
 }: {
   agentState: string;
+  latestSearchSources: NonNullable<ToolCallStatus["sources"]>;
   messages: ChatMessageData[];
 }) {
   const transcriptRef = useRef<HTMLDivElement>(null);
@@ -787,6 +743,7 @@ function MobileChatTranscript({
       ]
     : messages;
   const latestTranscriptText = transcriptMessages.at(-1)?.text;
+  const sourcedMessageId = getLatestSystemMessageId(transcriptMessages);
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -806,13 +763,30 @@ function MobileChatTranscript({
         ref={transcriptRef}
       >
         {transcriptMessages.map((message) => (
-          <DesignChatMessage
+          <ChatMessageWithSources
             key={message.id}
             message={message}
             pending={message.id === "agent-thinking"}
-          />
+            sources={message.id === sourcedMessageId ? latestSearchSources : []}
+          >
+            <DesignChatMessage
+              message={message}
+              pending={message.id === "agent-thinking"}
+            />
+          </ChatMessageWithSources>
         ))}
       </div>
     </div>
   );
+}
+
+function getLatestSystemMessageId(messages: ChatMessageData[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role === "system") {
+      return message.id;
+    }
+  }
+
+  return null;
 }

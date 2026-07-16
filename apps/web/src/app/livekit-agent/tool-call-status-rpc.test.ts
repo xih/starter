@@ -42,6 +42,120 @@ describe("createToolCallStatusRpcHandler", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "completed" });
   });
 
+  it("dispatches completed sources from agent RPC payload", async () => {
+    const actions: ToolCallStatusAction[] = [];
+    const handler = createToolCallStatusRpcHandler((action) => {
+      actions.push(action);
+    });
+
+    const response = await handler({
+      payload: JSON.stringify({
+        provider: "parallel",
+        sources: [
+          {
+            description: "Argentina beat England 2-1.",
+            provider: "parallel",
+            published_at: "2026-07-15",
+            title: "Argentina beats England",
+            url: "https://example.com/argentina-england",
+          },
+        ],
+        state: "completed",
+        summary: "Find today's Argentina England match result",
+      }),
+    });
+
+    expect(response).toBe("ok");
+    expect(actions).toEqual([
+      {
+        provider: "parallel",
+        sources: [
+          {
+            description: "Argentina beat England 2-1.",
+            provider: "parallel",
+            publishedAt: "2026-07-15",
+            title: "Argentina beats England",
+            url: "https://example.com/argentina-england",
+          },
+        ],
+        summary: "Find today's Argentina England match result",
+        type: "completed",
+      },
+    ]);
+  });
+
+  it("keeps completed status when sources are missing", async () => {
+    const actions: ToolCallStatusAction[] = [];
+    const handler = createToolCallStatusRpcHandler((action) => {
+      actions.push(action);
+    });
+
+    const response = await handler({
+      payload: JSON.stringify({
+        provider: "exa",
+        state: "completed",
+        summary: "Find today's Argentina England match result",
+      }),
+    });
+
+    expect(response).toBe("ok");
+    expect(actions).toEqual([
+      {
+        provider: "exa",
+        summary: "Find today's Argentina England match result",
+        type: "completed",
+      },
+    ]);
+  });
+
+  it("skips malformed source items instead of discarding valid sources", async () => {
+    const actions: ToolCallStatusAction[] = [];
+    const handler = createToolCallStatusRpcHandler((action) => {
+      actions.push(action);
+    });
+
+    const response = await handler({
+      payload: JSON.stringify({
+        provider: "perplexity",
+        sources: [
+          { provider: "perplexity", title: "Missing URL" },
+          {
+            provider: "perplexity",
+            title: "Unsafe URL",
+            url: "javascript:alert(1)",
+          },
+          {
+            description: "Argentina beat England 2-1.",
+            provider: "perplexity",
+            title: "Argentina beats England",
+            url: "https://example.com/argentina-england",
+          },
+          null,
+        ],
+        state: "completed",
+        summary: "Find today's Argentina England match result",
+      }),
+    });
+
+    expect(response).toBe("ok");
+    expect(actions).toEqual([
+      {
+        provider: "perplexity",
+        sources: [
+          {
+            description: "Argentina beat England 2-1.",
+            provider: "perplexity",
+            publishedAt: undefined,
+            title: "Argentina beats England",
+            url: "https://example.com/argentina-england",
+          },
+        ],
+        summary: "Find today's Argentina England match result",
+        type: "completed",
+      },
+    ]);
+  });
+
   it("rejects malformed RPC payloads without dispatching secrets", async () => {
     const dispatch = vi.fn();
     const handler = createToolCallStatusRpcHandler(dispatch);

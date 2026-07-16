@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as guestSessionConfig from "~/server/livekit/guest-session-config";
 
 type RedisRecord = Record<string, unknown>;
+type PublishJSONPayload = {
+  body?: { session_id?: string };
+  delay?: number;
+  url?: string;
+};
 
 const redisStore = new Map<string, unknown>();
 const redisSetMock = vi.fn(
@@ -23,7 +28,9 @@ const redisDelMock = vi.fn(async (...keys: string[]) => {
   }
   return count;
 });
-const publishJSONMock = vi.fn(async () => ({ messageId: "msg_guest_expire" }));
+const publishJSONMock = vi.fn(async (_payload: PublishJSONPayload) => ({
+  messageId: "msg_guest_expire",
+}));
 const deleteRoomMock = vi.fn(async () => undefined);
 const cookieSetMock = vi.fn();
 let cookieValue: string | undefined;
@@ -175,7 +182,6 @@ describe("POST /api/livekit/guest-session", () => {
       agent_dispatch_names: string[];
       cleanup_enabled: boolean;
       duration_seconds: number;
-      no_speech_timeout_seconds: number;
       participant_token: string;
       room_name: string;
       session_id: string;
@@ -185,39 +191,18 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.status).toBe(201);
     expect(payload.participant_token).toBe("mock.jwt");
     expect(payload.cleanup_enabled).toBe(false);
-    expect(payload.duration_seconds).toBe(30);
-    expect(payload.no_speech_timeout_seconds).toBe(30);
+    expect(payload.duration_seconds).toBe(3_600);
     expect(payload.signup_url).toBe("/api/auth/signin");
     expect(payload.room_name).toBe(`guest_${payload.session_id}`);
     expect(payload.room_name).not.toBe("attacker-room");
     expect(payload.agent_dispatch_names).toEqual(["dennis-portfolio-agent"]);
-    expect(publishJSONMock).not.toHaveBeenCalled();
     expect(response.headers.get("set-cookie")).toContain("lk_guest_device=");
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
-    expect(response.headers.get("set-cookie")).toContain("Max-Age=60");
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=3600");
     expect(response.headers.get("set-cookie")).toContain("SameSite=lax");
   });
 
-  it("does not schedule the delayed expire callback when cleanup is disabled", async () => {
-    process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "http://localhost:3010,https://example.com,https://dev-tunnel.ngrok-free.app";
-    const { POST } = await importGuestRoute();
-    const response = await POST(
-      new Request("http://localhost:3010/api/livekit/guest-session", {
-        body: JSON.stringify({}),
-        headers: {
-          "Content-Type": "application/json",
-          Origin: "https://dev-tunnel.ngrok-free.app",
-        },
-        method: "POST",
-      }),
-    );
-
-    expect(response.status).toBe(201);
-    expect(publishJSONMock).not.toHaveBeenCalled();
-  });
-
-  it("does not require QStash env when cleanup is disabled", async () => {
+  it("does not require QStash env for guest session tokens", async () => {
     delete process.env.QSTASH_URL;
     delete process.env.QSTASH_TOKEN;
     delete process.env.QSTASH_CURRENT_SIGNING_KEY;
@@ -266,10 +251,11 @@ describe("POST /api/livekit/guest-session", () => {
     );
 
     expect(response.status).toBe(201);
-    expect(publishJSONMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        url: "http://localhost:3010/api/livekit/guest-session/expire",
-      }),
+    const publishCall = publishJSONMock.mock.calls[0]?.[0];
+    expect(publishCall?.body?.session_id).toMatch(/^guest_session_/);
+    expect(publishCall?.delay).toBe(3_600);
+    expect(publishCall?.url).toBe(
+      "http://localhost:3010/api/livekit/guest-session/expire",
     );
     vi.doUnmock("~/server/livekit/guest-session-config");
   });
@@ -311,7 +297,6 @@ describe("POST /api/livekit/guest-session", () => {
     expect(payload.participant_token).toBe("mock.jwt");
     expect(payload.reused_session).toBe(true);
     expect(payload.room_name).toBe("guest_guest_session_existing");
-    expect(publishJSONMock).not.toHaveBeenCalled();
   });
 
   it("reuses an active guest session before enforcing completed-trial cooldown", async () => {
@@ -406,10 +391,9 @@ describe("POST /api/livekit/guest-session", () => {
     expect(redisSetMock).toHaveBeenCalledWith(
       guestActiveKey(deviceHash, ipHash),
       expect.any(String),
-      { ex: 60, nx: true },
+      { ex: 3_600, nx: true },
     );
     expect(redisDelMock).not.toHaveBeenCalled();
-    expect(publishJSONMock).not.toHaveBeenCalled();
   });
 
   it("rejects a used guest trial", async () => {

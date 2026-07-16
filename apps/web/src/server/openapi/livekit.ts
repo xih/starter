@@ -23,7 +23,7 @@ export const liveKitOpenApiSpec = {
       post: {
         summary: "Create a 30-second guest LiveKit session",
         description:
-          "Public endpoint for one-time guest trials. The server generates room, participant identity, and agent dispatch values; caller-supplied LiveKit fields are ignored.",
+          "Public endpoint for one-time guest trials. The server generates room, participant identity, and agent dispatch values; caller-supplied room/agent values are ignored, but selected persona/user metadata is forwarded to the agent dispatch.",
         tags: ["LiveKit Guest Sessions"],
         requestBody: {
           required: false,
@@ -33,7 +33,7 @@ export const liveKitOpenApiSpec = {
                 type: "object",
                 additionalProperties: true,
                 description:
-                  "Body is accepted for client compatibility, but room/agent/participant fields are ignored.",
+                  "Body is accepted for LiveKit client compatibility. room/agent/participant fields are ignored; persona_id and user_id may be supplied top-level or inside room_config.agents[0].metadata.",
               },
               examples: {
                 empty: {
@@ -45,6 +45,18 @@ export const liveKitOpenApiSpec = {
                     participant_identity: "ignored",
                     room_config: {
                       agents: [{ agentName: "ignored" }],
+                    },
+                  },
+                },
+                selectedPersona: {
+                  value: {
+                    room_config: {
+                      agents: [
+                        {
+                          metadata:
+                            '{"persona_id":"wife-e2e","user_id":"local-qa"}',
+                        },
+                      ],
                     },
                   },
                 },

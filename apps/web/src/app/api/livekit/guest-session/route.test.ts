@@ -207,6 +207,61 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.headers.get("set-cookie")).toContain("SameSite=lax");
   });
 
+  it("persists selected persona metadata for guest token dispatch", async () => {
+    const { guestSessionKey } = await import("~/server/livekit/guest-session");
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: {
+          room_config: {
+            agents: [
+              {
+                metadata: JSON.stringify({
+                  persona_id: "wife-e2e",
+                  user_id: "local-qa",
+                }),
+              },
+            ],
+          },
+        },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as {
+      session_id: string;
+    };
+    const record = redisStore.get(guestSessionKey(payload.session_id)) as
+      | { personaId?: string; userId?: string }
+      | undefined;
+
+    expect(response.status).toBe(201);
+    expect(record?.personaId).toBe("wife-e2e");
+    expect(record?.userId).toBe("local-qa");
+  });
+
+  it("accepts selected persona metadata from top-level fallback requests", async () => {
+    const { guestSessionKey } = await import("~/server/livekit/guest-session");
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: {
+          persona_id: "wife-e2e",
+        },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as {
+      session_id: string;
+    };
+    const record = redisStore.get(guestSessionKey(payload.session_id)) as
+      | { personaId?: string; userId?: string }
+      | undefined;
+
+    expect(response.status).toBe(201);
+    expect(record?.personaId).toBe("wife-e2e");
+    expect(record?.userId).toBe("guest");
+  });
+
   it("does not schedule the delayed expire callback when cleanup is disabled", async () => {
     const { POST } = await importGuestRoute();
     const response = await POST(
@@ -286,10 +341,12 @@ describe("POST /api/livekit/guest-session", () => {
       deviceHash,
       expiresAt: new Date(Date.now() + 30_000).toISOString(),
       ipHash,
+      personaId: "portfolio-agent",
       participantIdentity: "guest_guest_session_existing",
       roomName: "guest_guest_session_existing",
       sessionId,
       status: "active",
+      userId: "guest",
     });
     const { POST } = await importGuestRoute();
     const response = await POST(
@@ -343,10 +400,12 @@ describe("POST /api/livekit/guest-session", () => {
       deviceHash,
       expiresAt: new Date(Date.now() + 30_000).toISOString(),
       ipHash,
+      personaId: "portfolio-agent",
       participantIdentity: "guest_guest_session_existing",
       roomName: "guest_guest_session_existing",
       sessionId,
       status: "active",
+      userId: "guest",
     });
     const { POST } = await importGuestRoute();
     const response = await POST(
@@ -381,10 +440,12 @@ describe("POST /api/livekit/guest-session", () => {
       deviceHash,
       expiresAt: new Date(Date.now() - 1_000).toISOString(),
       ipHash,
+      personaId: "portfolio-agent",
       participantIdentity: "guest_guest_session_stale",
       roomName: "guest_guest_session_stale",
       sessionId,
       status: "active",
+      userId: "guest",
     });
     const { POST } = await importGuestRoute();
     const response = await POST(
@@ -629,10 +690,12 @@ describe("POST /api/livekit/guest-session/expire", () => {
       deviceHash: "device-hash",
       expiresAt: new Date().toISOString(),
       ipHash: "ip-hash",
+      personaId: "portfolio-agent",
       participantIdentity: "guest_guest_session_test",
       roomName: "guest_guest_session_test",
       sessionId,
       status: "active",
+      userId: "guest",
     });
     redisStore.set(guestActiveKey("device-hash", "ip-hash"), sessionId);
 
@@ -668,10 +731,12 @@ describe("POST /api/livekit/guest-session/expire", () => {
       deviceHash: "device-hash",
       expiresAt: new Date().toISOString(),
       ipHash: "ip-hash",
+      personaId: "portfolio-agent",
       participantIdentity: "guest_guest_session_missing_room",
       roomName: "guest_guest_session_missing_room",
       sessionId,
       status: "active",
+      userId: "guest",
     });
     redisStore.set(guestActiveKey("device-hash", "ip-hash"), sessionId);
 
@@ -702,10 +767,12 @@ describe("POST /api/livekit/guest-session/expire", () => {
       deviceHash: "device-hash",
       expiresAt: new Date().toISOString(),
       ipHash: "ip-hash",
+      personaId: "portfolio-agent",
       participantIdentity: "guest_guest_session_old",
       roomName: "guest_guest_session_old",
       sessionId,
       status: "active",
+      userId: "guest",
     });
     redisStore.set(activeKey, "guest_session_new");
 

@@ -43,6 +43,36 @@ describe("ToolCallStatusPanel", () => {
     expect(next).toBeNull();
   });
 
+  it("shows completed web search sources for auditing tool results", () => {
+    const status: ToolCallStatus = {
+      provider: "parallel",
+      sources: [
+        {
+          description:
+            "Argentina beat England 2-1 after two second-half goals.",
+          provider: "parallel",
+          publishedAt: "2026-07-15",
+          title: "Argentina beats England",
+          url: "https://example.com/argentina-england",
+        },
+      ],
+      startedAt: 1_789_270_400_000,
+      state: "completed",
+      summary: "Find today's Argentina England match result",
+    };
+
+    render(<ToolCallStatusPanel status={status} />);
+
+    expect(screen.getByText("Search completed")).toBeInTheDocument();
+    expect(
+      screen.getByText("Find today's Argentina England match result"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Argentina beats England/i }),
+    ).toHaveAttribute("href", "https://example.com/argentina-england");
+    expect(screen.getAllByText("parallel").length).toBeGreaterThan(0);
+  });
+
   it("shows a failed tool call until the next session reset", () => {
     const next = toolCallStatusReducer(null, {
       error: "Search provider timed out",

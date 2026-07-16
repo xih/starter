@@ -7,7 +7,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from agent_web_search import LiveKitRpcSearchToolStatusNotifier  # noqa: E402
+from agent_web_search import (  # noqa: E402
+    LIVEKIT_RPC_MAX_PAYLOAD_BYTES,
+    MAX_STATUS_RPC_PAYLOAD_BYTES,
+    LiveKitRpcSearchToolStatusNotifier,
+)
+from web_search import SearchResult  # noqa: E402
 
 
 class FakeLocalParticipant:
@@ -26,6 +31,7 @@ class FakeLocalParticipant:
                 "destination_identity": destination_identity,
                 "method": method,
                 "payload": json.loads(payload),
+                "payload_bytes": len(payload.encode("utf-8")),
                 "response_timeout": response_timeout,
             }
         )
@@ -68,31 +74,147 @@ class RpcSearchToolNotifierTests(unittest.IsolatedAsyncioTestCase):
 
         await notifier.started("Comparing search provider pricing", "parallel")
 
+        call = room.local_participant.calls[0]
+        self.assertEqual(call["destination_identity"], "browser-user")
+        self.assertEqual(call["method"], "livekit_agent_tool_status")
         self.assertEqual(
-            room.local_participant.calls,
-            [
-                {
-                    "destination_identity": "browser-user",
-                    "method": "livekit_agent_tool_status",
-                    "payload": {
-                        "provider": "parallel",
-                        "state": "running",
-                        "summary": "Comparing search provider pricing",
-                    },
-                    "response_timeout": 5,
-                }
-            ],
+            call["payload"],
+            {
+                "provider": "parallel",
+                "state": "running",
+                "summary": "Comparing search provider pricing",
+            },
         )
+        self.assertLessEqual(call["payload_bytes"], MAX_STATUS_RPC_PAYLOAD_BYTES)
+        self.assertEqual(call["response_timeout"], 5)
 
-    async def test_finished_clears_browser_rpc_status(self) -> None:
+    async def test_finished_sends_sources_to_browser_rpc_status(self) -> None:
         room = FakeRoom()
         notifier = LiveKitRpcSearchToolStatusNotifier(room)
 
-        await notifier.finished()
+        await notifier.started("Find today's match result", "parallel")
+        await notifier.finished(
+            [
+                SearchResult(
+                    title="Argentina beats England",
+                    url="https://example.com/argentina-england",
+                    snippet="Argentina beat England 2-1 after goals from...",
+                    published_at="2026-07-15",
+                    provider="parallel",
+                )
+            ]
+        )
 
         self.assertEqual(
-            room.local_participant.calls[0]["payload"],
-            {"state": "completed"},
+            room.local_participant.calls[-1]["payload"],
+            {
+                "provider": "parallel",
+                "sources": [
+                    {
+                        "description": "Argentina beat England 2-1 after goals from...",
+                        "provider": "parallel",
+                        "published_at": "2026-07-15",
+                        "title": "Argentina beats England",
+                        "url": "https://example.com/argentina-england",
+                    }
+                ],
+                "state": "completed",
+                "summary": "Find today's match result",
+            },
+        )
+
+    async def test_finished_bounds_sources_payload_for_livekit_rpc(self) -> None:
+        room = FakeRoom()
+        notifier = LiveKitRpcSearchToolStatusNotifier(room)
+
+        await notifier.started("Find today's match result", "parallel")
+        await notifier.finished(
+            [
+                SearchResult(
+                    title=f"Argentina beats England with a very long headline {index}"
+                    * 10,
+                    url=f"https://example.com/argentina-england-{index}",
+                    snippet="Argentina beat England 2-1 after goals from " * 100,
+                    published_at=None,
+                    provider="parallel",
+                )
+                for index in range(10)
+            ]
+        )
+
+        payload = room.local_participant.calls[-1]["payload"]
+        self.assertLess(room.local_participant.calls[-1]["payload_bytes"], 4_000)
+        self.assertEqual(len(payload["sources"]), 5)
+        self.assertLessEqual(len(payload["sources"][0]["title"]), 160)
+        self.assertLessEqual(len(payload["sources"][0]["description"]), 280)
+
+    async def test_finished_keeps_serialized_payload_under_livekit_rpc_limit(
+        self,
+    ) -> None:
+        room = FakeRoom()
+        notifier = LiveKitRpcSearchToolStatusNotifier(room)
+
+        await notifier.started("Searching " + ("fresh scores " * 4_000), "parallel")
+        await notifier.finished(
+            [
+                SearchResult(
+                    title=f"Argentina beats England {index}" * 100,
+                    url=f"https://example.com/{index}?tracking={'x' * 2_000}",
+                    snippet="Argentina beat England 2-1 after goals from " * 500,
+                    published_at=None,
+                    provider="parallel",
+                )
+                for index in range(20)
+            ]
+        )
+
+        completed_call = room.local_participant.calls[-1]
+        self.assertLessEqual(
+            completed_call["payload_bytes"],
+            MAX_STATUS_RPC_PAYLOAD_BYTES,
+        )
+        self.assertLessEqual(
+            completed_call["payload_bytes"],
+            LIVEKIT_RPC_MAX_PAYLOAD_BYTES,
+        )
+        self.assertEqual(completed_call["payload"]["state"], "completed")
+
+    async def test_finished_drops_overlong_source_urls_from_rpc_payload(self) -> None:
+        room = FakeRoom()
+        notifier = LiveKitRpcSearchToolStatusNotifier(room)
+
+        await notifier.started("Find today's match result", "parallel")
+        await notifier.finished(
+            [
+                SearchResult(
+                    title="Unusable tracking URL",
+                    url=f"https://example.com/{'tracking' * 400}",
+                    snippet="A source with a URL too large for the status payload.",
+                    published_at=None,
+                    provider="parallel",
+                ),
+                SearchResult(
+                    title="Usable source",
+                    url="https://example.com/result",
+                    snippet="A usable source.",
+                    published_at=None,
+                    provider="parallel",
+                ),
+            ]
+        )
+
+        payload = room.local_participant.calls[-1]["payload"]
+        self.assertEqual(
+            payload["sources"],
+            [
+                {
+                    "description": "A usable source.",
+                    "provider": "parallel",
+                    "published_at": None,
+                    "title": "Usable source",
+                    "url": "https://example.com/result",
+                }
+            ],
         )
 
     async def test_failed_sends_provider_summary_and_error(self) -> None:

@@ -25,6 +25,10 @@ const personaId =
   process.env.PERSONA_E2E_PERSONA_ID ?? PERSONA_E2E_CONSTANTS.personaId;
 const displayName =
   process.env.PERSONA_E2E_DISPLAY_NAME ?? PERSONA_E2E_CONSTANTS.displayName;
+const description = PERSONA_E2E_CONSTANTS.description;
+const greeting = PERSONA_E2E_CONSTANTS.greeting;
+const safetyDisclosure = PERSONA_E2E_CONSTANTS.safetyDisclosure;
+const systemPrompt = PERSONA_E2E_CONSTANTS.systemPrompt;
 const cartesiaVoiceIds = (process.env.PERSONA_E2E_CARTESIA_VOICE_IDS ?? "")
   .split(",")
   .map((voiceId) => voiceId.trim())
@@ -95,15 +99,13 @@ async function upsertPersona({
     body: JSON.stringify({
       id,
       display_name: id === personaId ? displayName : `Voice ${id}`,
-      description: "Automated persona e2e test voice",
+      description,
       cartesia_voice_id: voiceId,
       tts_model: "cartesia/sonic-3.5",
       tts_language: "en",
-      system_prompt:
-        "You are an automated persona e2e test voice. Keep responses concise and conversational.",
-      greeting: "Say hello and identify the selected persona briefly.",
-      safety_disclosure:
-        "You are an AI voice agent using an authorized persona configuration.",
+      system_prompt: systemPrompt,
+      greeting,
+      safety_disclosure: safetyDisclosure,
       memory_enabled: true,
       voice_consent_status: voiceId ? "approved" : "missing",
       source_rights_status: voiceId ? "authorized" : "unknown",

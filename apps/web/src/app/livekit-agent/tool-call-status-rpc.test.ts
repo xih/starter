@@ -84,6 +84,73 @@ describe("createToolCallStatusRpcHandler", () => {
     ]);
   });
 
+  it("keeps completed status when sources are missing", async () => {
+    const actions: ToolCallStatusAction[] = [];
+    const handler = createToolCallStatusRpcHandler((action) => {
+      actions.push(action);
+    });
+
+    const response = await handler({
+      payload: JSON.stringify({
+        provider: "exa",
+        state: "completed",
+        summary: "Find today's Argentina England match result",
+      }),
+    });
+
+    expect(response).toBe("ok");
+    expect(actions).toEqual([
+      {
+        provider: "exa",
+        summary: "Find today's Argentina England match result",
+        type: "completed",
+      },
+    ]);
+  });
+
+  it("skips malformed source items instead of discarding valid sources", async () => {
+    const actions: ToolCallStatusAction[] = [];
+    const handler = createToolCallStatusRpcHandler((action) => {
+      actions.push(action);
+    });
+
+    const response = await handler({
+      payload: JSON.stringify({
+        provider: "perplexity",
+        sources: [
+          { provider: "perplexity", title: "Missing URL" },
+          {
+            description: "Argentina beat England 2-1.",
+            provider: "perplexity",
+            title: "Argentina beats England",
+            url: "https://example.com/argentina-england",
+          },
+          null,
+        ],
+        state: "completed",
+        summary: "Find today's Argentina England match result",
+      }),
+    });
+
+    expect(response).toBe("ok");
+    expect(actions).toEqual([
+      {
+        provider: "perplexity",
+        sources: [
+          {
+            description: "Argentina beat England 2-1.",
+            provider: "perplexity",
+            publishedAt: undefined,
+            title: "Argentina beats England",
+            url: "https://example.com/argentina-england",
+          },
+        ],
+        summary: "Find today's Argentina England match result",
+        type: "completed",
+      },
+    ]);
+  });
+
   it("rejects malformed RPC payloads without dispatching secrets", async () => {
     const dispatch = vi.fn();
     const handler = createToolCallStatusRpcHandler(dispatch);

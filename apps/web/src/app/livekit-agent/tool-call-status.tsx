@@ -22,7 +22,7 @@ export type ToolCallStatusAction =
     }
   | {
       provider: ToolCallStatus["provider"];
-      sources: ToolCallSource[];
+      sources?: ToolCallSource[];
       summary: string;
       type: "completed";
     }
@@ -147,15 +147,13 @@ export function createToolCallStatusRpcHandler(
       };
 
       if (parsed.state === "completed") {
-        const sources = parseToolCallSources(parsed.sources);
         if (
           typeof parsed.provider === "string" &&
-          typeof parsed.summary === "string" &&
-          sources
+          typeof parsed.summary === "string"
         ) {
           dispatch({
             provider: parsed.provider,
-            sources,
+            sources: parseToolCallSources(parsed.sources) ?? undefined,
             summary: parsed.summary,
             type: "completed",
           });
@@ -210,7 +208,7 @@ function parseToolCallSources(value: unknown): ToolCallSource[] | null {
 
   for (const item of value) {
     if (!item || typeof item !== "object") {
-      return null;
+      continue;
     }
 
     const source = item as {
@@ -226,7 +224,7 @@ function parseToolCallSources(value: unknown): ToolCallSource[] | null {
       typeof source.title !== "string" ||
       typeof source.url !== "string"
     ) {
-      return null;
+      continue;
     }
 
     sources.push({

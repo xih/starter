@@ -120,6 +120,31 @@ class RpcSearchToolNotifierTests(unittest.IsolatedAsyncioTestCase):
             },
         )
 
+    async def test_finished_bounds_sources_payload_for_livekit_rpc(self) -> None:
+        room = FakeRoom()
+        notifier = LiveKitRpcSearchToolStatusNotifier(room)
+
+        await notifier.started("Find today's match result", "parallel")
+        await notifier.finished(
+            [
+                SearchResult(
+                    title=f"Argentina beats England with a very long headline {index}"
+                    * 10,
+                    url=f"https://example.com/argentina-england-{index}",
+                    snippet="Argentina beat England 2-1 after goals from " * 100,
+                    published_at=None,
+                    provider="parallel",
+                )
+                for index in range(10)
+            ]
+        )
+
+        payload = room.local_participant.calls[-1]["payload"]
+        self.assertLess(len(json.dumps(payload)), 4_000)
+        self.assertEqual(len(payload["sources"]), 5)
+        self.assertLessEqual(len(payload["sources"][0]["title"]), 160)
+        self.assertLessEqual(len(payload["sources"][0]["description"]), 280)
+
     async def test_failed_sends_provider_summary_and_error(self) -> None:
         room = FakeRoom()
         notifier = LiveKitRpcSearchToolStatusNotifier(room)

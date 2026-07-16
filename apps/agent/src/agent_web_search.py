@@ -9,6 +9,10 @@ from web_search import SearchResult
 
 logger = logging.getLogger(__name__)
 
+MAX_STATUS_SOURCES = 5
+MAX_STATUS_SOURCE_TITLE_CHARS = 160
+MAX_STATUS_SOURCE_DESCRIPTION_CHARS = 280
+
 
 class SearchProvider(Protocol):
     name: str
@@ -72,13 +76,19 @@ class LiveKitRpcSearchToolStatusNotifier(SearchToolStatusNotifier):
     async def finished(self, results: list[SearchResult]) -> None:
         sources = [
             {
-                "description": result.snippet,
-                "provider": result.provider,
+                "description": _truncate_status_text(
+                    result.snippet or "",
+                    MAX_STATUS_SOURCE_DESCRIPTION_CHARS,
+                ),
+                "provider": result.provider or "",
                 "published_at": result.published_at,
-                "title": result.title,
+                "title": _truncate_status_text(
+                    result.title or "",
+                    MAX_STATUS_SOURCE_TITLE_CHARS,
+                ),
                 "url": result.url,
             }
-            for result in results
+            for result in results[:MAX_STATUS_SOURCES]
             if result.url
         ]
         payload: dict[str, object] = {
@@ -144,3 +154,9 @@ def _safe_error_message(error: Exception) -> str:
     if isinstance(error, JSONDecodeError):
         return "provider returned malformed data"
     return str(error) or error.__class__.__name__
+
+
+def _truncate_status_text(value: str, max_chars: int) -> str:
+    if len(value) <= max_chars:
+        return value
+    return f"{value[: max_chars - 1].rstrip()}…"

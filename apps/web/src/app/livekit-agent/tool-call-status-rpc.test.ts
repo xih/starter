@@ -120,6 +120,11 @@ describe("createToolCallStatusRpcHandler", () => {
         sources: [
           { provider: "perplexity", title: "Missing URL" },
           {
+            provider: "perplexity",
+            title: "Unsafe URL",
+            url: "javascript:alert(1)",
+          },
+          {
             description: "Argentina beat England 2-1.",
             provider: "perplexity",
             title: "Argentina beats England",

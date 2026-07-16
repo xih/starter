@@ -19,7 +19,12 @@ export type SourcesChipProps = {
 };
 
 export function SourcesChip({ className, index, source }: SourcesChipProps) {
-  const faviconUrl = source.faviconUrl ?? getFaviconUrl(source.url);
+  const safeUrl = getSafeWebUrl(source.url);
+  if (!safeUrl) {
+    return null;
+  }
+
+  const faviconUrl = source.faviconUrl ?? getFaviconUrl(safeUrl);
   const label = typeof index === "number" ? `${index + 1}.` : "";
 
   return (
@@ -29,7 +34,7 @@ export function SourcesChip({ className, index, source }: SourcesChipProps) {
         "font-body inline-flex h-[28px] max-w-[min(342px,calc(100vw-48px))] shrink-0 items-center gap-[6px] rounded-[4px] border border-[var(--color-border-subtle)] bg-[var(--color-bg-canvas)] px-[9px] py-[5px] text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-background-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)] focus-visible:outline-none",
         className,
       )}
-      href={source.url}
+      href={safeUrl}
       rel="noreferrer"
       target="_blank"
       title={[
@@ -124,6 +129,18 @@ export function ChatMessageWithSources({
       <SourcesRail sources={sources} />
     </div>
   );
+}
+
+function getSafeWebUrl(url: string) {
+  try {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return "";
+    }
+    return parsedUrl.toString();
+  } catch {
+    return "";
+  }
 }
 
 function getFaviconUrl(url: string) {

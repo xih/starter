@@ -222,7 +222,8 @@ function parseToolCallSources(value: unknown): ToolCallSource[] | null {
     if (
       typeof source.provider !== "string" ||
       typeof source.title !== "string" ||
-      typeof source.url !== "string"
+      typeof source.url !== "string" ||
+      !isSafeWebUrl(source.url)
     ) {
       continue;
     }
@@ -241,6 +242,15 @@ function parseToolCallSources(value: unknown): ToolCallSource[] | null {
   }
 
   return sources;
+}
+
+function isSafeWebUrl(value: string) {
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export function registerToolCallStatusRpc(

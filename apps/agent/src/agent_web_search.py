@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 MAX_STATUS_SOURCES = 5
 MAX_STATUS_SOURCE_TITLE_CHARS = 160
 MAX_STATUS_SOURCE_DESCRIPTION_CHARS = 280
+MAX_STATUS_SOURCE_URL_CHARS = 2_048
 
 
 class SearchProvider(Protocol):
@@ -74,23 +75,30 @@ class LiveKitRpcSearchToolStatusNotifier(SearchToolStatusNotifier):
         )
 
     async def finished(self, results: list[SearchResult]) -> None:
-        sources = [
-            {
-                "description": _truncate_status_text(
-                    result.snippet or "",
-                    MAX_STATUS_SOURCE_DESCRIPTION_CHARS,
-                ),
-                "provider": result.provider or "",
-                "published_at": result.published_at,
-                "title": _truncate_status_text(
-                    result.title or "",
-                    MAX_STATUS_SOURCE_TITLE_CHARS,
-                ),
-                "url": result.url,
-            }
-            for result in results[:MAX_STATUS_SOURCES]
-            if result.url
-        ]
+        sources = []
+        for result in results:
+            url = _get_status_source_url(result.url)
+            if not url:
+                continue
+
+            sources.append(
+                {
+                    "description": _truncate_status_text(
+                        result.snippet or "",
+                        MAX_STATUS_SOURCE_DESCRIPTION_CHARS,
+                    ),
+                    "provider": result.provider or "",
+                    "published_at": result.published_at,
+                    "title": _truncate_status_text(
+                        result.title or "",
+                        MAX_STATUS_SOURCE_TITLE_CHARS,
+                    ),
+                    "url": url,
+                }
+            )
+            if len(sources) >= MAX_STATUS_SOURCES:
+                break
+
         payload: dict[str, object] = {
             "sources": sources,
             "state": "completed",
@@ -159,4 +167,10 @@ def _safe_error_message(error: Exception) -> str:
 def _truncate_status_text(value: str, max_chars: int) -> str:
     if len(value) <= max_chars:
         return value
-    return f"{value[: max_chars - 1].rstrip()}…"
+    return f"{value[: max_chars - 3].rstrip()}..."
+
+
+def _get_status_source_url(value: str) -> str:
+    if len(value) > MAX_STATUS_SOURCE_URL_CHARS:
+        return ""
+    return value

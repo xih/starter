@@ -10,6 +10,7 @@ import {
   Settings2,
   Square,
 } from "lucide-react";
+import { SourcesRail, type SourceData } from "@starter/design-system";
 import { useState, type CSSProperties, type ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
@@ -36,6 +37,7 @@ export type AgentSideBarProps = {
   inputValue?: string;
   isMicrophoneEnabled?: boolean;
   isSending?: boolean;
+  latestSearchSources?: SourceData[];
   messages?: AgentSideBarMessage[];
   onChangeInput?: (value: string) => void;
   onEnd?: () => void;
@@ -453,7 +455,13 @@ function AgentPromptBar({
   );
 }
 
-export function ChatMessage({ message }: { message: AgentSideBarMessage }) {
+export function ChatMessage({
+  message,
+  sources = [],
+}: {
+  message: AgentSideBarMessage;
+  sources?: SourceData[];
+}) {
   const isUser = message.role === "user";
 
   return (
@@ -477,18 +485,42 @@ export function ChatMessage({ message }: { message: AgentSideBarMessage }) {
       >
         {message.text}
       </div>
+      {!isUser && sources.length > 0 ? <SourcesRail sources={sources} /> : null}
     </div>
   );
 }
 
-function ChatConversation({ messages }: { messages: AgentSideBarMessage[] }) {
+function ChatConversation({
+  latestSearchSources = [],
+  messages,
+}: {
+  latestSearchSources?: SourceData[];
+  messages: AgentSideBarMessage[];
+}) {
+  const sourcedMessageId = getLatestAgentMessageId(messages);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-token-4 [scrollbar-width:thin]">
       {messages.map((message) => (
-        <ChatMessage key={message.id} message={message} />
+        <ChatMessage
+          key={message.id}
+          message={message}
+          sources={message.id === sourcedMessageId ? latestSearchSources : []}
+        />
       ))}
     </div>
   );
+}
+
+function getLatestAgentMessageId(messages: AgentSideBarMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role === "agent") {
+      return message.id;
+    }
+  }
+
+  return null;
 }
 
 function ErrorToast({ message }: { message: string }) {
@@ -537,6 +569,7 @@ export function AgentSideBar({
   inputValue = "",
   isMicrophoneEnabled = true,
   isSending = false,
+  latestSearchSources = [],
   messages = defaultMessages,
   onChangeInput,
   onEnd,
@@ -584,7 +617,10 @@ export function AgentSideBar({
           ) : (
             <>
               {state === "error" ? <ErrorToast message={errorMessage} /> : null}
-              <ChatConversation messages={resolvedMessages} />
+              <ChatConversation
+                latestSearchSources={latestSearchSources}
+                messages={resolvedMessages}
+              />
             </>
           )}
 

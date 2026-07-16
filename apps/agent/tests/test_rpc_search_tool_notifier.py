@@ -145,6 +145,44 @@ class RpcSearchToolNotifierTests(unittest.IsolatedAsyncioTestCase):
         self.assertLessEqual(len(payload["sources"][0]["title"]), 160)
         self.assertLessEqual(len(payload["sources"][0]["description"]), 280)
 
+    async def test_finished_drops_overlong_source_urls_from_rpc_payload(self) -> None:
+        room = FakeRoom()
+        notifier = LiveKitRpcSearchToolStatusNotifier(room)
+
+        await notifier.started("Find today's match result", "parallel")
+        await notifier.finished(
+            [
+                SearchResult(
+                    title="Unusable tracking URL",
+                    url=f"https://example.com/{'tracking' * 400}",
+                    snippet="A source with a URL too large for the status payload.",
+                    published_at=None,
+                    provider="parallel",
+                ),
+                SearchResult(
+                    title="Usable source",
+                    url="https://example.com/result",
+                    snippet="A usable source.",
+                    published_at=None,
+                    provider="parallel",
+                ),
+            ]
+        )
+
+        payload = room.local_participant.calls[-1]["payload"]
+        self.assertEqual(
+            payload["sources"],
+            [
+                {
+                    "description": "A usable source.",
+                    "provider": "parallel",
+                    "published_at": None,
+                    "title": "Usable source",
+                    "url": "https://example.com/result",
+                }
+            ],
+        )
+
     async def test_failed_sends_provider_summary_and_error(self) -> None:
         room = FakeRoom()
         notifier = LiveKitRpcSearchToolStatusNotifier(room)

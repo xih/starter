@@ -47,6 +47,7 @@ import { cn } from "~/lib/utils";
 import {
   registerToolCallStatusRpc,
   ToolCallStatusPanel,
+  type ToolCallStatus,
   toolCallStatusReducer,
 } from "./tool-call-status";
 
@@ -107,6 +108,16 @@ function messageText(message: { message?: unknown; text?: unknown }) {
 
 function createLocalAgentRoomName() {
   return `local_agent_${crypto.randomUUID()}`;
+}
+
+function getCompletedSources(toolCallStatus: ToolCallStatus | null) {
+  return toolCallStatus?.state === "completed"
+    ? (toolCallStatus.sources ?? [])
+    : [];
+}
+
+function getVisibleToolCallStatus(toolCallStatus: ToolCallStatus | null) {
+  return toolCallStatus?.state === "completed" ? null : toolCallStatus;
 }
 
 function resolveAllowedTokenEndpoint(
@@ -432,6 +443,8 @@ function LiveAgentSession({
     toolCallStatusReducer,
     null,
   );
+  const completedSources = getCompletedSources(toolCallStatus);
+  const visibleToolCallStatus = getVisibleToolCallStatus(toolCallStatus);
   const [sessionErrorMessage, setSessionErrorMessage] = useState(
     "Could not start voice session. Run the token probe and share the endpoint status with engineering.",
   );
@@ -445,6 +458,9 @@ function LiveAgentSession({
       ),
     )
     .filter((message) => message.text.length > 0);
+  const latestUserMessageId =
+    messages.filter((message) => message.role === "user").at(-1)?.id ?? null;
+  const latestUserMessageIdRef = useRef<string | null>(latestUserMessageId);
   const state = stateFromSession({
     agentState: agent.state,
     connectionState: session.connectionState,
@@ -494,6 +510,15 @@ function LiveAgentSession({
     return registerToolCallStatusRpc(session.room, dispatchToolCallStatus);
   }, [session.room, session.room.localParticipant]);
 
+  useEffect(() => {
+    if (latestUserMessageIdRef.current === latestUserMessageId) {
+      return;
+    }
+
+    latestUserMessageIdRef.current = latestUserMessageId;
+    dispatchToolCallStatus({ type: "reset" });
+  }, [latestUserMessageId]);
+
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_402px]">
       <section className="border border-border bg-background p-4">
@@ -536,7 +561,7 @@ function LiveAgentSession({
           />
         </div>
 
-        <ToolCallStatusPanel className="mt-4" status={toolCallStatus} />
+        <ToolCallStatusPanel className="mt-4" status={visibleToolCallStatus} />
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button
@@ -591,6 +616,7 @@ function LiveAgentSession({
               onClick={() => {
                 const message = inputValue.trim();
                 if (!message) return;
+                dispatchToolCallStatus({ type: "reset" });
                 void sessionMessages
                   .send(message)
                   .then(() => setInputValue(""));
@@ -612,10 +638,12 @@ function LiveAgentSession({
         inputValue={inputValue}
         isMicrophoneEnabled={microphoneToggle.enabled}
         isSending={sessionMessages.isSending}
+        latestSearchSources={completedSources}
         messages={messages}
         onChangeInput={setInputValue}
         onEnd={endSession}
         onSend={async (message) => {
+          dispatchToolCallStatus({ type: "reset" });
           await sessionMessages.send(message);
           setInputValue("");
         }}

@@ -1,5 +1,4 @@
 import { RoomAgentDispatch, RoomConfiguration } from "@livekit/protocol";
-import { Client as QStashClient } from "@upstash/qstash";
 import { Redis } from "@upstash/redis";
 import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
 import { cookies } from "next/headers";
@@ -11,7 +10,6 @@ import {
   LIVEKIT_GUEST_COOKIE_NAME,
   LIVEKIT_GUEST_COOLDOWN_ENABLED,
   LIVEKIT_GUEST_COOLDOWN_SECONDS,
-  LIVEKIT_GUEST_NO_SPEECH_TIMEOUT_SECONDS,
   LIVEKIT_GUEST_REDIS_PREFIX,
   LIVEKIT_GUEST_SESSION_SECONDS,
   LIVEKIT_GUEST_SIGNUP_URL,
@@ -129,7 +127,6 @@ export type LiveKitGuestTokenPayload = {
   room_name: string;
   expires_at: string;
   duration_seconds: number;
-  no_speech_timeout_seconds: number;
   cleanup_enabled: boolean;
   signup_url: string;
   agent_dispatch_mode: "token_room_config";
@@ -264,7 +261,7 @@ export function assertGuestSessionEnv() {
     return {
       ok: false as const,
       error:
-        "LiveKit guest sessions are not configured. Set Upstash Redis, QStash, and LIVEKIT_GUEST_RATE_LIMIT_SALT.",
+        "LiveKit guest sessions are not configured. Set Upstash Redis and LIVEKIT_GUEST_RATE_LIMIT_SALT.",
       issues: missing.map((key) => ({ path: [key], message: "Required" })),
     };
   }
@@ -292,25 +289,6 @@ export function createRedis() {
   return new Redis({
     url: env.UPSTASH_REDIS_REST_URL,
     token: env.UPSTASH_REDIS_REST_TOKEN,
-  });
-}
-
-export function createQStashClient() {
-  const env = assertGuestSessionEnv();
-
-  if (!env.ok) {
-    throw new Error(env.error);
-  }
-
-  if (!env.QSTASH_URL || !env.QSTASH_TOKEN) {
-    throw new Error(
-      "LiveKit guest cleanup is not configured. Set QSTASH_URL and QSTASH_TOKEN.",
-    );
-  }
-
-  return new QStashClient({
-    baseUrl: env.QSTASH_URL,
-    token: env.QSTASH_TOKEN,
   });
 }
 
@@ -482,41 +460,11 @@ export async function issueGuestLiveKitToken(record: GuestSessionRecord) {
     room_name: record.roomName,
     expires_at: record.expiresAt,
     duration_seconds: LIVEKIT_GUEST_SESSION_SECONDS,
-    no_speech_timeout_seconds: LIVEKIT_GUEST_NO_SPEECH_TIMEOUT_SECONDS,
     cleanup_enabled: LIVEKIT_GUEST_CLEANUP_ENABLED,
     signup_url: LIVEKIT_GUEST_SIGNUP_URL,
     agent_dispatch_mode: "token_room_config",
     agent_dispatch_names: [record.agentName],
   } satisfies LiveKitGuestTokenPayload;
-}
-
-export function getGuestExpireUrl(request: Request) {
-  const requestOrigin = new URL(request.url).origin;
-
-  if (isOriginAllowed(requestOrigin)) {
-    return new URL(
-      "/api/livekit/guest-session/expire",
-      requestOrigin,
-    ).toString();
-  }
-
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-
-  if (forwardedHost) {
-    const proto = forwardedProto?.split(",")[0]?.trim() ?? "https";
-    const host = forwardedHost.split(",")[0]?.trim();
-    const candidateOrigin = `${proto}://${host}`;
-
-    if (isOriginAllowed(candidateOrigin)) {
-      return new URL(
-        "/api/livekit/guest-session/expire",
-        candidateOrigin,
-      ).toString();
-    }
-  }
-
-  throw new Error("Unable to build an allowed LiveKit guest expiration URL.");
 }
 
 export {
@@ -525,7 +473,6 @@ export {
   LIVEKIT_GUEST_COOKIE_NAME,
   LIVEKIT_GUEST_COOLDOWN_ENABLED,
   LIVEKIT_GUEST_COOLDOWN_SECONDS,
-  LIVEKIT_GUEST_NO_SPEECH_TIMEOUT_SECONDS,
   LIVEKIT_GUEST_SESSION_SECONDS,
   LIVEKIT_GUEST_SIGNUP_URL,
 };

@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import sys
 import unittest
+from contextlib import asynccontextmanager
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from agent import INSTRUCTIONS, PortfolioAgent  # noqa: E402
+from agent import (  # noqa: E402
+    INSTRUCTIONS,
+    PortfolioAgent,
+)
 from agent_web_search import SearchToolStatusNotifier  # noqa: E402
 from web_search import SearchResult, WebSearchSettings  # noqa: E402
 
@@ -46,9 +50,35 @@ class FakeHttpClient:
 class RecordingNotifier(SearchToolStatusNotifier):
     def __init__(self) -> None:
         self.started_calls: list[tuple[str, str]] = []
+        self.finished_results: list[list[SearchResult]] = []
 
     async def started(self, summary: str, provider: str) -> None:
         self.started_calls.append((summary, provider))
+
+    async def finished(self, results: list[SearchResult]) -> None:
+        self.finished_results.append(results)
+
+
+class FakeRunContext:
+    def __init__(self) -> None:
+        self.filler_calls: list[dict[str, object]] = []
+
+    @asynccontextmanager
+    async def with_filler(
+        self,
+        source: str,
+        *,
+        delay: float = 0,
+        max_steps: int | None = None,
+    ):
+        self.filler_calls.append(
+            {
+                "delay": delay,
+                "max_steps": max_steps,
+                "source": source,
+            }
+        )
+        yield
 
 
 class PortfolioAgentToolTests(unittest.IsolatedAsyncioTestCase):
@@ -87,8 +117,46 @@ class PortfolioAgentToolTests(unittest.IsolatedAsyncioTestCase):
 
     def test_agent_instructions_require_search_for_current_information(self) -> None:
         self.assertIn("search_web", INSTRUCTIONS)
+        self.assertIn("Parallel, Exa, or Perplexity", INSTRUCTIONS)
         self.assertIn("weather", INSTRUCTIONS.lower())
         self.assertIn("Do not say you cannot check", INSTRUCTIONS)
+        self.assertIn("sports", INSTRUCTIONS.lower())
+        self.assertIn("docs", INSTRUCTIONS.lower())
+        self.assertIn("versions", INSTRUCTIONS.lower())
+        self.assertIn("recent releases", INSTRUCTIONS.lower())
+
+    async def test_search_web_uses_livekit_filler_for_verbal_progress(self) -> None:
+        notifier = RecordingNotifier()
+        context = FakeRunContext()
+        agent = PortfolioAgent(
+            agent_id="dennis-portfolio-agent",
+            instructions="Test agent.",
+            search_settings=WebSearchSettings(
+                provider="parallel",
+                api_key="parallel-key",
+                max_results=3,
+                timeout_seconds=2,
+            ),
+            provider_factory=lambda _settings, _http_client: FakeProvider(),
+            notifier_factory=lambda: notifier,
+        )
+
+        await agent.search_web(
+            context=context,
+            summary="Find current LiveKit tool docs",
+            query="LiveKit Python function_tool docs",
+        )
+
+        self.assertEqual(
+            context.filler_calls,
+            [
+                {
+                    "delay": 1.5,
+                    "max_steps": 1,
+                    "source": "I'm checking the web now.",
+                }
+            ],
+        )
 
     def test_search_settings_are_loaded_during_agent_initialization(self) -> None:
         with patch.dict("os.environ", {}, clear=True):

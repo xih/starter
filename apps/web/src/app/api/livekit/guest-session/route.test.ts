@@ -23,7 +23,6 @@ const redisDelMock = vi.fn(async (...keys: string[]) => {
   }
   return count;
 });
-const publishJSONMock = vi.fn(async () => ({ messageId: "msg_guest_expire" }));
 const deleteRoomMock = vi.fn(async () => undefined);
 const cookieSetMock = vi.fn();
 let cookieValue: string | undefined;
@@ -34,14 +33,6 @@ vi.mock("@upstash/redis", () => ({
       del: redisDelMock,
       get: redisGetMock,
       set: redisSetMock,
-    };
-  }),
-}));
-
-vi.mock("@upstash/qstash", () => ({
-  Client: vi.fn(function QStashClientMock() {
-    return {
-      publishJSON: publishJSONMock,
     };
   }),
 }));
@@ -175,7 +166,6 @@ describe("POST /api/livekit/guest-session", () => {
       agent_dispatch_names: string[];
       cleanup_enabled: boolean;
       duration_seconds: number;
-      no_speech_timeout_seconds: number;
       participant_token: string;
       room_name: string;
       session_id: string;
@@ -185,39 +175,18 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.status).toBe(201);
     expect(payload.participant_token).toBe("mock.jwt");
     expect(payload.cleanup_enabled).toBe(false);
-    expect(payload.duration_seconds).toBe(30);
-    expect(payload.no_speech_timeout_seconds).toBe(30);
+    expect(payload.duration_seconds).toBe(86_400);
     expect(payload.signup_url).toBe("/api/auth/signin");
     expect(payload.room_name).toBe(`guest_${payload.session_id}`);
     expect(payload.room_name).not.toBe("attacker-room");
     expect(payload.agent_dispatch_names).toEqual(["dennis-portfolio-agent"]);
-    expect(publishJSONMock).not.toHaveBeenCalled();
     expect(response.headers.get("set-cookie")).toContain("lk_guest_device=");
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
     expect(response.headers.get("set-cookie")).toContain("Max-Age=60");
     expect(response.headers.get("set-cookie")).toContain("SameSite=lax");
   });
 
-  it("does not schedule the delayed expire callback when cleanup is disabled", async () => {
-    process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "http://localhost:3010,https://example.com,https://dev-tunnel.ngrok-free.app";
-    const { POST } = await importGuestRoute();
-    const response = await POST(
-      new Request("http://localhost:3010/api/livekit/guest-session", {
-        body: JSON.stringify({}),
-        headers: {
-          "Content-Type": "application/json",
-          Origin: "https://dev-tunnel.ngrok-free.app",
-        },
-        method: "POST",
-      }),
-    );
-
-    expect(response.status).toBe(201);
-    expect(publishJSONMock).not.toHaveBeenCalled();
-  });
-
-  it("does not require QStash env when cleanup is disabled", async () => {
+  it("does not require QStash env for guest session tokens", async () => {
     delete process.env.QSTASH_URL;
     delete process.env.QSTASH_TOKEN;
     delete process.env.QSTASH_CURRENT_SIGNING_KEY;
@@ -237,41 +206,6 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.status).toBe(201);
     expect(payload.participant_token).toBe("mock.jwt");
     expect(payload.cleanup_enabled).toBe(false);
-    expect(publishJSONMock).not.toHaveBeenCalled();
-  });
-
-  it("schedules the delayed expire callback when cleanup is enabled", async () => {
-    vi.doMock("~/server/livekit/guest-session-config", async () => {
-      const actual = await vi.importActual<typeof guestSessionConfig>(
-        "~/server/livekit/guest-session-config",
-      );
-
-      return {
-        ...actual,
-        LIVEKIT_GUEST_CLEANUP_ENABLED: true,
-      };
-    });
-    process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "http://localhost:3010,https://example.com,https://dev-tunnel.ngrok-free.app";
-    const { POST } = await importGuestRoute();
-    const response = await POST(
-      new Request("http://localhost:3010/api/livekit/guest-session", {
-        body: JSON.stringify({}),
-        headers: {
-          "Content-Type": "application/json",
-          Origin: "https://dev-tunnel.ngrok-free.app",
-        },
-        method: "POST",
-      }),
-    );
-
-    expect(response.status).toBe(201);
-    expect(publishJSONMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        url: "http://localhost:3010/api/livekit/guest-session/expire",
-      }),
-    );
-    vi.doUnmock("~/server/livekit/guest-session-config");
   });
 
   it("reuses an active guest session instead of failing duplicate token requests", async () => {
@@ -311,7 +245,6 @@ describe("POST /api/livekit/guest-session", () => {
     expect(payload.participant_token).toBe("mock.jwt");
     expect(payload.reused_session).toBe(true);
     expect(payload.room_name).toBe("guest_guest_session_existing");
-    expect(publishJSONMock).not.toHaveBeenCalled();
   });
 
   it("reuses an active guest session before enforcing completed-trial cooldown", async () => {
@@ -409,7 +342,6 @@ describe("POST /api/livekit/guest-session", () => {
       { ex: 60, nx: true },
     );
     expect(redisDelMock).not.toHaveBeenCalled();
-    expect(publishJSONMock).not.toHaveBeenCalled();
   });
 
   it("rejects a used guest trial", async () => {
@@ -459,48 +391,6 @@ describe("POST /api/livekit/guest-session", () => {
     });
 
     expect(getClientIp(request)).toBe("203.0.113.22");
-  });
-
-  it("does not use an unallowed forwarded host for QStash callbacks", async () => {
-    process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "https://example.com,https://dev-tunnel.ngrok-free.app";
-    const { getGuestExpireUrl } =
-      await import("~/server/livekit/guest-session");
-    const request = new Request(
-      "https://example.com/api/livekit/guest-session",
-      {
-        headers: {
-          "x-forwarded-host": "attacker.example",
-          "x-forwarded-proto": "https",
-        },
-        method: "POST",
-      },
-    );
-
-    expect(getGuestExpireUrl(request)).toBe(
-      "https://example.com/api/livekit/guest-session/expire",
-    );
-  });
-
-  it("uses the API host instead of an allowed browser origin for QStash callbacks", async () => {
-    vi.resetModules();
-    process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "https://api.example.com,https://storybook.example.com";
-    const { getGuestExpireUrl } =
-      await import("~/server/livekit/guest-session");
-    const request = new Request(
-      "https://api.example.com/api/livekit/guest-session",
-      {
-        headers: {
-          Origin: "https://storybook.example.com",
-        },
-        method: "POST",
-      },
-    );
-
-    expect(getGuestExpireUrl(request)).toBe(
-      "https://api.example.com/api/livekit/guest-session/expire",
-    );
   });
 });
 

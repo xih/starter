@@ -227,7 +227,7 @@ export function TestingClient() {
   const [personas, setPersonas] = useState<PersonaVoiceOption[]>(
     fallbackPersonaVoiceOptions,
   );
-  const [selectedPersonaId, setSelectedPersonaId] = useState("wife-e2e");
+  const [selectedPersonaId, setSelectedPersonaId] = useState("portfolio-agent");
   const [sessionKey, setSessionKey] = useState(0);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [tokenEndpoint, setTokenEndpoint] = useState(DEFAULT_TOKEN_ENDPOINT);

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { getPersona, upsertPersona } from "~/server/personas";
+import {
+  assertPersonaWriteStorage,
+  getPersona,
+  upsertPersona,
+} from "~/server/personas";
 import {
   isAuthorizedForPersonaWrite,
   personaWriteUnauthorizedResponse,
@@ -19,6 +23,20 @@ export async function POST(
   if (!process.env.CARTESIA_API_KEY) {
     return NextResponse.json(
       { error: "Cartesia voice cloning is not configured." },
+      { status: 500 },
+    );
+  }
+
+  try {
+    assertPersonaWriteStorage();
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Persona writes are not configured.",
+      },
       { status: 500 },
     );
   }

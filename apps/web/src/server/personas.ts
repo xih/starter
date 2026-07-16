@@ -162,7 +162,7 @@ function hasDurablePersonaStorage() {
   );
 }
 
-function assertPersonaWriteStorage() {
+export function assertPersonaWriteStorage() {
   if (process.env.NODE_ENV === "production" && !hasDurablePersonaStorage()) {
     throw new Error(
       "Persona writes require Upstash Redis in production. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.",

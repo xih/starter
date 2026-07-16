@@ -10,8 +10,10 @@ const persona = {
 };
 const getPersona = vi.fn();
 const upsertPersona = vi.fn();
+const assertPersonaWriteStorage = vi.fn();
 
 vi.mock("~/server/personas", () => ({
+  assertPersonaWriteStorage,
   getPersona,
   upsertPersona,
 }));
@@ -56,6 +58,7 @@ describe("POST /api/personas/[personaId]/clone-voice", () => {
   beforeEach(() => {
     setEnv();
     vi.clearAllMocks();
+    assertPersonaWriteStorage.mockReturnValue(undefined);
     getPersona.mockResolvedValue(persona);
     upsertPersona.mockResolvedValue(persona);
     vi.stubGlobal(
@@ -96,6 +99,22 @@ describe("POST /api/personas/[personaId]/clone-voice", () => {
     });
 
     expect(response.status).toBe(402);
+    expect(upsertPersona).not.toHaveBeenCalled();
+  });
+
+  it("rejects clone requests before Cartesia when durable storage is missing", async () => {
+    assertPersonaWriteStorage.mockImplementationOnce(() => {
+      throw new Error("Persona writes require Upstash Redis in production.");
+    });
+    const { POST } = await importRoute();
+    const response = await POST(createRequest(), {
+      params: Promise.resolve({ personaId: "wife-e2e" }),
+    });
+    const payload = (await response.json()) as { error?: string };
+
+    expect(response.status).toBe(500);
+    expect(payload.error).toContain("Upstash Redis");
+    expect(fetch).not.toHaveBeenCalled();
     expect(upsertPersona).not.toHaveBeenCalled();
   });
 

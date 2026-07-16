@@ -5,7 +5,10 @@ import logging
 from json import JSONDecodeError
 from typing import Protocol
 
-from web_search import SearchResult
+try:
+    from .web_search import SearchResult
+except ImportError:
+    from web_search import SearchResult
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from web_search import SearchProviderConfig, SearchResult
+try:
+    from .web_search import SearchProviderConfig, SearchResult
+except ImportError:
+    from web_search import SearchProviderConfig, SearchResult
 
 
 def _first_text(value: Any) -> str:

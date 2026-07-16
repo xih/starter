@@ -32,6 +32,14 @@ export {
   type VoiceSelectorProps,
 } from "./voice";
 export {
+  ChatMessageWithSources,
+  SourcesChip,
+  SourcesRail,
+  type ChatMessageWithSourcesProps,
+  type SourceData,
+  type SourcesChipProps,
+} from "./sources";
+export {
   AgentSideBar,
   type AgentSideBarProps,
   type AgentSideBarState,

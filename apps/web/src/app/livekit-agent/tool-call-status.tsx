@@ -1,15 +1,9 @@
+import { SourcesRail, type SourceData } from "@starter/design-system";
 import { CheckCircle2, Loader2, Search, XCircle } from "lucide-react";
 
-import { Source, SourceContent, SourceTrigger } from "~/components/ui/source";
 import { cn } from "~/lib/utils";
 
-export type ToolCallSource = {
-  description?: string;
-  provider: string;
-  publishedAt?: string;
-  title: string;
-  url: string;
-};
+export type ToolCallSource = SourceData;
 
 export type ToolCallStatus = {
   error?: string;
@@ -133,30 +127,7 @@ export function ToolCallStatusPanel({
         <p className="mt-2 text-[var(--color-text-negative)]">{status.error}</p>
       ) : null}
       {status.sources?.length ? (
-        <div className="mt-3 flex flex-wrap gap-2" aria-label="Search sources">
-          {status.sources.map((source, index) => (
-            <Source href={source.url} key={`${source.url}-${index}`}>
-              <SourceTrigger
-                label={`${index + 1}. ${source.provider}: ${
-                  source.title || source.url
-                }`}
-                showFavicon
-              />
-              <SourceContent
-                description={[
-                  source.description,
-                  source.publishedAt
-                    ? `Published ${source.publishedAt}`
-                    : undefined,
-                  `Provider: ${source.provider}`,
-                ]
-                  .filter(Boolean)
-                  .join("\n")}
-                title={source.title || source.url}
-              />
-            </Source>
-          ))}
-        </div>
+        <SourcesRail className="mt-3" sources={status.sources} />
       ) : null}
     </section>
   );

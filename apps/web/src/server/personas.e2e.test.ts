@@ -32,6 +32,8 @@ const cartesiaVoiceIds = (process.env.PERSONA_E2E_CARTESIA_VOICE_IDS ?? "")
   .concat(PERSONA_E2E_CARTESIA_VOICE_IDS);
 const transcript =
   process.env.PERSONA_E2E_TRANSCRIPT ?? PERSONA_E2E_CONSTANTS.transcript;
+const transcriptAnchor = "How to feel confident";
+const transcriptDetailAnchor = "Dolly Parton";
 const userId = process.env.PERSONA_E2E_USER_ID ?? PERSONA_E2E_CONSTANTS.userId;
 const tokenAuth = process.env.PERSONA_E2E_TOKEN_AUTH;
 const agentReadSecret =
@@ -41,10 +43,13 @@ const personaWriteSecret =
   process.env.PERSONA_E2E_PERSONA_ADMIN_SECRET ??
   process.env.PERSONA_ADMIN_SECRET ??
   agentReadSecret;
-const expectedEmbeddingModel = process.env.OPENAI_API_KEY
+const expectsOpenAIEmbeddings =
+  process.env.PERSONA_E2E_EXPECT_OPENAI_EMBEDDINGS === "1" ||
+  Boolean(process.env.OPENAI_API_KEY);
+const expectedEmbeddingModel = expectsOpenAIEmbeddings
   ? PERSONA_EMBEDDING_MODEL
   : LOCAL_EMBEDDING_MODEL;
-const expectedEmbeddingDimensions = process.env.OPENAI_API_KEY
+const expectedEmbeddingDimensions = expectsOpenAIEmbeddings
   ? PERSONA_EMBEDDING_DIMENSIONS
   : LOCAL_EMBEDDING_DIMENSIONS;
 
@@ -176,7 +181,7 @@ describeE2E("persona endpoints e2e", () => {
     expect(firstChunk?.embedding).toHaveLength(expectedEmbeddingDimensions);
     expect(firstChunk?.embedding_dimensions).toBe(expectedEmbeddingDimensions);
     expect(firstChunk?.embedding_model).toBe(expectedEmbeddingModel);
-    expect(firstChunk?.text).toContain("authorized transcript text");
+    expect(firstChunk?.text).toContain(transcriptAnchor);
 
     const transcriptSource = body.transcript_source as
       | {
@@ -191,9 +196,8 @@ describeE2E("persona endpoints e2e", () => {
     expect(transcriptSource?.source_url).toBe(
       process.env.PERSONA_E2E_YOUTUBE_URL ?? PERSONA_E2E_CONSTANTS.youtubeUrl,
     );
-    expect(transcriptSource?.transcript).toContain(
-      "authorized transcript text",
-    );
+    expect(transcriptSource?.transcript).toContain(transcriptAnchor);
+    expect(transcriptSource?.transcript).toContain(transcriptDetailAnchor);
     expect(transcriptSource?.embedding_model).toBe(expectedEmbeddingModel);
     expect(transcriptSource?.embedding_dimensions).toBe(
       expectedEmbeddingDimensions,
@@ -226,7 +230,8 @@ describeE2E("persona endpoints e2e", () => {
 
     expect(agent.response.status).toBe(200);
     expect(body.compiled_prompt).toContain(memoryText);
-    expect(body.compiled_prompt).toContain("authorized transcript text");
+    expect(body.compiled_prompt).toContain(transcriptAnchor);
+    expect(body.compiled_prompt).toContain(transcriptDetailAnchor);
     expect(Array.isArray(body.transcript_sources)).toBe(true);
 
     const transcriptSources = body.transcript_sources as Array<{

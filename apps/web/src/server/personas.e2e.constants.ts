@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 export const PERSONA_E2E_CONSTANTS = {
@@ -16,8 +17,13 @@ export const PERSONA_E2E_CONSTANTS = {
   personaId: "wife-e2e",
   runClone: true,
   runLiveKitToken: false,
-  transcript:
-    "This is authorized transcript text for an end to end persona test. The speaker is warm, concise, and conversational.",
+  transcript: readFileSync(
+    new URL(
+      "../../test-fixtures/personas/wife-e2e-transcript.txt",
+      import.meta.url,
+    ),
+    "utf8",
+  ).trim(),
   userId: "persona-e2e-user",
   voiceConsentArtifactUrl: "https://www.youtube.com/watch?v=sCRpxq1XRUI",
   youtubeUrl: "https://www.youtube.com/watch?v=sCRpxq1XRUI",

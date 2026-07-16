@@ -100,13 +100,14 @@ export function GoldenGateWaterShader() {
 
       <section className="relative z-10 flex min-h-svh max-w-3xl flex-col justify-end px-6 pb-10 pt-24 sm:px-10 sm:pb-14 lg:px-14">
         <p className="mb-3 font-body text-caption font-semibold uppercase tracking-[0.28em] text-text-secondary">
-          Paper shader study
+          Interactive portfolio
         </p>
         <h1 className="max-w-2xl font-title text-5xl font-normal leading-none text-text-primary sm:text-7xl">
-          Golden Gate Water
+          Chat with my portfolio
         </h1>
         <p className="mt-5 max-w-lg font-body text-body text-text-secondary sm:text-subtext">
-          A live water distortion pass over the bridge, tuned with DialKit.
+          Ask the agent about my work, projects, taste, and the systems I like
+          building.
         </p>
       </section>
     </main>

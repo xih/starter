@@ -50,7 +50,7 @@ export function resolveLiveKitAllowedOrigins({
   configuredOrigins?: string;
   nodeEnv: LiveKitNodeEnv;
 }) {
-  if (nodeEnv === "production") {
+  if (nodeEnv === "production" && process.env.VERCEL_ENV !== "preview") {
     return new Set(PRODUCTION_ALLOWED_ORIGINS);
   }
 

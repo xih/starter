@@ -268,7 +268,7 @@ export const liveKitOpenApiSpec = {
           session_id: { type: "string" },
           room_name: { type: "string" },
           expires_at: { type: "string", format: "date-time" },
-          duration_seconds: { type: "number", enum: [86400] },
+          duration_seconds: { type: "number", enum: [3600] },
           cleanup_enabled: { type: "boolean" },
           signup_url: { type: "string" },
           agent_dispatch_mode: {

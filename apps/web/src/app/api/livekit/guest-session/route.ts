@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 
 import {
   createId,
+  createQStashClient,
   createRedis,
   expireGuestSessionRecord,
   getClientIp,
   getCorsHeaders,
+  getGuestExpireUrl,
   getOrCreateGuestDeviceId,
   getResolvedAgentName,
   guestActiveKey,
@@ -17,6 +19,7 @@ import {
   issueGuestLiveKitToken,
   type GuestSessionRecord,
   LIVEKIT_GUEST_ACTIVE_TTL_SECONDS,
+  LIVEKIT_GUEST_CLEANUP_ENABLED,
   LIVEKIT_GUEST_COOKIE_NAME,
   LIVEKIT_GUEST_COOLDOWN_ENABLED,
   LIVEKIT_GUEST_COOLDOWN_SECONDS,
@@ -199,6 +202,16 @@ export async function POST(request: Request) {
     await redis.set(guestSessionKey(sessionId), record, {
       ex: LIVEKIT_GUEST_COOLDOWN_SECONDS,
     });
+
+    if (LIVEKIT_GUEST_CLEANUP_ENABLED) {
+      await createQStashClient().publishJSON({
+        url: getGuestExpireUrl(request),
+        body: { session_id: sessionId },
+        delay: LIVEKIT_GUEST_SESSION_SECONDS,
+        deduplicationId: `livekit-guest-expire-${sessionId}`,
+        retries: 3,
+      });
+    }
 
     const payload = await issueGuestLiveKitToken(record);
     const response = jsonWithCors(request, payload, { status: 201 });

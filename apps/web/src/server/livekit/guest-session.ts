@@ -1,4 +1,5 @@
 import { RoomAgentDispatch, RoomConfiguration } from "@livekit/protocol";
+import { Client as QStashClient } from "@upstash/qstash";
 import { Redis } from "@upstash/redis";
 import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
 import { cookies } from "next/headers";
@@ -292,6 +293,25 @@ export function createRedis() {
   });
 }
 
+export function createQStashClient() {
+  const env = assertGuestSessionEnv();
+
+  if (!env.ok) {
+    throw new Error(env.error);
+  }
+
+  if (!env.QSTASH_URL || !env.QSTASH_TOKEN) {
+    throw new Error(
+      "LiveKit guest cleanup is not configured. Set QSTASH_URL and QSTASH_TOKEN.",
+    );
+  }
+
+  return new QStashClient({
+    baseUrl: env.QSTASH_URL,
+    token: env.QSTASH_TOKEN,
+  });
+}
+
 export function createRoomServiceClient() {
   const env = assertLiveKitTokenEnv();
 
@@ -465,6 +485,35 @@ export async function issueGuestLiveKitToken(record: GuestSessionRecord) {
     agent_dispatch_mode: "token_room_config",
     agent_dispatch_names: [record.agentName],
   } satisfies LiveKitGuestTokenPayload;
+}
+
+export function getGuestExpireUrl(request: Request) {
+  const requestOrigin = new URL(request.url).origin;
+
+  if (isOriginAllowed(requestOrigin)) {
+    return new URL(
+      "/api/livekit/guest-session/expire",
+      requestOrigin,
+    ).toString();
+  }
+
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+
+  if (forwardedHost) {
+    const proto = forwardedProto?.split(",")[0]?.trim() ?? "https";
+    const host = forwardedHost.split(",")[0]?.trim();
+    const candidateOrigin = `${proto}://${host}`;
+
+    if (isOriginAllowed(candidateOrigin)) {
+      return new URL(
+        "/api/livekit/guest-session/expire",
+        candidateOrigin,
+      ).toString();
+    }
+  }
+
+  throw new Error("Unable to build an allowed LiveKit guest expiration URL.");
 }
 
 export {

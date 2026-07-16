@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 
 import { cn } from "~/lib/utils";
 
@@ -109,6 +116,7 @@ export function SkeuomorphicClock({
   );
   const [isEditing, setIsEditing] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const previousRunningRef = useRef(running);
 
   useEffect(() => {
     const nextBaseTime = parseTimeToMs(initialTime);
@@ -122,6 +130,26 @@ export function SkeuomorphicClock({
   useEffect(() => {
     setMotion(secondHandMotion);
   }, [secondHandMotion]);
+
+  useEffect(() => {
+    const wasRunning = previousRunningRef.current;
+
+    if (wasRunning === running) {
+      return;
+    }
+
+    const transitionTimestamp = Date.now();
+
+    if (wasRunning) {
+      setBaseTimeMs(
+        clampDayMs(baseTimeMs + transitionTimestamp - baseTimestamp),
+      );
+    }
+
+    setBaseTimestamp(transitionTimestamp);
+    setNow(transitionTimestamp);
+    previousRunningRef.current = running;
+  }, [baseTimeMs, baseTimestamp, running]);
 
   useEffect(() => {
     if (!running) {

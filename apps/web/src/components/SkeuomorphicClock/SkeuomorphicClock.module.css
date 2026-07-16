@@ -3,11 +3,7 @@
   align-items: center;
   gap: 28px;
   color: #1d1d1f;
-  font-family:
-    Avenir Next,
-    Avenir,
-    Helvetica Neue,
-    sans-serif;
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", sans-serif;
 }
 
 .clock {
@@ -194,7 +190,7 @@
   color: #ffffff;
 }
 
-@media (max-width: 520px) {
+@media (width <= 520px) {
   .shell {
     align-items: flex-start;
     flex-direction: column;

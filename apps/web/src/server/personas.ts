@@ -2,8 +2,8 @@ import { Redis } from "@upstash/redis";
 import { z } from "zod";
 
 export const DEFAULT_PERSONA_ID = "portfolio-agent";
-export const PERSONA_EMBEDDING_MODEL = "text-embedding-3-large";
-export const PERSONA_EMBEDDING_DIMENSIONS = 3072;
+export const PERSONA_EMBEDDING_MODEL = "text-embedding-3-small";
+export const PERSONA_EMBEDDING_DIMENSIONS = 1536;
 export const LOCAL_EMBEDDING_MODEL = "local-hash-v1";
 export const LOCAL_EMBEDDING_DIMENSIONS = 32;
 

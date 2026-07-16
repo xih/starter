@@ -3,50 +3,18 @@ import { AccessToken } from "livekit-server-sdk";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import {
+  createLiveKitId,
+  getLiveKitCorsHeaders,
+  getResolvedLiveKitAgentName,
+  isAuthorizedForLiveKitToken as isLiveKitTokenAuthorized,
+  isLiveKitOriginAllowed,
+  nodeEnvSchema,
+  optionalEnv,
+  parseNodeEnv,
+} from "~/server/livekit/route-policy";
+
 export const runtime = "nodejs";
-
-const DEFAULT_AGENT_NAME = "dennis-portfolio-agent";
-const DEV_ALLOWED_ORIGINS = new Set([
-  "http://localhost:3000",
-  "http://localhost:6006",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:6006",
-]);
-const CORS_BASE_HEADERS = {
-  "Access-Control-Allow-Headers":
-    "Authorization, Content-Type, X-LiveKit-Token-Auth",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  Vary: "Origin",
-};
-
-const nodeEnvSchema = z.enum(["development", "test", "production"]);
-
-function optionalEnv(value: string | undefined) {
-  return value && value.length > 0 ? value : undefined;
-}
-
-function parseNodeEnv(value: string | undefined) {
-  if (value === undefined) {
-    return "development";
-  }
-
-  const parsed = nodeEnvSchema.safeParse(value);
-
-  return parsed.success ? parsed.data : "production";
-}
-
-function isLocalDevelopmentOrigin(origin: string) {
-  try {
-    const { hostname, protocol } = new URL(origin);
-
-    return (
-      protocol === "http:" &&
-      (hostname === "localhost" || hostname === "127.0.0.1")
-    );
-  } catch {
-    return false;
-  }
-}
 
 const liveKitEnvSchema = z.object({
   LIVEKIT_URL: z.string().url().optional(),
@@ -99,47 +67,21 @@ const tokenRequestSchema = z.object({
   room_config: roomConfigSchema.optional(),
 });
 
-function createId(prefix: string) {
-  return `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
-}
-
-function getAllowedOrigins() {
-  const configuredOrigins = env.LIVEKIT_ALLOWED_ORIGINS?.split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-  if (configuredOrigins?.length) {
-    return new Set(configuredOrigins);
-  }
-
-  return env.NODE_ENV === "production"
-    ? new Set<string>()
-    : DEV_ALLOWED_ORIGINS;
-}
-
 function isOriginAllowed(origin: string | null) {
-  if (!origin) {
-    return true;
-  }
-
-  if (env.NODE_ENV !== "production" && isLocalDevelopmentOrigin(origin)) {
-    return true;
-  }
-
-  return getAllowedOrigins().has(origin);
+  return isLiveKitOriginAllowed({
+    configuredOrigins: env.LIVEKIT_ALLOWED_ORIGINS,
+    nodeEnv: env.NODE_ENV,
+    origin,
+  });
 }
 
 function getCorsHeaders(request: Request) {
-  const origin = request.headers.get("origin");
-
-  if (!origin || !isOriginAllowed(origin)) {
-    return CORS_BASE_HEADERS;
-  }
-
-  return {
-    ...CORS_BASE_HEADERS,
-    "Access-Control-Allow-Origin": origin,
-  };
+  return getLiveKitCorsHeaders({
+    allowMethods: "POST, OPTIONS",
+    configuredOrigins: env.LIVEKIT_ALLOWED_ORIGINS,
+    nodeEnv: env.NODE_ENV,
+    request,
+  });
 }
 
 function jsonWithCors(
@@ -156,27 +98,12 @@ function jsonWithCors(
   });
 }
 
-function getBearerToken(request: Request) {
-  const authorization = request.headers.get("authorization");
-
-  if (!authorization?.startsWith("Bearer ")) {
-    return null;
-  }
-
-  return authorization.slice("Bearer ".length).trim();
-}
-
 function isAuthorizedForLiveKitToken(request: Request) {
-  const expectedSecret = env.LIVEKIT_TOKEN_AUTH_SECRET;
-
-  if (!expectedSecret) {
-    return env.NODE_ENV !== "production";
-  }
-
-  const suppliedSecret =
-    getBearerToken(request) ?? request.headers.get("x-livekit-token-auth");
-
-  return suppliedSecret === expectedSecret;
+  return isLiveKitTokenAuthorized({
+    nodeEnv: env.NODE_ENV,
+    request,
+    tokenAuthSecret: env.LIVEKIT_TOKEN_AUTH_SECRET,
+  });
 }
 
 export function OPTIONS(request: Request) {
@@ -249,24 +176,21 @@ export async function POST(request: Request) {
   }
 
   const body = parsed.data;
-  const roomName = body.room_name ?? createId("agent_room");
+  const roomName = body.room_name ?? createLiveKitId("agent_room");
   const participantIdentity =
-    body.participant_identity ?? createId("anonymous_participant");
+    body.participant_identity ?? createLiveKitId("anonymous_participant");
   const participantName = body.participant_name ?? "Guest";
   const requestedAgents = body.room_config?.agents;
+  const resolvedAgentName = getResolvedLiveKitAgentName({
+    liveKitAgentName: env.LIVEKIT_AGENT_NAME,
+    nextPublicAgentName: env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME,
+  });
   const agentsToDispatch =
     body.dispatch_agent === false
       ? []
       : requestedAgents && requestedAgents.length > 0
         ? requestedAgents
-        : [
-            {
-              agentName:
-                env.LIVEKIT_AGENT_NAME ??
-                env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
-                DEFAULT_AGENT_NAME,
-            },
-          ];
+        : [{ agentName: resolvedAgentName }];
   const token = new AccessToken(env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET, {
     identity: participantIdentity,
     name: participantName,
@@ -290,9 +214,7 @@ export async function POST(request: Request) {
         const agentName =
           requestedAgent.agent_name ??
           requestedAgent.agentName ??
-          env.LIVEKIT_AGENT_NAME ??
-          env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
-          DEFAULT_AGENT_NAME;
+          resolvedAgentName;
 
         return new RoomAgentDispatch({
           agentName,
@@ -314,9 +236,7 @@ export async function POST(request: Request) {
         (requestedAgent) =>
           requestedAgent.agent_name ??
           requestedAgent.agentName ??
-          env.LIVEKIT_AGENT_NAME ??
-          env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
-          DEFAULT_AGENT_NAME,
+          resolvedAgentName,
       ),
     },
     { status: 201 },

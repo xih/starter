@@ -6,6 +6,17 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import {
+  createLiveKitId,
+  getLiveKitCorsHeaders,
+  getResolvedLiveKitAgentName,
+  isAuthorizedForLiveKitToken as isLiveKitTokenAuthorized,
+  isLiveKitOriginAllowed,
+  nodeEnvSchema,
+  optionalEnv,
+  parseNodeEnv,
+  resolveLiveKitAllowedOrigins,
+} from "./route-policy";
+import {
   LIVEKIT_GUEST_ACTIVE_TTL_SECONDS,
   LIVEKIT_GUEST_CLEANUP_ENABLED,
   LIVEKIT_GUEST_COOKIE_NAME,
@@ -17,21 +28,6 @@ import {
   LIVEKIT_GUEST_TOKEN_TTL_SECONDS,
 } from "./guest-session-config";
 
-export const DEFAULT_LIVEKIT_AGENT_NAME = "dennis-portfolio-agent";
-
-const DEV_ALLOWED_ORIGINS = new Set([
-  "http://localhost:3000",
-  "http://localhost:6006",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:6006",
-]);
-const CORS_BASE_HEADERS = {
-  "Access-Control-Allow-Headers":
-    "Authorization, Content-Type, X-LiveKit-Token-Auth",
-  "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
-  Vary: "Origin",
-};
-const nodeEnvSchema = z.enum(["development", "test", "production"]);
 const liveKitEnvSchema = z.object({
   LIVEKIT_URL: z.string().url().optional(),
   LIVEKIT_API_KEY: z.string().optional(),
@@ -51,33 +47,6 @@ const guestEnvSchema = liveKitEnvSchema.extend({
   QSTASH_NEXT_SIGNING_KEY: z.string().optional(),
   LIVEKIT_GUEST_RATE_LIMIT_SALT: z.string().min(16).optional(),
 });
-
-function optionalEnv(value: string | undefined) {
-  return value && value.length > 0 ? value : undefined;
-}
-
-function parseNodeEnv(value: string | undefined) {
-  if (value === undefined) {
-    return "development";
-  }
-
-  const parsed = nodeEnvSchema.safeParse(value);
-
-  return parsed.success ? parsed.data : "production";
-}
-
-function isLocalDevelopmentOrigin(origin: string) {
-  try {
-    const { hostname, protocol } = new URL(origin);
-
-    return (
-      protocol === "http:" &&
-      (hostname === "localhost" || hostname === "127.0.0.1")
-    );
-  } catch {
-    return false;
-  }
-}
 
 const rawEnv = {
   LIVEKIT_URL: optionalEnv(process.env.LIVEKIT_URL),
@@ -135,76 +104,46 @@ export type LiveKitGuestTokenPayload = {
 };
 
 export function getAllowedOrigins() {
-  const configuredOrigins = liveKitEnv.LIVEKIT_ALLOWED_ORIGINS?.split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-  if (configuredOrigins?.length) {
-    return new Set(configuredOrigins);
-  }
-
-  return liveKitEnv.NODE_ENV === "production"
-    ? new Set<string>()
-    : DEV_ALLOWED_ORIGINS;
+  return resolveLiveKitAllowedOrigins({
+    configuredOrigins: liveKitEnv.LIVEKIT_ALLOWED_ORIGINS,
+    nodeEnv: liveKitEnv.NODE_ENV,
+  });
 }
 
 export function isOriginAllowed(origin: string | null) {
-  if (!origin) {
-    return true;
+  if (liveKitEnv.NODE_ENV === "production" && !origin) {
+    return false;
   }
 
-  if (
-    liveKitEnv.NODE_ENV !== "production" &&
-    isLocalDevelopmentOrigin(origin)
-  ) {
-    return true;
-  }
-
-  return getAllowedOrigins().has(origin);
+  return isLiveKitOriginAllowed({
+    configuredOrigins: liveKitEnv.LIVEKIT_ALLOWED_ORIGINS,
+    nodeEnv: liveKitEnv.NODE_ENV,
+    origin,
+  });
 }
 
 export function getCorsHeaders(request: Request) {
-  const origin = request.headers.get("origin");
-
-  if (!origin || !isOriginAllowed(origin)) {
-    return CORS_BASE_HEADERS;
-  }
-
-  return {
-    ...CORS_BASE_HEADERS,
-    "Access-Control-Allow-Origin": origin,
-  };
-}
-
-export function getBearerToken(request: Request) {
-  const authorization = request.headers.get("authorization");
-
-  if (!authorization?.startsWith("Bearer ")) {
-    return null;
-  }
-
-  return authorization.slice("Bearer ".length).trim();
+  return getLiveKitCorsHeaders({
+    allowMethods: "POST, DELETE, OPTIONS",
+    configuredOrigins: liveKitEnv.LIVEKIT_ALLOWED_ORIGINS,
+    nodeEnv: liveKitEnv.NODE_ENV,
+    request,
+  });
 }
 
 export function isAuthorizedForLiveKitToken(request: Request) {
-  const expectedSecret = liveKitEnv.LIVEKIT_TOKEN_AUTH_SECRET;
-
-  if (!expectedSecret) {
-    return liveKitEnv.NODE_ENV !== "production";
-  }
-
-  const suppliedSecret =
-    getBearerToken(request) ?? request.headers.get("x-livekit-token-auth");
-
-  return suppliedSecret === expectedSecret;
+  return isLiveKitTokenAuthorized({
+    nodeEnv: liveKitEnv.NODE_ENV,
+    request,
+    tokenAuthSecret: liveKitEnv.LIVEKIT_TOKEN_AUTH_SECRET,
+  });
 }
 
 export function getResolvedAgentName() {
-  return (
-    liveKitEnv.LIVEKIT_AGENT_NAME ??
-    liveKitEnv.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ??
-    DEFAULT_LIVEKIT_AGENT_NAME
-  );
+  return getResolvedLiveKitAgentName({
+    liveKitAgentName: liveKitEnv.LIVEKIT_AGENT_NAME,
+    nextPublicAgentName: liveKitEnv.NEXT_PUBLIC_LIVEKIT_AGENT_NAME,
+  });
 }
 
 export function assertLiveKitTokenEnv() {
@@ -346,9 +285,7 @@ export function isRoomNotFoundError(error: unknown) {
   );
 }
 
-export function createId(prefix: string) {
-  return `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
-}
+export const createId = createLiveKitId;
 
 export function guestSessionKey(sessionId: string) {
   return `${LIVEKIT_GUEST_REDIS_PREFIX}:session:${sessionId}`;

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#071012"/>
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="#0d1a1d"/>
+  <path d="M82 348c85-45 153-40 205 13 35 35 78 40 143 12" fill="none" stroke="#6ee1ff" stroke-width="14" stroke-linecap="round" opacity="0.82"/>
+  <path d="M102 390c75-30 135-22 181 19 33 30 76 35 127 13" fill="none" stroke="#f9efe1" stroke-width="8" stroke-linecap="round" opacity="0.42"/>
+  <path d="M136 142h240a48 48 0 0 1 48 48v82a48 48 0 0 1-48 48H252l-72 56v-56h-44a48 48 0 0 1-48-48v-82a48 48 0 0 1 48-48Z" fill="#f9efe1"/>
+  <text x="256" y="270" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="116" font-weight="800" letter-spacing="-8" fill="#071012">DX</text>
+</svg>

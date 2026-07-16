@@ -150,7 +150,7 @@ Expected smoke-test output:
 
 End-to-end validation:
 
-1. Open `https://starter-three-sepia.vercel.app/livekit-agent`.
+1. Open `https://www.dennisxing.fm/livekit-agent`.
 2. Enter the prod `LIVEKIT_TOKEN_AUTH_SECRET` in Optional endpoint auth.
 3. Probe the token endpoint. Expected: success.
 4. Start a voice session. Expected: connection state `connected`, agent state

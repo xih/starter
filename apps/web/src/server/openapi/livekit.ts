@@ -1,3 +1,5 @@
+import { SITE_ORIGIN } from "~/config/site";
+
 export const liveKitOpenApiSpec = {
   openapi: "3.1.0",
   info: {
@@ -8,7 +10,7 @@ export const liveKitOpenApiSpec = {
   },
   servers: [
     {
-      url: "https://starter-three-sepia.vercel.app",
+      url: SITE_ORIGIN,
       description: "Production",
     },
     {

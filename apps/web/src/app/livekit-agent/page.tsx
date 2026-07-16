@@ -202,7 +202,7 @@ function humanizeTokenEndpointResult({
   }
 
   if (statusCode === 403) {
-    return `This browser origin is not allowed to request LiveKit tokens. Add the current site origin to LIVEKIT_ALLOWED_ORIGINS and restart or redeploy the app. ${engineerDetail}`;
+    return `This browser origin is not allowed to request LiveKit tokens. In production, confirm the current site origin is part of the shared LiveKit route policy; in non-production, add it to LIVEKIT_ALLOWED_ORIGINS and restart or redeploy the app. ${engineerDetail}`;
   }
 
   if (statusCode === 404) {

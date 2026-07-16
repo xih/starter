@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SITE_ORIGIN } from "~/config/site";
+
+const MISCONFIGURED_PRODUCTION_ORIGIN = "https://preview.invalid";
+
 vi.mock("livekit-server-sdk", () => ({
   AccessToken: vi.fn(function AccessTokenMock() {
     return {
@@ -12,11 +16,11 @@ vi.mock("livekit-server-sdk", () => ({
 
 function setEnv() {
   vi.stubEnv("NODE_ENV", "production");
-  process.env.LIVEKIT_URL = "wss://voice.example.livekit.cloud";
+  process.env.LIVEKIT_URL = "wss://voice.invalid";
   process.env.LIVEKIT_API_KEY = "livekit-key";
   process.env.LIVEKIT_API_SECRET = "livekit-secret";
   process.env.LIVEKIT_AGENT_NAME = "dennis-portfolio-agent";
-  process.env.LIVEKIT_ALLOWED_ORIGINS = "https://example.com";
+  process.env.LIVEKIT_ALLOWED_ORIGINS = SITE_ORIGIN;
   process.env.LIVEKIT_TOKEN_AUTH_SECRET = "admin-secret";
   process.env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME = "dennis-portfolio-agent";
 }
@@ -36,11 +40,11 @@ function clearEnv() {
 }
 
 function createRequest(headers: Record<string, string> = {}) {
-  return new Request("https://example.com/api/livekit/token", {
+  return new Request(`${SITE_ORIGIN}/api/livekit/token`, {
     body: JSON.stringify({ dispatch_agent: false }),
     headers: {
       "Content-Type": "application/json",
-      Origin: "https://example.com",
+      Origin: SITE_ORIGIN,
       ...headers,
     },
     method: "POST",
@@ -81,5 +85,23 @@ describe("POST /api/livekit/token", () => {
     expect(response.status).toBe(201);
     expect(payload.participant_token).toBe("admin.jwt");
     expect(payload.agent_dispatch_mode).toBe("disabled");
+  });
+
+  it("allows the canonical production portfolio origin", async () => {
+    process.env.LIVEKIT_ALLOWED_ORIGINS = MISCONFIGURED_PRODUCTION_ORIGIN;
+    const { OPTIONS } = await importRoute();
+    const response = OPTIONS(
+      new Request(`${SITE_ORIGIN}/api/livekit/token`, {
+        headers: {
+          Origin: SITE_ORIGIN,
+        },
+        method: "OPTIONS",
+      }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      SITE_ORIGIN,
+    );
   });
 });

@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SITE_ORIGIN } from "~/config/site";
 import type * as guestSessionConfig from "~/server/livekit/guest-session-config";
 
 type RedisRecord = Record<string, unknown>;
+
+const DEV_TUNNEL_ORIGIN = "https://dev-tunnel.invalid";
+const UNOWNED_ORIGIN = "https://attacker.invalid";
 
 const redisStore = new Map<string, unknown>();
 const redisSetMock = vi.fn(
@@ -83,14 +87,14 @@ vi.mock("next/headers", () => ({
 
 function setEnv() {
   vi.stubEnv("NODE_ENV", "production");
-  process.env.LIVEKIT_URL = "wss://voice.example.livekit.cloud";
+  process.env.LIVEKIT_URL = "wss://voice.invalid";
   process.env.LIVEKIT_API_KEY = "livekit-key";
   process.env.LIVEKIT_API_SECRET = "livekit-secret";
   process.env.LIVEKIT_AGENT_NAME = "dennis-portfolio-agent";
-  process.env.LIVEKIT_ALLOWED_ORIGINS = "https://example.com";
+  process.env.LIVEKIT_ALLOWED_ORIGINS = SITE_ORIGIN;
   process.env.LIVEKIT_TOKEN_AUTH_SECRET = "admin-secret";
   process.env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME = "dennis-portfolio-agent";
-  process.env.UPSTASH_REDIS_REST_URL = "https://redis.example.com";
+  process.env.UPSTASH_REDIS_REST_URL = "https://redis.internal.invalid";
   process.env.UPSTASH_REDIS_REST_TOKEN = "redis-token";
   process.env.QSTASH_URL = "https://qstash-us-east-1.upstash.io";
   process.env.QSTASH_TOKEN = "qstash-token";
@@ -128,11 +132,11 @@ function createRequest(
     headers = {},
   }: { body?: unknown; headers?: Record<string, string> } = {},
 ) {
-  return new Request(`https://example.com${path}`, {
+  return new Request(`${SITE_ORIGIN}${path}`, {
     body: JSON.stringify(body),
     headers: {
       "Content-Type": "application/json",
-      Origin: "https://example.com",
+      Origin: SITE_ORIGIN,
       ...headers,
     },
     method: "POST",
@@ -199,17 +203,10 @@ describe("POST /api/livekit/guest-session", () => {
   });
 
   it("does not schedule the delayed expire callback when cleanup is disabled", async () => {
-    process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "http://localhost:3010,https://example.com,https://dev-tunnel.ngrok-free.app";
     const { POST } = await importGuestRoute();
     const response = await POST(
-      new Request("http://localhost:3010/api/livekit/guest-session", {
-        body: JSON.stringify({}),
-        headers: {
-          "Content-Type": "application/json",
-          Origin: "https://dev-tunnel.ngrok-free.app",
-        },
-        method: "POST",
+      createRequest("/api/livekit/guest-session", {
+        headers: { "x-forwarded-for": "203.0.113.10" },
       }),
     );
 
@@ -251,24 +248,17 @@ describe("POST /api/livekit/guest-session", () => {
         LIVEKIT_GUEST_CLEANUP_ENABLED: true,
       };
     });
-    process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "http://localhost:3010,https://example.com,https://dev-tunnel.ngrok-free.app";
     const { POST } = await importGuestRoute();
     const response = await POST(
-      new Request("http://localhost:3010/api/livekit/guest-session", {
-        body: JSON.stringify({}),
-        headers: {
-          "Content-Type": "application/json",
-          Origin: "https://dev-tunnel.ngrok-free.app",
-        },
-        method: "POST",
+      createRequest("/api/livekit/guest-session", {
+        headers: { "x-forwarded-for": "203.0.113.10" },
       }),
     );
 
     expect(response.status).toBe(201);
     expect(publishJSONMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        url: "http://localhost:3010/api/livekit/guest-session/expire",
+        url: `${SITE_ORIGIN}/api/livekit/guest-session/expire`,
       }),
     );
     vi.doUnmock("~/server/livekit/guest-session-config");
@@ -442,11 +432,60 @@ describe("POST /api/livekit/guest-session", () => {
     const { POST } = await importGuestRoute();
     const response = await POST(
       createRequest("/api/livekit/guest-session", {
-        headers: { Origin: "https://evil.example" },
+        headers: { Origin: UNOWNED_ORIGIN },
       }),
     );
 
     expect(response.status).toBe(403);
+  });
+
+  it("rejects a missing origin in production", async () => {
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      new Request(`${SITE_ORIGIN}/api/livekit/guest-session`, {
+        body: JSON.stringify({}),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(403);
+  });
+
+  it("allows the canonical production portfolio origin", async () => {
+    process.env.LIVEKIT_ALLOWED_ORIGINS = DEV_TUNNEL_ORIGIN;
+    const { OPTIONS } = await importGuestRoute();
+    const response = OPTIONS(
+      new Request(`${SITE_ORIGIN}/api/livekit/guest-session`, {
+        headers: {
+          Origin: SITE_ORIGIN,
+        },
+        method: "OPTIONS",
+      }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      SITE_ORIGIN,
+    );
+  });
+
+  it("does not expand production defaults with configured origins", async () => {
+    const { resolveLiveKitAllowedOrigins } =
+      await import("~/server/livekit/route-policy");
+    const defaultOrigins = resolveLiveKitAllowedOrigins({
+      nodeEnv: "production",
+    });
+    const configuredOrigins = resolveLiveKitAllowedOrigins({
+      configuredOrigins: UNOWNED_ORIGIN,
+      nodeEnv: "production",
+    });
+
+    expect(defaultOrigins).toEqual(new Set([SITE_ORIGIN]));
+    expect(configuredOrigins).toEqual(new Set([SITE_ORIGIN]));
+    expect(configuredOrigins.has(UNOWNED_ORIGIN)).toBe(false);
   });
 
   it("prefers trusted real-ip headers before x-forwarded-for", async () => {
@@ -462,44 +501,36 @@ describe("POST /api/livekit/guest-session", () => {
   });
 
   it("does not use an unallowed forwarded host for QStash callbacks", async () => {
-    process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "https://example.com,https://dev-tunnel.ngrok-free.app";
+    process.env.LIVEKIT_ALLOWED_ORIGINS = `${SITE_ORIGIN},${DEV_TUNNEL_ORIGIN}`;
     const { getGuestExpireUrl } =
       await import("~/server/livekit/guest-session");
-    const request = new Request(
-      "https://example.com/api/livekit/guest-session",
-      {
-        headers: {
-          "x-forwarded-host": "attacker.example",
-          "x-forwarded-proto": "https",
-        },
-        method: "POST",
+    const request = new Request(`${SITE_ORIGIN}/api/livekit/guest-session`, {
+      headers: {
+        "x-forwarded-host": "attacker.invalid",
+        "x-forwarded-proto": "https",
       },
-    );
+      method: "POST",
+    });
 
     expect(getGuestExpireUrl(request)).toBe(
-      "https://example.com/api/livekit/guest-session/expire",
+      `${SITE_ORIGIN}/api/livekit/guest-session/expire`,
     );
   });
 
   it("uses the API host instead of an allowed browser origin for QStash callbacks", async () => {
     vi.resetModules();
-    process.env.LIVEKIT_ALLOWED_ORIGINS =
-      "https://api.example.com,https://storybook.example.com";
+    process.env.LIVEKIT_ALLOWED_ORIGINS = `${SITE_ORIGIN},${DEV_TUNNEL_ORIGIN}`;
     const { getGuestExpireUrl } =
       await import("~/server/livekit/guest-session");
-    const request = new Request(
-      "https://api.example.com/api/livekit/guest-session",
-      {
-        headers: {
-          Origin: "https://storybook.example.com",
-        },
-        method: "POST",
+    const request = new Request(`${SITE_ORIGIN}/api/livekit/guest-session`, {
+      headers: {
+        Origin: DEV_TUNNEL_ORIGIN,
       },
-    );
+      method: "POST",
+    });
 
     expect(getGuestExpireUrl(request)).toBe(
-      "https://api.example.com/api/livekit/guest-session/expire",
+      `${SITE_ORIGIN}/api/livekit/guest-session/expire`,
     );
   });
 });

@@ -131,9 +131,63 @@ For each environment:
 Expected production values for the current prod app:
 
 ```text
-LIVEKIT_ALLOWED_ORIGINS=https://starter-three-sepia.vercel.app
+LIVEKIT_ALLOWED_ORIGINS=https://www.dennisxing.fm
 LIVEKIT_AGENT_NAME=dennis-portfolio-agent
 ```
+
+Production allows only the canonical portfolio origin. The public guest-session
+route also requires the browser to send an `Origin` header in production, because
+normal portfolio calls should come from `https://www.dennisxing.fm` and do not
+need curl or server-to-server token minting. The LiveKit routes use the shared
+code defaults for production and do not expand the production allowlist from
+`LIVEKIT_ALLOWED_ORIGINS`. Keep the Vercel/Infisical value aligned with the code
+default for operator clarity; use `LIVEKIT_ALLOWED_ORIGINS` to add tunnel or
+preview origins only in non-production environments.
+
+## Production Domain and HTTPS
+
+The canonical portfolio URL is:
+
+```text
+https://www.dennisxing.fm
+```
+
+Vercel should have both domains attached to the same production project:
+
+```text
+www.dennisxing.fm
+dennisxing.fm
+```
+
+DNS expectations:
+
+1. Point `www` at the Vercel-provided target.
+2. Add the apex/root `dennisxing.fm` record Vercel requests.
+3. Wait for Vercel to issue certificates for both hostnames.
+4. Keep the repo-level Vercel redirect from `dennisxing.fm/:path*` to
+   `https://www.dennisxing.fm/:path*`.
+
+Validation commands:
+
+```sh
+curl -I -L https://www.dennisxing.fm/livekit-agent
+curl -I -L http://www.dennisxing.fm/livekit-agent
+curl -I -L https://dennisxing.fm/livekit-agent
+curl -i -X OPTIONS https://www.dennisxing.fm/api/livekit/guest-session \
+  -H 'Origin: https://www.dennisxing.fm'
+```
+
+Expected LiveKit CORS result after redeploy:
+
+```text
+HTTP/2 204
+access-control-allow-origin: https://www.dennisxing.fm
+```
+
+If Chrome still labels the page "Not secure" while the certificate is valid,
+open DevTools -> Security and check the specific reason. The most likely
+remaining causes are unresolved apex DNS, stale browser state, or mixed content
+from an `http://` or `ws://` runtime URL. `LIVEKIT_URL` must use `wss://`.
 
 ## Local Development
 

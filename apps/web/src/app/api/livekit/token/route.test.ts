@@ -34,6 +34,7 @@ function clearEnv() {
     "LIVEKIT_ALLOWED_ORIGINS",
     "LIVEKIT_TOKEN_AUTH_SECRET",
     "NEXT_PUBLIC_LIVEKIT_AGENT_NAME",
+    "VERCEL_ENV",
   ]) {
     delete process.env[key];
   }
@@ -102,6 +103,25 @@ describe("POST /api/livekit/token", () => {
     expect(response.status).toBe(204);
     expect(response.headers.get("access-control-allow-origin")).toBe(
       SITE_ORIGIN,
+    );
+  });
+
+  it("allows configured origins on Vercel preview deployments", async () => {
+    process.env.VERCEL_ENV = "preview";
+    process.env.LIVEKIT_ALLOWED_ORIGINS = MISCONFIGURED_PRODUCTION_ORIGIN;
+    const { OPTIONS } = await importRoute();
+    const response = OPTIONS(
+      new Request(`${MISCONFIGURED_PRODUCTION_ORIGIN}/api/livekit/token`, {
+        headers: {
+          Origin: MISCONFIGURED_PRODUCTION_ORIGIN,
+        },
+        method: "OPTIONS",
+      }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      MISCONFIGURED_PRODUCTION_ORIGIN,
     );
   });
 });

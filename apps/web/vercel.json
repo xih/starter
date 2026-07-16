@@ -37,6 +37,17 @@
       ],
       "destination": "https://www.dennisxing.fm/:path*",
       "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "starter-three-sepia.vercel.app"
+        }
+      ],
+      "destination": "https://www.dennisxing.fm/:path*",
+      "permanent": true
     }
   ]
 }

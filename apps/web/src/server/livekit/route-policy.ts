@@ -43,14 +43,30 @@ export function isLocalDevelopmentOrigin(origin: string) {
   }
 }
 
+export function isCanonicalLiveKitProduction({
+  nodeEnv,
+  vercelEnv = process.env.VERCEL_ENV,
+}: {
+  nodeEnv: LiveKitNodeEnv;
+  vercelEnv?: string;
+}) {
+  if (nodeEnv !== "production") {
+    return false;
+  }
+
+  return vercelEnv === undefined || vercelEnv === "production";
+}
+
 export function resolveLiveKitAllowedOrigins({
   configuredOrigins,
   nodeEnv,
+  vercelEnv,
 }: {
   configuredOrigins?: string;
   nodeEnv: LiveKitNodeEnv;
+  vercelEnv?: string;
 }) {
-  if (nodeEnv === "production" && process.env.VERCEL_ENV !== "preview") {
+  if (isCanonicalLiveKitProduction({ nodeEnv, vercelEnv })) {
     return new Set(PRODUCTION_ALLOWED_ORIGINS);
   }
 

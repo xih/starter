@@ -127,6 +127,7 @@ function clearEnv() {
     "QSTASH_CURRENT_SIGNING_KEY",
     "QSTASH_NEXT_SIGNING_KEY",
     "LIVEKIT_GUEST_RATE_LIMIT_SALT",
+    "VERCEL_ENV",
   ]) {
     delete process.env[key];
   }
@@ -475,6 +476,25 @@ describe("POST /api/livekit/guest-session", () => {
     );
   });
 
+  it("allows configured origins on Vercel preview deployments", async () => {
+    process.env.VERCEL_ENV = "preview";
+    process.env.LIVEKIT_ALLOWED_ORIGINS = DEV_TUNNEL_ORIGIN;
+    const { OPTIONS } = await importGuestRoute();
+    const response = OPTIONS(
+      new Request(`${DEV_TUNNEL_ORIGIN}/api/livekit/guest-session`, {
+        headers: {
+          Origin: DEV_TUNNEL_ORIGIN,
+        },
+        method: "OPTIONS",
+      }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      DEV_TUNNEL_ORIGIN,
+    );
+  });
+
   it("does not expand production defaults with configured origins", async () => {
     const { resolveLiveKitAllowedOrigins } =
       await import("~/server/livekit/route-policy");
@@ -489,6 +509,31 @@ describe("POST /api/livekit/guest-session", () => {
     expect(defaultOrigins).toEqual(new Set([SITE_ORIGIN]));
     expect(configuredOrigins).toEqual(new Set([SITE_ORIGIN]));
     expect(configuredOrigins.has(UNOWNED_ORIGIN)).toBe(false);
+  });
+
+  it("uses configured origins for Vercel preview deployments", async () => {
+    const { resolveLiveKitAllowedOrigins } =
+      await import("~/server/livekit/route-policy");
+    const configuredOrigins = resolveLiveKitAllowedOrigins({
+      configuredOrigins: DEV_TUNNEL_ORIGIN,
+      nodeEnv: "production",
+      vercelEnv: "preview",
+    });
+
+    expect(configuredOrigins).toEqual(new Set([DEV_TUNNEL_ORIGIN]));
+    expect(configuredOrigins.has(SITE_ORIGIN)).toBe(false);
+  });
+
+  it("uses configured origins for staging-like Vercel deployments", async () => {
+    const { resolveLiveKitAllowedOrigins } =
+      await import("~/server/livekit/route-policy");
+    const configuredOrigins = resolveLiveKitAllowedOrigins({
+      configuredOrigins: DEV_TUNNEL_ORIGIN,
+      nodeEnv: "production",
+      vercelEnv: "staging",
+    });
+
+    expect(configuredOrigins).toEqual(new Set([DEV_TUNNEL_ORIGIN]));
   });
 
   it("prefers trusted real-ip headers before x-forwarded-for", async () => {

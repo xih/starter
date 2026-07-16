@@ -139,10 +139,18 @@ Production allows only the canonical portfolio origin. The public guest-session
 route also requires the browser to send an `Origin` header in production, because
 normal portfolio calls should come from `https://www.dennisxing.fm` and do not
 need curl or server-to-server token minting. The LiveKit routes use the shared
-code defaults for production and do not expand the production allowlist from
-`LIVEKIT_ALLOWED_ORIGINS`. Keep the Vercel/Infisical value aligned with the code
-default for operator clarity; use `LIVEKIT_ALLOWED_ORIGINS` to add tunnel or
-preview origins only in non-production environments.
+code defaults for Vercel Production and do not expand the production allowlist
+from `LIVEKIT_ALLOWED_ORIGINS`. Keep the Vercel/Infisical value aligned with the
+code default for operator clarity.
+
+Vercel Preview, Development, and staging-like deployments run with
+`NODE_ENV=production`, but they are not the canonical production environment.
+For those deployments, set `LIVEKIT_ALLOWED_ORIGINS` to the exact preview or
+tunnel origins that should be able to request LiveKit tokens. For example:
+
+```text
+LIVEKIT_ALLOWED_ORIGINS=https://<preview-host>.vercel.app,https://<tunnel-host>
+```
 
 ## Production Domain and HTTPS
 

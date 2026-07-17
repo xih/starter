@@ -452,6 +452,70 @@ describe("POST /api/livekit/guest-session", () => {
     vi.doUnmock("~/server/livekit/guest-session-config");
   });
 
+  it("replaces an active guest session without cooldown denial", async () => {
+    vi.doMock("~/server/livekit/guest-session-config", async () => {
+      const actual = await vi.importActual<typeof guestSessionConfig>(
+        "~/server/livekit/guest-session-config",
+      );
+
+      return {
+        ...actual,
+        LIVEKIT_GUEST_COOLDOWN_ENABLED: true,
+      };
+    });
+    vi.resetModules();
+    cookieValue = "existing-device";
+    const {
+      guestActiveKey,
+      guestDeviceCooldownKey,
+      guestIpCooldownKey,
+      guestSessionKey,
+      hashGuestIdentifier,
+    } = await import("~/server/livekit/guest-session");
+    const [deviceHash, ipHash] = await Promise.all([
+      hashGuestIdentifier("existing-device"),
+      hashGuestIdentifier("203.0.113.10"),
+    ]);
+    const sessionId = "guest_session_existing";
+    const userId = `guest_${deviceHash.slice(0, 16)}`;
+    redisStore.set(guestActiveKey(deviceHash, ipHash), sessionId);
+    redisStore.set(guestDeviceCooldownKey(deviceHash), sessionId);
+    redisStore.set(guestIpCooldownKey(ipHash), sessionId);
+    redisStore.set(guestSessionKey(sessionId), {
+      agentName: "dennis-portfolio-agent",
+      createdAt: new Date().toISOString(),
+      deviceHash,
+      expiresAt: new Date(Date.now() + 30_000).toISOString(),
+      ipHash,
+      personaId: "portfolio-agent",
+      participantIdentity: "guest_guest_session_existing",
+      roomName: "guest_guest_session_existing",
+      sessionId,
+      status: "active",
+      userId,
+    });
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: { persona_id: "wife" },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as {
+      code?: string;
+      session_id?: string;
+    };
+    const expiredRecord = redisStore.get(guestSessionKey(sessionId)) as
+      | { status?: string }
+      | undefined;
+
+    expect(response.status).toBe(201);
+    expect(payload.code).toBeUndefined();
+    expect(payload.session_id).not.toBe(sessionId);
+    expect(expiredRecord?.status).toBe("expired");
+    vi.doUnmock("~/server/livekit/guest-session-config");
+  });
+
   it("blocks stale active locks until the lock TTL expires", async () => {
     cookieValue = "existing-device";
     const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =

@@ -140,13 +140,17 @@ function createDispatchMetadata({
   userId?: string;
 }) {
   const parsed = parseAgentMetadata(existingMetadata);
-
-  return JSON.stringify({
+  const metadata: Record<string, unknown> = {
     ...(parsed ?? {}),
     persona_id: personaId,
     session_id: sessionId,
-    user_id: userId,
-  });
+  };
+
+  if (userId) {
+    metadata.user_id = userId;
+  }
+
+  return JSON.stringify(metadata);
 }
 
 export function OPTIONS(request: Request) {

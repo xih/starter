@@ -186,20 +186,13 @@ export async function POST(request: Request) {
     );
   }
 
-  if (
-    activeRecord?.status === "active" &&
-    Date.parse(activeRecord.expiresAt) > Date.now()
-  ) {
-    await expireGuestSessionRecord(activeRecord);
-  }
-
   if (LIVEKIT_GUEST_COOLDOWN_ENABLED) {
     const [deviceCooldown, ipCooldown] = await Promise.all([
       redis.get(guestDeviceCooldownKey(deviceHash)),
       redis.get(guestIpCooldownKey(ipHash)),
     ]);
 
-    if (deviceCooldown || ipCooldown) {
+    if ((deviceCooldown || ipCooldown) && !activeRecord) {
       return jsonWithCors(
         request,
         {
@@ -210,6 +203,13 @@ export async function POST(request: Request) {
         { status: 429 },
       );
     }
+  }
+
+  if (
+    activeRecord?.status === "active" &&
+    Date.parse(activeRecord.expiresAt) > Date.now()
+  ) {
+    await expireGuestSessionRecord(activeRecord);
   }
 
   const claimResult = await redis.set(activeKey, sessionId, {

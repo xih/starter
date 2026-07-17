@@ -199,6 +199,41 @@ describe("POST /api/livekit/token", () => {
     });
   });
 
+  it("preserves user id supplied only in agent metadata", async () => {
+    const { POST } = await importRoute();
+    const response = await POST(
+      createDispatchRequest(
+        {
+          room_config: {
+            agents: [
+              {
+                agentName: "dennis-portfolio-agent",
+                agent_metadata: JSON.stringify({
+                  persona_id: "wife",
+                  user_id: "metadata-user",
+                }),
+              },
+            ],
+          },
+        },
+        { Authorization: "Bearer admin-secret" },
+      ),
+    );
+    const roomConfig = accessTokenRecords[0]?.roomConfig as {
+      agents?: Array<{ metadata?: string }>;
+    };
+    const metadata = JSON.parse(roomConfig.agents?.[0]?.metadata ?? "{}") as {
+      persona_id?: string;
+      user_id?: string;
+    };
+
+    expect(response.status).toBe(201);
+    expect(metadata).toMatchObject({
+      persona_id: "wife",
+      user_id: "metadata-user",
+    });
+  });
+
   it("allows the canonical production portfolio origin", async () => {
     process.env.LIVEKIT_ALLOWED_ORIGINS = MISCONFIGURED_PRODUCTION_ORIGIN;
     const { OPTIONS } = await importRoute();

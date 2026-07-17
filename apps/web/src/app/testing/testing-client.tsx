@@ -232,10 +232,15 @@ export function TestingClient() {
   const [sessionStarted, setSessionStarted] = useState(false);
   const [tokenEndpoint, setTokenEndpoint] = useState(DEFAULT_TOKEN_ENDPOINT);
 
-  const startSession = async () => {
-    setLoadErrorMessage(null);
+  const restartSession = () => {
+    setRoomName(createRoomName());
     setSessionKey((key) => key + 1);
     setSessionStarted(true);
+  };
+
+  const startSession = async () => {
+    setLoadErrorMessage(null);
+    restartSession();
 
     if (SessionComponent) return;
 
@@ -301,6 +306,8 @@ export function TestingClient() {
               setSessionStarted(false);
               setRoomName(createRoomName());
             }}
+            onRestartWithPersona={restartSession}
+            onSelectPersona={setSelectedPersonaId}
             roomName={roomName}
             selectedPersonaId={selectedPersonaId}
             tokenEndpoint={tokenEndpoint}

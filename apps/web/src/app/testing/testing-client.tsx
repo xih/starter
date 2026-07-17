@@ -232,15 +232,10 @@ export function TestingClient() {
   const [sessionStarted, setSessionStarted] = useState(false);
   const [tokenEndpoint, setTokenEndpoint] = useState(DEFAULT_TOKEN_ENDPOINT);
 
-  const restartSession = () => {
-    setRoomName(createRoomName());
-    setSessionKey((key) => key + 1);
-    setSessionStarted(true);
-  };
-
   const startSession = async () => {
     setLoadErrorMessage(null);
-    restartSession();
+    setSessionKey((key) => key + 1);
+    setSessionStarted(true);
 
     if (SessionComponent) return;
 

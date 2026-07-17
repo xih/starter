@@ -40,6 +40,7 @@ import {
   fallbackPersonaVoiceOptions,
   PersonaVoiceSwitcher,
 } from "~/components/PersonaVoiceSwitcher";
+import { usePersonaSwitchRpc } from "~/components/persona-switch-rpc";
 import { Button } from "~/components/ui/button";
 import { OrbShader } from "~/components/OrbShader";
 import { useInputControls } from "~/hooks/agents-ui/use-agent-control-bar";
@@ -56,7 +57,6 @@ const DEFAULT_MOBILE_VOICE: VoiceOption = {
   description: "Softbank founder",
   name: "Masa Son",
 };
-const PERSONA_TTS_SWITCH_RPC_METHOD = "persona.switch_tts";
 
 type OrderedAgentSideBarMessage = AgentSideBarMessage & {
   order: number;
@@ -286,6 +286,12 @@ function TestingSessionContent({
   const agent = useAgent(session);
   const sessionMessages = useSessionMessages(session);
   const { microphoneToggle } = useInputControls();
+  const switchPersonaRpc = usePersonaSwitchRpc({
+    agentIdentity: agent.identity,
+    localParticipant: session.room.localParticipant,
+    roomName,
+    userId: "testing-user",
+  });
   const startAbortControllerRef = useRef<AbortController | null>(null);
   const didAutoStartRef = useRef(false);
   const [toolCallStatus, dispatchToolCallStatus] = useReducer(
@@ -473,17 +479,10 @@ function TestingSessionContent({
         roomName,
       });
 
-      void session.room.localParticipant
-        .performRpc({
-          destinationIdentity: agent.identity,
-          method: PERSONA_TTS_SWITCH_RPC_METHOD,
-          payload: JSON.stringify({
-            persona_id: personaId,
-            session_id: roomName,
-            user_id: "testing-user",
-          }),
-          responseTimeout: 8_000,
-        })
+      void switchPersonaRpc({
+        personaId,
+        voice: true,
+      })
         .then((response) => {
           console.info("persona_tts_switch_completed", {
             personaId,
@@ -512,10 +511,10 @@ function TestingSessionContent({
       roomName,
       selectedPersonaId,
       session.connectionState,
-      session.room.localParticipant,
       setErrorMessage,
       setInputValue,
       setManualState,
+      switchPersonaRpc,
     ],
   );
 

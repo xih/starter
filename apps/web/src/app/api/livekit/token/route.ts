@@ -153,6 +153,12 @@ function createDispatchMetadata({
   return JSON.stringify(metadata);
 }
 
+function isResolvedDispatchAgent<T>(
+  dispatchAgent: T | null,
+): dispatchAgent is T {
+  return dispatchAgent !== null;
+}
+
 export function OPTIONS(request: Request) {
   if (!isOriginAllowed(request.headers.get("origin"))) {
     return new NextResponse(null, {
@@ -223,16 +229,6 @@ export async function POST(request: Request) {
   }
 
   const body = parsed.data;
-  const requestedMetadata = body.room_config?.agents?.[0];
-  const parsedAgentMetadata = parseAgentMetadata(
-    requestedMetadata?.agent_metadata ?? requestedMetadata?.metadata,
-  );
-  const metadataPersonaId =
-    typeof parsedAgentMetadata?.persona_id === "string"
-      ? parsedAgentMetadata.persona_id
-      : undefined;
-  const personaId = body.persona_id ?? metadataPersonaId ?? DEFAULT_PERSONA_ID;
-
   const roomName = body.room_name ?? createLiveKitId("agent_room");
   const participantIdentity =
     body.participant_identity ?? createLiveKitId("anonymous_participant");
@@ -265,9 +261,28 @@ export async function POST(request: Request) {
   });
 
   if (agentsToDispatch.length > 0) {
-    const persona = await getPersona(personaId);
+    const dispatchAgents = await Promise.all(
+      agentsToDispatch.map(async (requestedAgent) => {
+        const existingMetadata =
+          requestedAgent.agent_metadata ?? requestedAgent.metadata;
+        const parsedAgentMetadata = parseAgentMetadata(existingMetadata);
+        const metadataPersonaId =
+          typeof parsedAgentMetadata?.persona_id === "string"
+            ? parsedAgentMetadata.persona_id
+            : undefined;
+        const personaId =
+          body.persona_id ?? metadataPersonaId ?? DEFAULT_PERSONA_ID;
+        const persona = await getPersona(personaId);
 
-    if (!persona) {
+        if (!persona) {
+          return null;
+        }
+
+        return { existingMetadata, persona, requestedAgent };
+      }),
+    );
+
+    if (!dispatchAgents.every(isResolvedDispatchAgent)) {
       return jsonWithCors(
         request,
         { error: "Unknown persona requested.", code: "unknown_persona" },
@@ -277,13 +292,12 @@ export async function POST(request: Request) {
 
     token.roomConfig = new RoomConfiguration({
       name: roomName,
-      agents: agentsToDispatch.map((requestedAgent) => {
+      agents: dispatchAgents.map((dispatchAgent) => {
+        const { existingMetadata, persona, requestedAgent } = dispatchAgent;
         const agentName =
           requestedAgent.agent_name ??
           requestedAgent.agentName ??
           resolvedAgentName;
-        const existingMetadata =
-          requestedAgent.agent_metadata ?? requestedAgent.metadata;
 
         return new RoomAgentDispatch({
           agentName,

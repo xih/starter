@@ -134,6 +134,33 @@ class PersonaAgentTests(unittest.TestCase):
         self.assertFalse(persona.requires_cartesia_plugin)
         self.assertEqual(persona.tts_voice_id, agent.TTS_VOICE_ID)
 
+    def test_fetch_persona_config_preserves_not_required_public_voice(self):
+        payload = {
+            "compiled_prompt": "Public persona prompt.",
+            "persona": {
+                "id": "public-voice",
+                "greeting": "Hello.",
+                "tts_model": "cartesia/sonic-3.5",
+                "cartesia_voice_id": "public-voice-123",
+                "tts_language": "en",
+                "voice_consent_status": "not_required",
+                "source_rights_status": "owned",
+            },
+        }
+        response = Mock()
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=None)
+        response.read.return_value = json.dumps(payload).encode("utf-8")
+
+        with (
+            patch.object(agent, "PERSONA_BASE_URL", "http://localhost:3000"),
+            patch("agent.urllib.request.urlopen", return_value=response),
+        ):
+            persona = agent.fetch_persona_config("public-voice", "user-123")
+
+        self.assertTrue(persona.requires_cartesia_plugin)
+        self.assertEqual(persona.tts_voice_id, "public-voice-123")
+
     def test_create_tts_uses_cartesia_plugin_for_custom_voice(self):
         persona = agent.PersonaConfig(
             id="wife-e2e",

@@ -171,11 +171,14 @@ def fetch_persona_config(persona_id: str, user_id: str | None) -> PersonaConfig:
     if not isinstance(persona, dict):
         return fallback
 
-    approved_voice = (
-        persona.get("voice_consent_status") == "approved"
-        and persona.get("source_rights_status") in {"authorized", "licensed", "owned"}
+    source_rights_status = persona.get("source_rights_status")
+    voice_consent_status = persona.get("voice_consent_status")
+    valid_source_rights = source_rights_status in {"authorized", "licensed", "owned"}
+    voice_allowed = (
+        voice_consent_status == "approved"
+        or (voice_consent_status == "not_required" and valid_source_rights)
     )
-    voice_id = persona.get("cartesia_voice_id") if approved_voice else None
+    voice_id = persona.get("cartesia_voice_id") if voice_allowed else None
     speed = persona.get("tts_speed")
     emotion = persona.get("tts_emotion")
     tts_options: dict[str, Any] = {}

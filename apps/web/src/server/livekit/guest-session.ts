@@ -83,6 +83,8 @@ export type GuestSessionRecord = {
   roomName: string;
   participantIdentity: string;
   agentName: string;
+  personaId: string;
+  userId: string;
   expiresAt: string;
   createdAt: string;
   deviceHash: string;
@@ -181,6 +183,15 @@ export function assertGuestSessionEnv() {
 
   if (!liveKit.ok) {
     return liveKit;
+  }
+
+  if (!parsedGuestEnv.success) {
+    return {
+      ok: false as const,
+      error:
+        "LiveKit guest sessions are not configured. Fix invalid Upstash Redis, QStash, or guest rate limit environment values.",
+      issues: parsedGuestEnv.error.issues,
+    };
   }
 
   const missing = [
@@ -403,6 +414,8 @@ export async function issueGuestLiveKitToken(record: GuestSessionRecord) {
         agentName: record.agentName,
         metadata: JSON.stringify({
           source: "guest_session",
+          persona_id: record.personaId,
+          user_id: record.userId,
           session_id: record.sessionId,
           expires_at: record.expiresAt,
         }),

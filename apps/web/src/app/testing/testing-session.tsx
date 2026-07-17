@@ -33,8 +33,13 @@ import {
 import {
   AgentSideBar,
   type AgentSideBarMessage,
+  type AgentSideBarPersona,
   type AgentSideBarState,
 } from "~/components/AgentSideBar";
+import {
+  fallbackPersonaVoiceOptions,
+  PersonaVoiceSwitcher,
+} from "~/components/PersonaVoiceSwitcher";
 import { Button } from "~/components/ui/button";
 import { OrbShader } from "~/components/OrbShader";
 import { useInputControls } from "~/hooks/agents-ui/use-agent-control-bar";
@@ -151,7 +156,9 @@ function stateFromSession({
   hasMessages: boolean;
   manualState: AgentSideBarState;
 }): AgentSideBarState {
-  if (manualState === "error") return "error";
+  if (manualState === "error" || manualState === "switching") {
+    return manualState;
+  }
   if (hasInput) return "user-typing";
   if (connectionState === ConnectionState.Connecting) return "loading";
   if (agentState === "speaking" || agentState === "thinking") {
@@ -191,6 +198,7 @@ export type TestingSessionProps = {
   agentName: string;
   onSessionEnded: () => void;
   roomName: string;
+  selectedPersonaId: string;
   tokenEndpoint: string;
 };
 
@@ -198,6 +206,7 @@ export function TestingSession({
   agentName,
   onSessionEnded,
   roomName,
+  selectedPersonaId,
   tokenEndpoint,
 }: TestingSessionProps) {
   const [inputValue, setInputValue] = useState("");
@@ -211,6 +220,11 @@ export function TestingSession({
   );
   const session = useSession(tokenSource, {
     agentName,
+    agentMetadata: JSON.stringify({
+      persona_id: selectedPersonaId,
+      session_id: roomName,
+      user_id: "testing-user",
+    }),
     participantName: "Testing Guest",
     roomName,
   });
@@ -224,6 +238,7 @@ export function TestingSession({
         manualState={manualState}
         onSessionEnded={onSessionEnded}
         roomName={roomName}
+        selectedPersonaId={selectedPersonaId}
         session={session}
         setErrorMessage={setErrorMessage}
         setInputValue={setInputValue}
@@ -242,6 +257,7 @@ function TestingSessionContent({
   manualState,
   onSessionEnded,
   roomName,
+  selectedPersonaId,
   session,
   setErrorMessage,
   setInputValue,
@@ -254,6 +270,7 @@ function TestingSessionContent({
   manualState: AgentSideBarState;
   onSessionEnded: () => void;
   roomName: string;
+  selectedPersonaId: string;
   session: ReturnType<typeof useSession>;
   setErrorMessage: (message: string) => void;
   setInputValue: (value: string) => void;
@@ -274,6 +291,9 @@ function TestingSessionContent({
   const [optimisticMessages, setOptimisticMessages] = useState<
     OrderedAgentSideBarMessage[]
   >([]);
+  const [personas, setPersonas] = useState<AgentSideBarPersona[]>(
+    fallbackPersonaVoiceOptions,
+  );
   const liveMessages = sessionMessages.messages
     .map((message, index) =>
       toAgentSideBarMessage(
@@ -423,6 +443,27 @@ function TestingSessionContent({
   }, [startSession]);
 
   useEffect(() => {
+    let isActive = true;
+
+    void fetch("/api/personas")
+      .then(
+        (response) =>
+          response.json() as Promise<{ personas?: AgentSideBarPersona[] }>,
+      )
+      .then((payload) => {
+        if (!isActive || !payload.personas?.length) return;
+        setPersonas(payload.personas);
+      })
+      .catch((error) => {
+        console.error("Could not load testing session personas", error);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!session.room) return;
 
     return registerToolCallStatusRpc(session.room, dispatchToolCallStatus);
@@ -550,6 +591,14 @@ function TestingSessionContent({
           onToggleMicrophone={() => {
             void microphoneToggle.toggle(!microphoneToggle.enabled);
           }}
+          onSelectPersona={() => {
+            setErrorMessage(
+              "End this testing session, choose a different persona, then start again.",
+            );
+            setManualState("switching");
+          }}
+          personas={personas}
+          selectedPersonaId={selectedPersonaId}
         />
 
         <div className="hidden md:block">
@@ -562,12 +611,20 @@ function TestingSessionContent({
             messages={messages}
             onChangeInput={setInputValue}
             onEnd={endSession}
+            onSelectPersona={() => {
+              setErrorMessage(
+                "End this testing session, choose a different persona, then start again.",
+              );
+              setManualState("switching");
+            }}
             onSend={sendMessage}
             onStart={startSession}
             onStopResponse={endSession}
             onToggleMicrophone={() => {
               void microphoneToggle.toggle(!microphoneToggle.enabled);
             }}
+            personas={personas}
+            selectedPersonaId={selectedPersonaId}
             state={state}
             voiceName="Portfolio Agent"
           />
@@ -590,9 +647,12 @@ function MobileAgentControlSurface({
   onEnd,
   onRetry,
   onSend,
+  onSelectPersona,
   onStopResponse,
   onToggleMicrophone,
   orbSize,
+  personas,
+  selectedPersonaId,
 }: {
   agentState: string;
   controlState: "default" | "user-typing" | "agent-streaming";
@@ -606,13 +666,18 @@ function MobileAgentControlSurface({
   onEnd: () => void;
   onRetry: () => void;
   onSend: (value: string) => void | Promise<void>;
+  onSelectPersona: (personaId: string) => void;
   onStopResponse: () => void | Promise<void>;
   onToggleMicrophone: () => void | Promise<void>;
   orbSize: number;
+  personas: AgentSideBarPersona[];
+  selectedPersonaId: string;
 }) {
   const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
   const [voice, setVoice] = useState<VoiceOption>(DEFAULT_MOBILE_VOICE);
   const toggleVoicePanel = () => setIsVoicePanelOpen((open) => !open);
+  const selectedPersona =
+    personas.find((persona) => persona.id === selectedPersonaId) ?? personas[0];
   const controlStackHeight = isVoicePanelOpen
     ? "var(--ds-agent-control-mobile-open-stack-height)"
     : "var(--ds-agent-control-bar-height)";
@@ -621,6 +686,16 @@ function MobileAgentControlSurface({
     "--mobile-orb-size": `${orbSize}px`,
     "--mobile-transcript-bottom": `calc(var(--mobile-orb-bottom) + var(--mobile-orb-size) + var(--ds-agent-mobile-transcript-gap))`,
   } as CSSProperties;
+
+  useEffect(() => {
+    if (!selectedPersona) return;
+
+    setVoice({
+      avatar: selectedPersona.avatar_url,
+      description: selectedPersona.description,
+      name: selectedPersona.display_name,
+    });
+  }, [selectedPersona]);
 
   return (
     <div className="relative min-h-svh md:hidden" style={orbStyle}>
@@ -664,6 +739,11 @@ function MobileAgentControlSurface({
             </motion.div>
           ) : null}
         </AnimatePresence>
+        <PersonaVoiceSwitcher
+          onSelectPersona={onSelectPersona}
+          personas={personas}
+          selectedPersonaId={selectedPersonaId}
+        />
         <DesignAgentControlBar
           className="w-full"
           inputValue={inputValue}

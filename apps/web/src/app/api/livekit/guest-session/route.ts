@@ -27,6 +27,7 @@ import {
   LIVEKIT_GUEST_SIGNUP_URL,
 } from "~/server/livekit/guest-session";
 import { assertGuestSessionEnv } from "~/server/livekit/guest-session";
+import { DEFAULT_PERSONA_ID, getPersona } from "~/server/personas";
 
 export const runtime = "nodejs";
 
@@ -58,6 +59,58 @@ export function OPTIONS(request: Request) {
   });
 }
 
+function parseAgentMetadata(metadata: unknown) {
+  if (typeof metadata !== "string" || !metadata.trim()) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(metadata) as unknown;
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+async function getRequestedPersonaMetadata(request: Request) {
+  const body = (await request.json().catch(() => null)) as {
+    persona_id?: unknown;
+    room_config?: {
+      agents?: Array<{
+        agent_metadata?: unknown;
+        metadata?: unknown;
+      }>;
+    };
+  } | null;
+  const requestedAgent = body?.room_config?.agents?.[0];
+  const metadata = parseAgentMetadata(
+    requestedAgent?.agent_metadata ?? requestedAgent?.metadata,
+  );
+  const personaId =
+    (typeof body?.persona_id === "string" ? body.persona_id : undefined) ??
+    (typeof metadata.persona_id === "string" ? metadata.persona_id : undefined);
+  const trimmedPersonaId = personaId?.trim();
+
+  return {
+    personaId:
+      trimmedPersonaId && trimmedPersonaId.length > 0
+        ? trimmedPersonaId
+        : DEFAULT_PERSONA_ID,
+  };
+}
+
+function isSameGuestSessionRequest(
+  record: GuestSessionRecord,
+  requested: { personaId: string; userId: string },
+) {
+  return (
+    record.personaId === requested.personaId &&
+    record.userId === requested.userId
+  );
+}
+
 export async function POST(request: Request) {
   if (!isOriginAllowed(request.headers.get("origin"))) {
     return jsonWithCors(
@@ -81,6 +134,20 @@ export async function POST(request: Request) {
   }
 
   const redis = createRedis();
+  const { personaId } = await getRequestedPersonaMetadata(request);
+  const persona = await getPersona(personaId);
+
+  if (!persona) {
+    return jsonWithCors(
+      request,
+      {
+        error: "Persona is not available for guest sessions.",
+        code: "persona_not_available",
+      },
+      { status: 400 },
+    );
+  }
+
   const sessionId = createId("guest_session");
   const roomName = `guest_${sessionId}`;
   const participantIdentity = `guest_${sessionId}`;
@@ -93,6 +160,8 @@ export async function POST(request: Request) {
     hashGuestIdentifier(deviceId),
     hashGuestIdentifier(getClientIp(request)),
   ]);
+  const userId = `guest_${deviceHash.slice(0, 16)}`;
+  const requestedSession = { personaId: persona.id, userId };
   const activeKey = guestActiveKey(deviceHash, ipHash);
 
   const activeSessionId = await redis.get<string>(activeKey);
@@ -102,7 +171,8 @@ export async function POST(request: Request) {
 
   if (
     activeRecord?.status === "active" &&
-    Date.parse(activeRecord.expiresAt) > Date.now()
+    Date.parse(activeRecord.expiresAt) > Date.now() &&
+    isSameGuestSessionRequest(activeRecord, requestedSession)
   ) {
     const payload = await issueGuestLiveKitToken(activeRecord);
 
@@ -122,7 +192,7 @@ export async function POST(request: Request) {
       redis.get(guestIpCooldownKey(ipHash)),
     ]);
 
-    if (deviceCooldown || ipCooldown) {
+    if ((deviceCooldown || ipCooldown) && !activeRecord) {
       return jsonWithCors(
         request,
         {
@@ -133,6 +203,13 @@ export async function POST(request: Request) {
         { status: 429 },
       );
     }
+  }
+
+  if (
+    activeRecord?.status === "active" &&
+    Date.parse(activeRecord.expiresAt) > Date.now()
+  ) {
+    await expireGuestSessionRecord(activeRecord);
   }
 
   const claimResult = await redis.set(activeKey, sessionId, {
@@ -150,7 +227,8 @@ export async function POST(request: Request) {
 
     if (
       concurrentRecord?.status === "active" &&
-      Date.parse(concurrentRecord.expiresAt) > Date.now()
+      Date.parse(concurrentRecord.expiresAt) > Date.now() &&
+      isSameGuestSessionRequest(concurrentRecord, requestedSession)
     ) {
       const payload = await issueGuestLiveKitToken(concurrentRecord);
 
@@ -191,6 +269,8 @@ export async function POST(request: Request) {
     roomName,
     participantIdentity,
     agentName,
+    personaId: persona.id,
+    userId,
     expiresAt,
     createdAt: new Date().toISOString(),
     deviceHash,

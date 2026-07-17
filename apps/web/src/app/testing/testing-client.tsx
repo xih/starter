@@ -2,15 +2,18 @@
 
 import {
   AgentControlBar as DesignAgentControlBar,
-  VoiceParameterPanel,
   type VoiceOption,
 } from "@starter/design-system";
-import { AnimatePresence, motion } from "framer-motion";
 import { Play, WifiOff } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 
 import { AgentSideBar } from "~/components/AgentSideBar";
+import {
+  fallbackPersonaVoiceOptions,
+  PersonaVoiceSwitcher,
+  type PersonaVoiceOption,
+} from "~/components/PersonaVoiceSwitcher";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import type { TestingSessionProps } from "./testing-session";
@@ -25,6 +28,7 @@ const DEFAULT_VOICE: VoiceOption = {
   description: "Softbank founder",
   name: "Masa Son",
 };
+
 type TestingSessionComponent = ComponentType<TestingSessionProps>;
 type AllowedTestingTokenEndpoint =
   | typeof TOKEN_ENDPOINT_LABEL
@@ -63,6 +67,18 @@ function resolveAllowedTestingTokenEndpoint(
   }
 }
 
+function personaToVoice(persona: PersonaVoiceOption | undefined): VoiceOption {
+  if (!persona) {
+    return DEFAULT_VOICE;
+  }
+
+  return {
+    avatar: persona.avatar_url,
+    description: persona.description,
+    name: persona.display_name,
+  };
+}
+
 function StatusPill({
   children,
   tone = "neutral",
@@ -88,12 +104,19 @@ function StatusPill({
 function TestingLauncher({
   errorMessage,
   onStart,
+  onSelectPersona,
+  personas,
+  selectedPersonaId,
 }: {
   errorMessage?: string | null;
   onStart: () => void;
+  onSelectPersona: (personaId: string) => void;
+  personas: PersonaVoiceOption[];
+  selectedPersonaId: string;
 }) {
-  const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
-  const [voice, setVoice] = useState<VoiceOption>(DEFAULT_VOICE);
+  const selectedPersona =
+    personas.find((persona) => persona.id === selectedPersonaId) ?? personas[0];
+  const voice = personaToVoice(selectedPersona);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-4 md:px-6">
@@ -135,30 +158,14 @@ function TestingLauncher({
 
         <div className="flex min-h-[681px] flex-col justify-end md:hidden">
           <div className="flex w-full flex-col gap-[8px]">
-            <AnimatePresence initial={false}>
-              {isVoicePanelOpen ? (
-                <motion.div
-                  animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
-                  exit={{ filter: "blur(4px)", opacity: 0, y: 8 }}
-                  initial={{ filter: "blur(4px)", opacity: 0, y: 8 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <VoiceParameterPanel
-                    className="w-full"
-                    onSelectVoice={(nextVoice) => {
-                      setVoice(nextVoice);
-                      setIsVoicePanelOpen(false);
-                    }}
-                    selectedVoiceName={voice.name}
-                  />
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
+            <PersonaVoiceSwitcher
+              onSelectPersona={onSelectPersona}
+              personas={personas}
+              selectedPersonaId={selectedPersonaId}
+            />
             <DesignAgentControlBar
               className="w-full"
-              onOpenVoicePanel={() => {
-                setIsVoicePanelOpen((open) => !open);
-              }}
+              onOpenVoicePanel={() => undefined}
               onUseVoice={onStart}
               state="pre-connected"
               voice={voice}
@@ -170,7 +177,10 @@ function TestingLauncher({
           <AgentSideBar
             isMicrophoneEnabled={false}
             messages={[]}
+            onSelectPersona={onSelectPersona}
             onStart={onStart}
+            personas={personas}
+            selectedPersonaId={selectedPersonaId}
             state="intro"
             voiceName="Portfolio Agent"
           />
@@ -214,6 +224,10 @@ export function TestingClient() {
   const [SessionComponent, setSessionComponent] =
     useState<TestingSessionComponent | null>(null);
   const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
+  const [personas, setPersonas] = useState<PersonaVoiceOption[]>(
+    fallbackPersonaVoiceOptions,
+  );
+  const [selectedPersonaId, setSelectedPersonaId] = useState("portfolio-agent");
   const [sessionKey, setSessionKey] = useState(0);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [tokenEndpoint, setTokenEndpoint] = useState(DEFAULT_TOKEN_ENDPOINT);
@@ -249,6 +263,33 @@ export function TestingClient() {
     setRoomName(params.get("roomName") ?? createRoomName());
   }, [setTheme]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    void fetch("/api/personas")
+      .then(
+        (response) =>
+          response.json() as Promise<{ personas?: PersonaVoiceOption[] }>,
+      )
+      .then((payload) => {
+        if (!isActive || !payload.personas?.length) return;
+
+        setPersonas(payload.personas);
+        setSelectedPersonaId((current) =>
+          payload.personas?.some((persona) => persona.id === current)
+            ? current
+            : (payload.personas?.[0]?.id ?? "portfolio-agent"),
+        );
+      })
+      .catch((error) => {
+        console.error("Could not load testing personas", error);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   return (
     <main className="light min-h-screen bg-[var(--color-background-secondary)] text-foreground">
       {sessionStarted ? (
@@ -261,6 +302,7 @@ export function TestingClient() {
               setRoomName(createRoomName());
             }}
             roomName={roomName}
+            selectedPersonaId={selectedPersonaId}
             tokenEndpoint={tokenEndpoint}
           />
         ) : (
@@ -269,9 +311,12 @@ export function TestingClient() {
       ) : (
         <TestingLauncher
           errorMessage={loadErrorMessage}
+          onSelectPersona={setSelectedPersonaId}
           onStart={() => {
             void startSession();
           }}
+          personas={personas}
+          selectedPersonaId={selectedPersonaId}
         />
       )}
     </main>

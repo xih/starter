@@ -21,11 +21,10 @@ corepack pnpm --filter @starter/agent dev
 ```
 
 The script will automatically re-run itself through Infisical when required
-secrets are missing from the local shell. The default project is:
-
-```text
-87922978-15ad-4880-add7-5ae10dbff217
-```
+secrets are missing from the local shell. If `INFISICAL_PROJECT_ID` is set, the
+scripts pass it to Infisical. Otherwise, they rely on the project selected by
+your local Infisical config/login context, so the project ID is never embedded
+in source.
 
 Required Infisical `dev` secrets:
 
@@ -34,7 +33,10 @@ LIVEKIT_URL
 LIVEKIT_API_KEY
 LIVEKIT_API_SECRET
 LIVEKIT_AGENT_TTS_VOICE_ID
+CARTESIA_API_KEY
 OPENAI_API_KEY
+LIVEKIT_AGENT_PERSONA_BASE_URL
+PERSONA_AGENT_READ_SECRET
 PARALLEL_API_KEY
 EXA_API_KEY
 PERPLEXITY_API_KEY
@@ -51,7 +53,21 @@ LIVEKIT_AGENT_TTS_MODEL
 WEB_SEARCH_PROVIDER
 WEB_SEARCH_MAX_RESULTS
 WEB_SEARCH_TIMEOUT_SECONDS
+LIVEKIT_AGENT_SESSION_RECORDING_ENABLED
+LIVEKIT_AGENT_RECORD_AUDIO
+LIVEKIT_AGENT_RECORD_LOGS
+LIVEKIT_AGENT_RECORD_TRACES
+LIVEKIT_AGENT_RECORD_TRANSCRIPT
 ```
+
+LiveKit Cloud Agent insights are enabled by default. The agent passes
+`record={"audio": true, "logs": true, "traces": true, "transcript": true}` into
+`AgentSession.start()`, which uploads audio, transcripts, traces, and logs to
+the Agent insights tab after each session. The LiveKit Cloud project must also
+have data recording enabled by an owner in the Cloud dashboard; if that owner
+setting is disabled, the SDK exporter returns 401 errors such as `project data
+recording is disabled by owner`. For temporary local/dev suppression only, set
+`LIVEKIT_AGENT_SESSION_RECORDING_ENABLED=false`.
 
 Web search providers:
 
@@ -79,31 +95,37 @@ The LiveKit Cloud Agent deployment is pinned by `livekit.toml`:
 CA_jnUGCWeb8N3c
 ```
 
-The app intentionally keeps `package.json` for monorepo scripts. The LiveKit
-CLI auto-detects that file as a Node agent, so do not deploy directly from this
-directory. Use `scripts/deploy-livekit-cloud.sh`; it creates a Python-only temp
-context with the committed `Dockerfile`, `livekit.toml`, `pyproject.toml`,
-`uv.lock`, and the full `src` tree. The script also writes the LiveKit,
-agent, and web-search provider secrets into the LiveKit Cloud secrets file.
+LiveKit recommends deploying agents with the `lk agent deploy` CLI command from
+a working directory that contains `livekit.toml` and `Dockerfile`, and passing
+runtime secrets with a LiveKit secrets file or `--secrets` flags. This app keeps
+`package.json` for monorepo scripts, which makes the LiveKit CLI auto-detect the
+directory as a Node agent. Keep `scripts/deploy-livekit-cloud.sh` as a thin repo
+wrapper: it creates a Python-only temp context with the committed `Dockerfile`,
+`livekit.toml`, `pyproject.toml`, `uv.lock`, and `src` tree, then calls
+`lk agent deploy --secrets-file`.
+
+The wrapper bootstraps itself through Infisical and writes the agent, Cartesia,
+persona, embedding, and web-search provider secrets into LiveKit Cloud's
+encrypted agent secrets. `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and
+`LIVEKIT_API_SECRET` are included for local validation, but LiveKit Cloud
+generates its own project connection credentials for deployed agents.
 
 Deploy the current agent code to LiveKit Cloud with prod Infisical secrets:
 
 ```sh
-infisical run \
-  --projectId 87922978-15ad-4880-add7-5ae10dbff217 \
-  --env=prod \
-  --path=/ \
-  -- bash -lc '
-    cd apps/agent
-    scripts/deploy-livekit-cloud.sh
-  '
+cd apps/agent
+scripts/deploy-livekit-cloud.sh
 ```
+
+The deploy script defaults to `INFISICAL_ENV=prod` and `INFISICAL_PATH=/`. Set
+`INFISICAL_PROJECT_ID` only when the Infisical CLI cannot infer the project from
+local config.
 
 Validate the deployment:
 
 ```sh
 infisical run \
-  --projectId 87922978-15ad-4880-add7-5ae10dbff217 \
+  --projectId "$INFISICAL_PROJECT_ID" \
   --env=prod \
   --path=/ \
   -- bash -lc '
@@ -126,7 +148,7 @@ Smoke test the dispatch name:
 
 ```sh
 infisical run \
-  --projectId 87922978-15ad-4880-add7-5ae10dbff217 \
+  --projectId "$INFISICAL_PROJECT_ID" \
   --env=prod \
   --path=/ \
   -- bash -lc '
@@ -160,7 +182,7 @@ End-to-end validation:
 
 ```sh
 infisical run \
-  --projectId 87922978-15ad-4880-add7-5ae10dbff217 \
+  --projectId "$INFISICAL_PROJECT_ID" \
   --env=prod \
   --path=/ \
   -- bash -lc 'lk room participants list "<room-name-from-qa-page>"'

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import shutil
 import subprocess
 import sys
+import urllib.error
+import urllib.parse
+import urllib.request
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from dataclasses import dataclass
+from typing import Any, AsyncIterator
 
 from dotenv import load_dotenv
 from livekit import agents
@@ -18,6 +23,7 @@ from livekit.agents import (
     function_tool,
     inference,
 )
+from livekit.plugins import cartesia
 
 from agent_web_search import (
     LiveKitRpcSearchToolStatusNotifier,
@@ -44,10 +50,7 @@ load_dotenv()
 
 logger = logging.getLogger("portfolio_agent")
 
-INFISICAL_PROJECT_ID = os.getenv(
-    "INFISICAL_PROJECT_ID",
-    "87922978-15ad-4880-add7-5ae10dbff217",
-)
+INFISICAL_PROJECT_ID = os.getenv("INFISICAL_PROJECT_ID")
 INFISICAL_ENV = os.getenv("INFISICAL_ENV", "dev")
 INFISICAL_BOOTSTRAPPED = "LIVEKIT_AGENT_INFISICAL_BOOTSTRAPPED"
 REQUIRED_ENV_VARS = (
@@ -63,8 +66,17 @@ STT_LANGUAGE = os.getenv("LIVEKIT_AGENT_STT_LANGUAGE", "en")
 LLM_MODEL = os.getenv("LIVEKIT_AGENT_LLM_MODEL", "google/gemini-2.5-flash-lite")
 TTS_MODEL = os.getenv("LIVEKIT_AGENT_TTS_MODEL", "cartesia/sonic-3.5")
 TTS_VOICE_ID = os.getenv("LIVEKIT_AGENT_TTS_VOICE_ID")
+CARTESIA_API_KEY = os.getenv("CARTESIA_API_KEY")
+PERSONA_BASE_URL = os.getenv("LIVEKIT_AGENT_PERSONA_BASE_URL")
+PERSONA_READ_SECRET = os.getenv("PERSONA_AGENT_READ_SECRET")
+DEFAULT_PERSONA_ID = os.getenv("LIVEKIT_AGENT_DEFAULT_PERSONA_ID", "portfolio-agent")
+SESSION_RECORDING_ENABLED_ENV = "LIVEKIT_AGENT_SESSION_RECORDING_ENABLED"
+SESSION_RECORD_AUDIO_ENV = "LIVEKIT_AGENT_RECORD_AUDIO"
+SESSION_RECORD_LOGS_ENV = "LIVEKIT_AGENT_RECORD_LOGS"
+SESSION_RECORD_TRACES_ENV = "LIVEKIT_AGENT_RECORD_TRACES"
+SESSION_RECORD_TRANSCRIPT_ENV = "LIVEKIT_AGENT_RECORD_TRANSCRIPT"
 
-INSTRUCTIONS = " ".join(
+DEFAULT_INSTRUCTIONS = " ".join(
     [
         "You are Dennis's portfolio voice agent.",
         "Keep responses short, warm, and useful for an end-to-end realtime voice test.",
@@ -78,6 +90,179 @@ INSTRUCTIONS = " ".join(
         "Avoid long lists unless the user asks for detail.",
     ]
 )
+INSTRUCTIONS = DEFAULT_INSTRUCTIONS
+
+
+@dataclass(frozen=True)
+class PersonaConfig:
+    id: str
+    agent_id: str
+    instructions: str
+    greeting: str
+    tts_model: str
+    tts_voice_id: str | None
+    tts_language: str | None
+    tts_options: dict[str, Any]
+    requires_cartesia_plugin: bool
+
+
+def default_persona() -> PersonaConfig:
+    return PersonaConfig(
+        id=DEFAULT_PERSONA_ID,
+        agent_id=AGENT_NAME,
+        instructions=DEFAULT_INSTRUCTIONS,
+        greeting="Greet the user briefly and say you are ready for a quick voice test.",
+        tts_model=TTS_MODEL,
+        tts_voice_id=TTS_VOICE_ID,
+        tts_language=STT_LANGUAGE,
+        tts_options={},
+        requires_cartesia_plugin=False,
+    )
+
+
+def get_job_metadata(ctx: JobContext) -> dict[str, Any]:
+    job = getattr(ctx, "job", None)
+    metadata = getattr(job, "metadata", None)
+
+    if not metadata:
+        info = getattr(ctx, "info", None)
+        metadata = getattr(info, "metadata", None)
+
+    if isinstance(metadata, dict):
+        return metadata
+
+    if not isinstance(metadata, str) or not metadata.strip():
+        return {}
+
+    try:
+        parsed = json.loads(metadata)
+    except json.JSONDecodeError:
+        return {}
+
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def fetch_persona_config(persona_id: str, user_id: str | None) -> PersonaConfig:
+    fallback = default_persona()
+
+    if not PERSONA_BASE_URL:
+        if persona_id != DEFAULT_PERSONA_ID:
+            raise RuntimeError(
+                "LIVEKIT_AGENT_PERSONA_BASE_URL is required for non-default persona dispatch."
+            )
+        return fallback
+
+    base_url = PERSONA_BASE_URL.rstrip("/")
+    query = urllib.parse.urlencode({"user_id": user_id or ""})
+    url = f"{base_url}/api/personas/{urllib.parse.quote(persona_id)}/agent?{query}"
+    request = urllib.request.Request(url)
+
+    if PERSONA_READ_SECRET:
+        request.add_header("Authorization", f"Bearer {PERSONA_READ_SECRET}")
+
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (OSError, urllib.error.URLError, json.JSONDecodeError) as error:
+        if persona_id != DEFAULT_PERSONA_ID:
+            raise RuntimeError(f"Could not load persona `{persona_id}`. {error}") from error
+        logger.warning("Could not load persona `%s`; using default. %s", persona_id, error)
+        return fallback
+
+    if not isinstance(payload, dict):
+        return fallback
+
+    persona = payload.get("persona")
+    if not isinstance(persona, dict):
+        return fallback
+
+    source_rights_status = persona.get("source_rights_status")
+    voice_consent_status = persona.get("voice_consent_status")
+    valid_source_rights = source_rights_status in {"authorized", "licensed", "owned"}
+    voice_allowed = (
+        voice_consent_status == "approved"
+        or (voice_consent_status == "not_required" and valid_source_rights)
+    )
+    voice_id = persona.get("cartesia_voice_id") if voice_allowed else None
+    speed = persona.get("tts_speed")
+    emotion = persona.get("tts_emotion")
+    tts_options: dict[str, Any] = {}
+
+    if isinstance(speed, (int, float)):
+        tts_options["speed"] = speed
+    if isinstance(emotion, str):
+        tts_options["emotion"] = emotion
+
+    return PersonaConfig(
+        id=str(persona.get("id") or fallback.id),
+        agent_id=AGENT_NAME,
+        instructions=str(payload.get("compiled_prompt") or fallback.instructions),
+        greeting=str(persona.get("greeting") or fallback.greeting),
+        tts_model=str(persona.get("tts_model") or fallback.tts_model),
+        tts_voice_id=voice_id if isinstance(voice_id, str) else fallback.tts_voice_id,
+        tts_language=str(persona.get("tts_language") or fallback.tts_language),
+        tts_options=tts_options,
+        requires_cartesia_plugin=isinstance(voice_id, str),
+    )
+
+
+def cartesia_plugin_model(model: str) -> str:
+    return model.removeprefix("cartesia/")
+
+
+def create_tts(persona: PersonaConfig):
+    if persona.requires_cartesia_plugin and not CARTESIA_API_KEY:
+        raise RuntimeError(
+            f"Persona `{persona.id}` uses a private Cartesia voice; set CARTESIA_API_KEY."
+        )
+
+    if CARTESIA_API_KEY and persona.tts_voice_id:
+        logger.info(
+            "Using Cartesia plugin TTS for persona `%s` with voice `%s`.",
+            persona.id,
+            persona.tts_voice_id,
+        )
+        return cartesia.TTS(
+            api_key=CARTESIA_API_KEY,
+            model=cartesia_plugin_model(persona.tts_model),
+            language=persona.tts_language,
+            voice=persona.tts_voice_id,
+            speed=persona.tts_options.get("speed"),
+            emotion=persona.tts_options.get("emotion"),
+        )
+
+    tts_kwargs: dict[str, Any] = {"model": persona.tts_model}
+
+    if persona.tts_voice_id:
+        tts_kwargs["voice"] = persona.tts_voice_id
+    if persona.tts_language:
+        tts_kwargs["language"] = persona.tts_language
+    if persona.tts_options:
+        tts_kwargs["extra_kwargs"] = persona.tts_options
+
+    logger.info("Using LiveKit inference TTS for persona `%s`.", persona.id)
+    return inference.TTS(**tts_kwargs)
+
+
+def env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+
+    if value is None:
+        return default
+
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def session_recording_options() -> bool | dict[str, bool]:
+    if not env_bool(SESSION_RECORDING_ENABLED_ENV, True):
+        return False
+
+    return {
+        "audio": env_bool(SESSION_RECORD_AUDIO_ENV, True),
+        "logs": env_bool(SESSION_RECORD_LOGS_ENV, True),
+        "traces": env_bool(SESSION_RECORD_TRACES_ENV, True),
+        "transcript": env_bool(SESSION_RECORD_TRANSCRIPT_ENV, True),
+    }
 
 
 def _default_provider_factory(settings: WebSearchSettings, http_client):
@@ -174,7 +359,7 @@ def missing_required_env() -> list[str]:
 def print_env_doctor() -> int:
     missing = missing_required_env()
     print("LiveKit agent environment")
-    print(f"  INFISICAL_PROJECT_ID: {INFISICAL_PROJECT_ID}")
+    print(f"  INFISICAL_PROJECT_ID: {'set' if INFISICAL_PROJECT_ID else 'missing'}")
     print(f"  INFISICAL_ENV: {INFISICAL_ENV}")
     print(f"  LIVEKIT_AGENT_NAME: {AGENT_NAME}")
     print(f"  LIVEKIT_AGENT_STT_MODEL: {STT_MODEL}")
@@ -182,6 +367,17 @@ def print_env_doctor() -> int:
     print(f"  LIVEKIT_AGENT_LLM_MODEL: {LLM_MODEL}")
     print(f"  LIVEKIT_AGENT_TTS_MODEL: {TTS_MODEL}")
     print(f"  LIVEKIT_AGENT_TTS_VOICE_ID: {'set' if TTS_VOICE_ID else 'missing'}")
+    print(
+        "  LIVEKIT_AGENT_SESSION_RECORDING_ENABLED: "
+        f"{env_bool(SESSION_RECORDING_ENABLED_ENV, True)}"
+    )
+    print(f"  LIVEKIT_AGENT_RECORD_AUDIO: {env_bool(SESSION_RECORD_AUDIO_ENV, True)}")
+    print(f"  LIVEKIT_AGENT_RECORD_LOGS: {env_bool(SESSION_RECORD_LOGS_ENV, True)}")
+    print(f"  LIVEKIT_AGENT_RECORD_TRACES: {env_bool(SESSION_RECORD_TRACES_ENV, True)}")
+    print(
+        "  LIVEKIT_AGENT_RECORD_TRANSCRIPT: "
+        f"{env_bool(SESSION_RECORD_TRANSCRIPT_ENV, True)}"
+    )
     print(
         "  WEB_SEARCH_PROVIDER: "
         f"{os.getenv(WEB_SEARCH_PROVIDER_ENV, DEFAULT_WEB_SEARCH_PROVIDER)}"
@@ -235,20 +431,19 @@ def bootstrap_from_infisical_if_needed() -> None:
     command = [
         infisical,
         "run",
-        "--projectId",
-        INFISICAL_PROJECT_ID,
         "--env",
         INFISICAL_ENV,
-        "--",
-        sys.executable,
-        *sys.argv,
     ]
+    if INFISICAL_PROJECT_ID:
+        command.extend(["--projectId", INFISICAL_PROJECT_ID])
+    command.extend(["--", sys.executable, *sys.argv])
     env = {
         **os.environ,
         INFISICAL_BOOTSTRAPPED: "1",
-        "INFISICAL_PROJECT_ID": INFISICAL_PROJECT_ID,
         "INFISICAL_ENV": INFISICAL_ENV,
     }
+    if INFISICAL_PROJECT_ID:
+        env["INFISICAL_PROJECT_ID"] = INFISICAL_PROJECT_ID
 
     completed = subprocess.run(command, env=env, check=False)
     raise SystemExit(completed.returncode)
@@ -256,10 +451,18 @@ def bootstrap_from_infisical_if_needed() -> None:
 
 async def entrypoint(ctx: JobContext) -> None:
     await ctx.connect()
+    metadata = get_job_metadata(ctx)
+    persona_id = str(metadata.get("persona_id") or DEFAULT_PERSONA_ID)
+    user_id = metadata.get("user_id")
+    persona = fetch_persona_config(
+        persona_id,
+        user_id if isinstance(user_id, str) else None,
+    )
 
     logger.info(
-        "portfolio_agent_job_connected agent_name=%s room=%s job_id=%s",
+        "portfolio_agent_job_connected agent_name=%s persona_id=%s room=%s job_id=%s",
         AGENT_NAME,
+        persona.id,
         ctx.room.name,
         getattr(ctx.job, "id", "unknown"),
     )
@@ -272,37 +475,29 @@ async def entrypoint(ctx: JobContext) -> None:
         llm=inference.LLM(
             model=LLM_MODEL,
         ),
-        tts=inference.TTS(
-            model=TTS_MODEL,
-            voice=TTS_VOICE_ID,
-        ),
+        tts=create_tts(persona),
     )
 
     register_session_observability(session)
 
     await session.start(
         room=ctx.room,
-        agent=PortfolioAgent(agent_id=AGENT_NAME, instructions=INSTRUCTIONS),
-        record={
-            "audio": True,
-            "logs": True,
-            "traces": True,
-            "transcript": True,
-        },
+        agent=PortfolioAgent(
+            agent_id=persona.agent_id,
+            instructions=persona.instructions,
+        ),
+        record=session_recording_options(),
     )
 
     logger.info(
-        "portfolio_agent_session_started agent_name=%s room=%s llm_model=%s",
+        "portfolio_agent_session_started agent_name=%s persona_id=%s room=%s llm_model=%s",
         AGENT_NAME,
+        persona.id,
         ctx.room.name,
         LLM_MODEL,
     )
 
-    await session.generate_reply(
-        instructions=(
-            "Greet the user briefly and say you are ready for a quick voice test."
-        ),
-    )
+    await session.generate_reply(instructions=persona.greeting)
 
 
 def register_session_observability(session: AgentSession) -> None:

@@ -35,11 +35,11 @@ type AllowedTestingTokenEndpoint =
   | typeof GUEST_TOKEN_ENDPOINT_LABEL
   | typeof TOKEN_ERROR_ENDPOINT_LABEL;
 
-function createRoomName() {
+export function createRoomName() {
   return `testing_agent_${crypto.randomUUID()}`;
 }
 
-function resolveAllowedTestingTokenEndpoint(
+export function resolveAllowedTestingTokenEndpoint(
   endpoint: string | null,
 ): AllowedTestingTokenEndpoint {
   if (!endpoint) {
@@ -65,6 +65,18 @@ function resolveAllowedTestingTokenEndpoint(
   } catch {
     return DEFAULT_TOKEN_ENDPOINT;
   }
+}
+
+export function resolveTestingClientUrlConfig(search: string) {
+  const params = new URLSearchParams(search);
+
+  return {
+    agentName: params.get("agentName") ?? DEFAULT_AGENT_NAME,
+    roomName: createRoomName(),
+    tokenEndpoint: resolveAllowedTestingTokenEndpoint(
+      params.get("tokenEndpoint"),
+    ),
+  };
 }
 
 function personaToVoice(persona: PersonaVoiceOption | undefined): VoiceOption {
@@ -255,12 +267,10 @@ export function TestingClient() {
 
   useEffect(() => {
     setTheme("light");
-    const params = new URLSearchParams(window.location.search);
-    setAgentName(params.get("agentName") ?? DEFAULT_AGENT_NAME);
-    setTokenEndpoint(
-      resolveAllowedTestingTokenEndpoint(params.get("tokenEndpoint")),
-    );
-    setRoomName(params.get("roomName") ?? createRoomName());
+    const config = resolveTestingClientUrlConfig(window.location.search);
+    setAgentName(config.agentName);
+    setTokenEndpoint(config.tokenEndpoint);
+    setRoomName(config.roomName);
   }, [setTheme]);
 
   useEffect(() => {

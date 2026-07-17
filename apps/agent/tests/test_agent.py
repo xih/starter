@@ -286,6 +286,48 @@ class PersonaAgentTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 agent.create_tts(persona)
 
+    def test_session_recording_options_defaults_to_full_livekit_insights(self):
+        with patch.dict(agent.os.environ, {}, clear=True):
+            self.assertEqual(
+                agent.session_recording_options(),
+                {
+                    "audio": True,
+                    "logs": True,
+                    "traces": True,
+                    "transcript": True,
+                },
+            )
+
+    def test_session_recording_options_can_disable_all_recording(self):
+        with patch.dict(
+            agent.os.environ,
+            {agent.SESSION_RECORDING_ENABLED_ENV: "false"},
+            clear=False,
+        ):
+            self.assertFalse(agent.session_recording_options())
+
+    def test_session_recording_options_supports_granular_controls(self):
+        with patch.dict(
+            agent.os.environ,
+            {
+                agent.SESSION_RECORDING_ENABLED_ENV: "true",
+                agent.SESSION_RECORD_AUDIO_ENV: "1",
+                agent.SESSION_RECORD_LOGS_ENV: "0",
+                agent.SESSION_RECORD_TRACES_ENV: "false",
+                agent.SESSION_RECORD_TRANSCRIPT_ENV: "yes",
+            },
+            clear=True,
+        ):
+            self.assertEqual(
+                agent.session_recording_options(),
+                {
+                    "audio": True,
+                    "logs": False,
+                    "traces": False,
+                    "transcript": True,
+                },
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

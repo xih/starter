@@ -5,6 +5,7 @@ import {
   getPersona,
   listPersonaMemories,
   listPersonaTranscriptSources,
+  type PersonaTranscriptSource,
 } from "~/server/personas";
 
 export const runtime = "nodejs";
@@ -19,6 +20,20 @@ function isAuthorized(request: Request) {
   const authorization = request.headers.get("authorization");
 
   return authorization === `Bearer ${expected}`;
+}
+
+function toAgentTranscriptSource(source: PersonaTranscriptSource) {
+  return {
+    chunk_count: source.chunks.length,
+    created_at: source.created_at,
+    embedding_dimensions: source.embedding_dimensions,
+    embedding_model: source.embedding_model,
+    id: source.id,
+    persona_id: source.persona_id,
+    source_title: source.source_title,
+    source_url: source.source_url,
+    transcript_character_count: source.transcript_character_count,
+  };
 }
 
 export async function GET(
@@ -50,7 +65,7 @@ export async function GET(
   return NextResponse.json({
     persona,
     memories,
-    transcript_sources,
+    transcript_sources: transcript_sources.map(toAgentTranscriptSource),
     compiled_prompt: compilePersonaPrompt({
       memories,
       persona,

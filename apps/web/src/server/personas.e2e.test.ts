@@ -238,7 +238,9 @@ describeE2E("persona endpoints e2e", () => {
     const transcriptSources = body.transcript_sources as Array<{
       embedding_dimensions?: number;
       embedding_model?: string;
-      chunks?: Array<{ embedding?: unknown[] }>;
+      chunk_count?: number;
+      chunks?: unknown;
+      transcript?: unknown;
     }>;
 
     expect(transcriptSources.length).toBeGreaterThan(0);
@@ -246,9 +248,9 @@ describeE2E("persona endpoints e2e", () => {
     expect(transcriptSources[0]?.embedding_dimensions).toBe(
       expectedEmbeddingDimensions,
     );
-    expect(transcriptSources[0]?.chunks?.[0]?.embedding).toHaveLength(
-      expectedEmbeddingDimensions,
-    );
+    expect(transcriptSources[0]?.chunk_count).toBeGreaterThan(0);
+    expect(transcriptSources[0]?.chunks).toBeUndefined();
+    expect(transcriptSources[0]?.transcript).toBeUndefined();
   });
 
   it("creates personas for every supplied Cartesia voice id", async () => {

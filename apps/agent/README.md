@@ -53,7 +53,21 @@ LIVEKIT_AGENT_TTS_MODEL
 WEB_SEARCH_PROVIDER
 WEB_SEARCH_MAX_RESULTS
 WEB_SEARCH_TIMEOUT_SECONDS
+LIVEKIT_AGENT_SESSION_RECORDING_ENABLED
+LIVEKIT_AGENT_RECORD_AUDIO
+LIVEKIT_AGENT_RECORD_LOGS
+LIVEKIT_AGENT_RECORD_TRACES
+LIVEKIT_AGENT_RECORD_TRANSCRIPT
 ```
+
+LiveKit Cloud Agent insights are enabled by default. The agent passes
+`record={"audio": true, "logs": true, "traces": true, "transcript": true}` into
+`AgentSession.start()`, which uploads audio, transcripts, traces, and logs to
+the Agent insights tab after each session. The LiveKit Cloud project must also
+have data recording enabled by an owner in the Cloud dashboard; if that owner
+setting is disabled, the SDK exporter returns 401 errors such as `project data
+recording is disabled by owner`. For temporary local/dev suppression only, set
+`LIVEKIT_AGENT_SESSION_RECORDING_ENABLED=false`.
 
 Web search providers:
 

@@ -70,6 +70,11 @@ CARTESIA_API_KEY = os.getenv("CARTESIA_API_KEY")
 PERSONA_BASE_URL = os.getenv("LIVEKIT_AGENT_PERSONA_BASE_URL")
 PERSONA_READ_SECRET = os.getenv("PERSONA_AGENT_READ_SECRET")
 DEFAULT_PERSONA_ID = os.getenv("LIVEKIT_AGENT_DEFAULT_PERSONA_ID", "portfolio-agent")
+SESSION_RECORDING_ENABLED_ENV = "LIVEKIT_AGENT_SESSION_RECORDING_ENABLED"
+SESSION_RECORD_AUDIO_ENV = "LIVEKIT_AGENT_RECORD_AUDIO"
+SESSION_RECORD_LOGS_ENV = "LIVEKIT_AGENT_RECORD_LOGS"
+SESSION_RECORD_TRACES_ENV = "LIVEKIT_AGENT_RECORD_TRACES"
+SESSION_RECORD_TRANSCRIPT_ENV = "LIVEKIT_AGENT_RECORD_TRANSCRIPT"
 
 DEFAULT_INSTRUCTIONS = " ".join(
     [
@@ -239,6 +244,27 @@ def create_tts(persona: PersonaConfig):
     return inference.TTS(**tts_kwargs)
 
 
+def env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+
+    if value is None:
+        return default
+
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def session_recording_options() -> bool | dict[str, bool]:
+    if not env_bool(SESSION_RECORDING_ENABLED_ENV, True):
+        return False
+
+    return {
+        "audio": env_bool(SESSION_RECORD_AUDIO_ENV, True),
+        "logs": env_bool(SESSION_RECORD_LOGS_ENV, True),
+        "traces": env_bool(SESSION_RECORD_TRACES_ENV, True),
+        "transcript": env_bool(SESSION_RECORD_TRANSCRIPT_ENV, True),
+    }
+
+
 def _default_provider_factory(settings: WebSearchSettings, http_client):
     return create_search_provider(settings, http_client)
 
@@ -341,6 +367,17 @@ def print_env_doctor() -> int:
     print(f"  LIVEKIT_AGENT_LLM_MODEL: {LLM_MODEL}")
     print(f"  LIVEKIT_AGENT_TTS_MODEL: {TTS_MODEL}")
     print(f"  LIVEKIT_AGENT_TTS_VOICE_ID: {'set' if TTS_VOICE_ID else 'missing'}")
+    print(
+        "  LIVEKIT_AGENT_SESSION_RECORDING_ENABLED: "
+        f"{env_bool(SESSION_RECORDING_ENABLED_ENV, True)}"
+    )
+    print(f"  LIVEKIT_AGENT_RECORD_AUDIO: {env_bool(SESSION_RECORD_AUDIO_ENV, True)}")
+    print(f"  LIVEKIT_AGENT_RECORD_LOGS: {env_bool(SESSION_RECORD_LOGS_ENV, True)}")
+    print(f"  LIVEKIT_AGENT_RECORD_TRACES: {env_bool(SESSION_RECORD_TRACES_ENV, True)}")
+    print(
+        "  LIVEKIT_AGENT_RECORD_TRANSCRIPT: "
+        f"{env_bool(SESSION_RECORD_TRANSCRIPT_ENV, True)}"
+    )
     print(
         "  WEB_SEARCH_PROVIDER: "
         f"{os.getenv(WEB_SEARCH_PROVIDER_ENV, DEFAULT_WEB_SEARCH_PROVIDER)}"
@@ -449,12 +486,7 @@ async def entrypoint(ctx: JobContext) -> None:
             agent_id=persona.agent_id,
             instructions=persona.instructions,
         ),
-        record={
-            "audio": True,
-            "logs": True,
-            "traces": True,
-            "transcript": True,
-        },
+        record=session_recording_options(),
     )
 
     logger.info(

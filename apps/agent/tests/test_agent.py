@@ -1,9 +1,10 @@
+import asyncio
 import json
 import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -285,6 +286,75 @@ class PersonaAgentTests(unittest.TestCase):
         with patch.object(agent, "CARTESIA_API_KEY", None):
             with self.assertRaises(RuntimeError):
                 agent.create_tts(persona)
+
+    def test_update_session_tts_replaces_active_tts(self):
+        persona = agent.PersonaConfig(
+            id="wife-e2e",
+            agent_id="agent",
+            instructions="Prompt",
+            greeting="Hello",
+            tts_model="cartesia/sonic-3.5",
+            tts_voice_id="voice-123",
+            tts_language="en",
+            tts_options={},
+            requires_cartesia_plugin=True,
+        )
+        session = SimpleNamespace(_tts="old-tts", _tts_error_counts=2)
+
+        with patch.object(agent, "create_tts", return_value="new-tts"):
+            agent.update_session_tts(session, persona)
+
+        self.assertEqual(session._tts, "new-tts")
+        self.assertEqual(session._tts_error_counts, 0)
+
+    def test_interrupt_active_speech_forces_current_output_to_stop(self):
+        session = SimpleNamespace(interrupt=AsyncMock())
+
+        asyncio.run(agent.interrupt_active_speech(session))
+
+        session.interrupt.assert_awaited_once_with(force=True)
+
+    def test_interrupt_active_speech_ignores_session_start_race(self):
+        session = SimpleNamespace(interrupt=AsyncMock(side_effect=RuntimeError))
+
+        asyncio.run(agent.interrupt_active_speech(session))
+
+        session.interrupt.assert_awaited_once_with(force=True)
+
+    def test_persona_tts_switch_rpc_updates_tts_and_returns_voice(self):
+        persona = agent.PersonaConfig(
+            id="wife-e2e",
+            agent_id="agent",
+            instructions="Prompt",
+            greeting="Hello",
+            tts_model="cartesia/sonic-3.5",
+            tts_voice_id="voice-123",
+            tts_language="en",
+            tts_options={},
+            requires_cartesia_plugin=True,
+        )
+        session = SimpleNamespace(
+            _tts="old-tts",
+            _tts_error_counts=1,
+            interrupt=AsyncMock(),
+        )
+        data = SimpleNamespace(
+            caller_identity="browser-user",
+            payload=json.dumps({"persona_id": "wife-e2e", "user_id": "testing-user"}),
+        )
+
+        with (
+            patch.object(agent, "fetch_persona_config", return_value=persona) as fetch,
+            patch.object(agent, "create_tts", return_value="new-tts"),
+        ):
+            response = asyncio.run(
+                agent.create_persona_tts_switch_rpc_handler(session)(data)
+            )
+
+        fetch.assert_called_once_with("wife-e2e", "testing-user")
+        self.assertEqual(session._tts, "new-tts")
+        session.interrupt.assert_awaited_once_with(force=True)
+        self.assertEqual(json.loads(response)["tts_voice_id"], "voice-123")
 
     def test_session_recording_options_defaults_to_full_livekit_insights(self):
         with patch.dict(agent.os.environ, {}, clear=True):

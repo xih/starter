@@ -40,6 +40,7 @@ import {
   fallbackPersonaVoiceOptions,
   PersonaVoiceSwitcher,
 } from "~/components/PersonaVoiceSwitcher";
+import { usePersonaSwitchRpc } from "~/components/persona-switch-rpc";
 import { Button } from "~/components/ui/button";
 import { OrbShader } from "~/components/OrbShader";
 import { useInputControls } from "~/hooks/agents-ui/use-agent-control-bar";
@@ -196,6 +197,7 @@ function StatusPill({
 
 export type TestingSessionProps = {
   agentName: string;
+  onSelectPersona: (personaId: string) => void;
   onSessionEnded: () => void;
   roomName: string;
   selectedPersonaId: string;
@@ -204,6 +206,7 @@ export type TestingSessionProps = {
 
 export function TestingSession({
   agentName,
+  onSelectPersona,
   onSessionEnded,
   roomName,
   selectedPersonaId,
@@ -236,6 +239,7 @@ export function TestingSession({
         errorMessage={errorMessage}
         inputValue={inputValue}
         manualState={manualState}
+        onSelectPersona={onSelectPersona}
         onSessionEnded={onSessionEnded}
         roomName={roomName}
         selectedPersonaId={selectedPersonaId}
@@ -255,6 +259,7 @@ function TestingSessionContent({
   errorMessage,
   inputValue,
   manualState,
+  onSelectPersona,
   onSessionEnded,
   roomName,
   selectedPersonaId,
@@ -268,6 +273,7 @@ function TestingSessionContent({
   errorMessage: string;
   inputValue: string;
   manualState: AgentSideBarState;
+  onSelectPersona: (personaId: string) => void;
   onSessionEnded: () => void;
   roomName: string;
   selectedPersonaId: string;
@@ -280,6 +286,12 @@ function TestingSessionContent({
   const agent = useAgent(session);
   const sessionMessages = useSessionMessages(session);
   const { microphoneToggle } = useInputControls();
+  const switchPersonaRpc = usePersonaSwitchRpc({
+    agentIdentity: agent.identity,
+    localParticipant: session.room.localParticipant,
+    roomName,
+    userId: "testing-user",
+  });
   const startAbortControllerRef = useRef<AbortController | null>(null);
   const didAutoStartRef = useRef(false);
   const [toolCallStatus, dispatchToolCallStatus] = useReducer(
@@ -406,6 +418,23 @@ function TestingSessionContent({
       });
   }, [session, setErrorMessage, setManualState]);
 
+  const cleanupSession = useCallback(async () => {
+    const sessionEndResult = await Promise.allSettled([session.end()]);
+
+    const deleteResult = await Promise.allSettled([
+      fetch("/api/livekit/guest-session", {
+        method: "DELETE",
+        keepalive: true,
+      }),
+    ]);
+
+    for (const result of [...sessionEndResult, ...deleteResult]) {
+      if (result.status === "rejected") {
+        console.error("Testing LiveKit session cleanup failed", result.reason);
+      }
+    }
+  }, [session]);
+
   const endSession = useCallback(() => {
     setInputValue("");
     setManualState("intro");
@@ -414,27 +443,78 @@ function TestingSessionContent({
     startAbortControllerRef.current = null;
 
     void (async () => {
-      const sessionEndResult = await Promise.allSettled([session.end()]);
-
-      const deleteResult = await Promise.allSettled([
-        fetch("/api/livekit/guest-session", {
-          method: "DELETE",
-          keepalive: true,
-        }),
-      ]);
-
-      for (const result of [...sessionEndResult, ...deleteResult]) {
-        if (result.status === "rejected") {
-          console.error(
-            "Testing LiveKit session cleanup failed",
-            result.reason,
-          );
-        }
-      }
-
+      await cleanupSession();
       onSessionEnded();
     })();
-  }, [onSessionEnded, session, setInputValue, setManualState]);
+  }, [cleanupSession, onSessionEnded, setInputValue, setManualState]);
+
+  const selectPersona = useCallback(
+    (personaId: string) => {
+      if (personaId === selectedPersonaId) {
+        return;
+      }
+
+      setInputValue("");
+      dispatchToolCallStatus({ type: "reset" });
+      setErrorMessage("Switching persona voice and context...");
+
+      if (session.connectionState === ConnectionState.Disconnected) {
+        onSelectPersona(personaId);
+        setManualState("intro");
+        return;
+      }
+
+      if (!agent.identity) {
+        setErrorMessage(
+          "The agent is not ready for persona voice switching yet.",
+        );
+        setManualState("error");
+        return;
+      }
+
+      setManualState("switching");
+      console.info("persona_tts_switch_requested", {
+        agentIdentity: agent.identity,
+        personaId,
+        roomName,
+      });
+
+      void switchPersonaRpc({
+        personaId,
+        voice: true,
+      })
+        .then((response) => {
+          console.info("persona_tts_switch_completed", {
+            personaId,
+            response,
+            roomName,
+          });
+          onSelectPersona(personaId);
+          setManualState("intro");
+          setErrorMessage("");
+        })
+        .catch((error) => {
+          console.error("persona_tts_switch_failed", error);
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Could not switch persona voice. Check the agent logs.",
+          );
+          setManualState("error");
+        });
+    },
+    [
+      agent.identity,
+      onSelectPersona,
+      roomName,
+      selectedPersonaId,
+      session.connectionState,
+      setErrorMessage,
+      setInputValue,
+      setManualState,
+      switchPersonaRpc,
+    ],
+  );
 
   useEffect(() => {
     if (didAutoStartRef.current) return;
@@ -591,12 +671,7 @@ function TestingSessionContent({
           onToggleMicrophone={() => {
             void microphoneToggle.toggle(!microphoneToggle.enabled);
           }}
-          onSelectPersona={() => {
-            setErrorMessage(
-              "End this testing session, choose a different persona, then start again.",
-            );
-            setManualState("switching");
-          }}
+          onSelectPersona={selectPersona}
           personas={personas}
           selectedPersonaId={selectedPersonaId}
         />
@@ -611,12 +686,7 @@ function TestingSessionContent({
             messages={messages}
             onChangeInput={setInputValue}
             onEnd={endSession}
-            onSelectPersona={() => {
-              setErrorMessage(
-                "End this testing session, choose a different persona, then start again.",
-              );
-              setManualState("switching");
-            }}
+            onSelectPersona={selectPersona}
             onSend={sendMessage}
             onStart={startSession}
             onStopResponse={endSession}

@@ -306,7 +306,6 @@ export function TestingClient() {
               setSessionStarted(false);
               setRoomName(createRoomName());
             }}
-            onRestartWithPersona={restartSession}
             onSelectPersona={setSelectedPersonaId}
             roomName={roomName}
             selectedPersonaId={selectedPersonaId}

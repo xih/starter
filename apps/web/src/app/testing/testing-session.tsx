@@ -56,6 +56,7 @@ const DEFAULT_MOBILE_VOICE: VoiceOption = {
   description: "Softbank founder",
   name: "Masa Son",
 };
+const PERSONA_TTS_SWITCH_RPC_METHOD = "persona.switch_tts";
 
 type OrderedAgentSideBarMessage = AgentSideBarMessage & {
   order: number;
@@ -196,7 +197,6 @@ function StatusPill({
 
 export type TestingSessionProps = {
   agentName: string;
-  onRestartWithPersona: () => void;
   onSelectPersona: (personaId: string) => void;
   onSessionEnded: () => void;
   roomName: string;
@@ -206,7 +206,6 @@ export type TestingSessionProps = {
 
 export function TestingSession({
   agentName,
-  onRestartWithPersona,
   onSelectPersona,
   onSessionEnded,
   roomName,
@@ -240,7 +239,6 @@ export function TestingSession({
         errorMessage={errorMessage}
         inputValue={inputValue}
         manualState={manualState}
-        onRestartWithPersona={onRestartWithPersona}
         onSelectPersona={onSelectPersona}
         onSessionEnded={onSessionEnded}
         roomName={roomName}
@@ -261,7 +259,6 @@ function TestingSessionContent({
   errorMessage,
   inputValue,
   manualState,
-  onRestartWithPersona,
   onSelectPersona,
   onSessionEnded,
   roomName,
@@ -276,7 +273,6 @@ function TestingSessionContent({
   errorMessage: string;
   inputValue: string;
   manualState: AgentSideBarState;
-  onRestartWithPersona: () => void;
   onSelectPersona: (personaId: string) => void;
   onSessionEnded: () => void;
   roomName: string;
@@ -452,28 +448,71 @@ function TestingSessionContent({
         return;
       }
 
-      onSelectPersona(personaId);
       setInputValue("");
       dispatchToolCallStatus({ type: "reset" });
       setErrorMessage("Switching persona voice and context...");
 
       if (session.connectionState === ConnectionState.Disconnected) {
+        onSelectPersona(personaId);
         setManualState("intro");
         return;
       }
 
-      setManualState("switching");
-      startAbortControllerRef.current?.abort();
-      startAbortControllerRef.current = null;
+      if (!agent.identity) {
+        setErrorMessage(
+          "The agent is not ready for persona voice switching yet.",
+        );
+        setManualState("error");
+        return;
+      }
 
-      void cleanupSession().finally(onRestartWithPersona);
+      setManualState("switching");
+      console.info("persona_tts_switch_requested", {
+        agentIdentity: agent.identity,
+        personaId,
+        roomName,
+      });
+
+      void session.room.localParticipant
+        .performRpc({
+          destinationIdentity: agent.identity,
+          method: PERSONA_TTS_SWITCH_RPC_METHOD,
+          payload: JSON.stringify({
+            persona_id: personaId,
+            session_id: roomName,
+            user_id: "testing-user",
+          }),
+          responseTimeout: 8_000,
+        })
+        .then((response) => {
+          console.info("persona_tts_switch_completed", {
+            personaId,
+            response,
+            roomName,
+          });
+          onSelectPersona(personaId);
+          setManualState("intro");
+          setErrorMessage(
+            "Could not start the voice session. Check microphone permission, token endpoint, and LiveKit agent configuration.",
+          );
+        })
+        .catch((error) => {
+          console.error("persona_tts_switch_failed", error);
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Could not switch persona voice. Check the agent logs.",
+          );
+          setManualState("error");
+        });
     },
     [
-      cleanupSession,
-      onRestartWithPersona,
+      agent.identity,
       onSelectPersona,
+      roomName,
       selectedPersonaId,
       session.connectionState,
+      session.room.localParticipant,
       setErrorMessage,
       setInputValue,
       setManualState,

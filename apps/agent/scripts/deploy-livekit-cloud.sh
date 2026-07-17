@@ -32,20 +32,18 @@ required_env=(
 )
 
 if [[ "$INFISICAL_BOOTSTRAPPED" != "1" && "$SKIP_INFISICAL" != "1" ]]; then
-  if [[ -z "$INFISICAL_PROJECT_ID" ]]; then
-    echo "Missing INFISICAL_PROJECT_ID. Export it before deploying, or set LIVEKIT_AGENT_DEPLOY_SKIP_INFISICAL=1 for a local dry run with explicit env vars." >&2
-    exit 1
-  fi
-
   if ! command -v infisical >/dev/null 2>&1; then
     echo "Missing infisical CLI. Install/login to Infisical or set LIVEKIT_AGENT_DEPLOY_SKIP_INFISICAL=1 for a local dry run." >&2
     exit 1
   fi
 
-  exec env LIVEKIT_AGENT_DEPLOY_INFISICAL_BOOTSTRAPPED=1 infisical run \
-    --projectId "$INFISICAL_PROJECT_ID" \
-    --env="$INFISICAL_ENV" \
-    --path="$INFISICAL_PATH" \
+  infisical_args=(run --env="$INFISICAL_ENV" --path="$INFISICAL_PATH")
+  if [[ -n "$INFISICAL_PROJECT_ID" ]]; then
+    infisical_args+=(--projectId "$INFISICAL_PROJECT_ID")
+  fi
+
+  exec env LIVEKIT_AGENT_DEPLOY_INFISICAL_BOOTSTRAPPED=1 infisical \
+    "${infisical_args[@]}" \
     -- "$0" "$@"
 fi
 

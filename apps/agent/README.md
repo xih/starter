@@ -21,8 +21,10 @@ corepack pnpm --filter @starter/agent dev
 ```
 
 The script will automatically re-run itself through Infisical when required
-secrets are missing from the local shell. Export `INFISICAL_PROJECT_ID` or run
-the agent inside `infisical run` so the project is never embedded in source.
+secrets are missing from the local shell. If `INFISICAL_PROJECT_ID` is set, the
+scripts pass it to Infisical. Otherwise, they rely on the project selected by
+your local Infisical config/login context, so the project ID is never embedded
+in source.
 
 Required Infisical `dev` secrets:
 
@@ -98,13 +100,12 @@ Deploy the current agent code to LiveKit Cloud with prod Infisical secrets:
 
 ```sh
 cd apps/agent
-export INFISICAL_PROJECT_ID="<infisical-project-id>"
 scripts/deploy-livekit-cloud.sh
 ```
 
-The deploy script requires `INFISICAL_PROJECT_ID`, defaults to
-`INFISICAL_ENV=prod` and `INFISICAL_PATH=/`, and never stores the project ID in
-source.
+The deploy script defaults to `INFISICAL_ENV=prod` and `INFISICAL_PATH=/`. Set
+`INFISICAL_PROJECT_ID` only when the Infisical CLI cannot infer the project from
+local config.
 
 Validate the deployment:
 

@@ -387,29 +387,23 @@ def bootstrap_from_infisical_if_needed() -> None:
             "`infisical` CLI. Install/login to Infisical or run the agent with "
             "`infisical run --projectId ... --env=dev -- <command>`."
         )
-    if not INFISICAL_PROJECT_ID:
-        raise SystemExit(
-            "Missing required LiveKit/agent env vars and INFISICAL_PROJECT_ID is not set. "
-            "Export INFISICAL_PROJECT_ID or run the agent inside `infisical run`."
-        )
 
     command = [
         infisical,
         "run",
-        "--projectId",
-        INFISICAL_PROJECT_ID,
         "--env",
         INFISICAL_ENV,
-        "--",
-        sys.executable,
-        *sys.argv,
     ]
+    if INFISICAL_PROJECT_ID:
+        command.extend(["--projectId", INFISICAL_PROJECT_ID])
+    command.extend(["--", sys.executable, *sys.argv])
     env = {
         **os.environ,
         INFISICAL_BOOTSTRAPPED: "1",
-        "INFISICAL_PROJECT_ID": INFISICAL_PROJECT_ID,
         "INFISICAL_ENV": INFISICAL_ENV,
     }
+    if INFISICAL_PROJECT_ID:
+        env["INFISICAL_PROJECT_ID"] = INFISICAL_PROJECT_ID
 
     completed = subprocess.run(command, env=env, check=False)
     raise SystemExit(completed.returncode)

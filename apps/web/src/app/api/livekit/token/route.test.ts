@@ -127,6 +127,24 @@ describe("POST /api/livekit/token", () => {
     expect(payload.code).toBe("unknown_persona");
   });
 
+  it("skips persona validation when agent dispatch is disabled", async () => {
+    const { POST } = await importRoute();
+    const response = await POST(
+      createDispatchRequest(
+        { dispatch_agent: false, persona_id: "missing-persona" },
+        { Authorization: "Bearer admin-secret" },
+      ),
+    );
+    const payload = (await response.json()) as {
+      agent_dispatch_mode: string;
+      participant_token: string;
+    };
+
+    expect(response.status).toBe(201);
+    expect(payload.participant_token).toBe("admin.jwt");
+    expect(payload.agent_dispatch_mode).toBe("disabled");
+  });
+
   it("serializes compact persona metadata for dispatched agents", async () => {
     const { POST } = await importRoute();
     const response = await POST(

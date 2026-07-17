@@ -232,15 +232,6 @@ export async function POST(request: Request) {
       ? parsedAgentMetadata.persona_id
       : undefined;
   const personaId = body.persona_id ?? metadataPersonaId ?? DEFAULT_PERSONA_ID;
-  const persona = await getPersona(personaId);
-
-  if (!persona) {
-    return jsonWithCors(
-      request,
-      { error: "Unknown persona requested.", code: "unknown_persona" },
-      { status: 400 },
-    );
-  }
 
   const roomName = body.room_name ?? createLiveKitId("agent_room");
   const participantIdentity =
@@ -274,6 +265,16 @@ export async function POST(request: Request) {
   });
 
   if (agentsToDispatch.length > 0) {
+    const persona = await getPersona(personaId);
+
+    if (!persona) {
+      return jsonWithCors(
+        request,
+        { error: "Unknown persona requested.", code: "unknown_persona" },
+        { status: 400 },
+      );
+    }
+
     token.roomConfig = new RoomConfiguration({
       name: roomName,
       agents: agentsToDispatch.map((requestedAgent) => {

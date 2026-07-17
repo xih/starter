@@ -22,6 +22,23 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+function parseRpcPayload(payload: string): unknown {
+  return JSON.parse(payload) as unknown;
+}
+
+function getPayloadPersonaId(payload: unknown) {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "persona_id" in payload &&
+    typeof payload.persona_id === "string"
+  ) {
+    return payload.persona_id;
+  }
+
+  return "unknown-persona";
+}
+
 function StatefulSwitcher() {
   const [lastRpcCall, setLastRpcCall] = useState<PersonaSwitchRpcCall | null>(
     null,
@@ -29,10 +46,11 @@ function StatefulSwitcher() {
   const [selectedPersonaId, setSelectedPersonaId] = useState("wife-e2e");
   const participant: PersonaSwitchRpcParticipant = {
     performRpc: async (call) => {
+      const payload = parseRpcPayload(call.payload);
       setLastRpcCall(call);
       return JSON.stringify({
         ok: true,
-        persona_id: JSON.parse(call.payload).persona_id,
+        persona_id: getPayloadPersonaId(payload),
         tts_model: "cartesia/sonic-3.5",
         tts_voice_id: "storybook-cartesia-voice-id",
       });
@@ -68,7 +86,7 @@ function StatefulSwitcher() {
           {JSON.stringify(
             {
               ...lastRpcCall,
-              payload: JSON.parse(lastRpcCall.payload),
+              payload: parseRpcPayload(lastRpcCall.payload),
             },
             null,
             2,

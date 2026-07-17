@@ -491,9 +491,7 @@ function TestingSessionContent({
           });
           onSelectPersona(personaId);
           setManualState("intro");
-          setErrorMessage(
-            "Could not start the voice session. Check microphone permission, token endpoint, and LiveKit agent configuration.",
-          );
+          setErrorMessage("");
         })
         .catch((error) => {
           console.error("persona_tts_switch_failed", error);

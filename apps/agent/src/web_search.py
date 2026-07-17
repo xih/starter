@@ -5,32 +5,18 @@ from typing import Any, Mapping
 
 import httpx
 
-try:
-    from .web_search_constants import (
-        DEFAULT_WEB_SEARCH_MAX_RESULTS,
-        DEFAULT_WEB_SEARCH_PROVIDER,
-        DEFAULT_WEB_SEARCH_TIMEOUT_SECONDS,
-        EXA_PROVIDER,
-        PARALLEL_PROVIDER,
-        PERPLEXITY_PROVIDER,
-        PROVIDER_SECRET_NAMES,
-        WEB_SEARCH_MAX_RESULTS_ENV,
-        WEB_SEARCH_PROVIDER_ENV,
-        WEB_SEARCH_TIMEOUT_SECONDS_ENV,
-    )
-except ImportError:
-    from web_search_constants import (
-        DEFAULT_WEB_SEARCH_MAX_RESULTS,
-        DEFAULT_WEB_SEARCH_PROVIDER,
-        DEFAULT_WEB_SEARCH_TIMEOUT_SECONDS,
-        EXA_PROVIDER,
-        PARALLEL_PROVIDER,
-        PERPLEXITY_PROVIDER,
-        PROVIDER_SECRET_NAMES,
-        WEB_SEARCH_MAX_RESULTS_ENV,
-        WEB_SEARCH_PROVIDER_ENV,
-        WEB_SEARCH_TIMEOUT_SECONDS_ENV,
-    )
+from web_search_constants import (
+    DEFAULT_WEB_SEARCH_MAX_RESULTS,
+    DEFAULT_WEB_SEARCH_PROVIDER,
+    DEFAULT_WEB_SEARCH_TIMEOUT_SECONDS,
+    EXA_PROVIDER,
+    PARALLEL_PROVIDER,
+    PERPLEXITY_PROVIDER,
+    PROVIDER_SECRET_NAMES,
+    WEB_SEARCH_MAX_RESULTS_ENV,
+    WEB_SEARCH_PROVIDER_ENV,
+    WEB_SEARCH_TIMEOUT_SECONDS_ENV,
+)
 
 
 @dataclass(frozen=True)
@@ -81,18 +67,11 @@ def load_web_search_settings(env: Mapping[str, str | None]) -> WebSearchSettings
 
 
 def create_search_provider(settings: WebSearchSettings, http_client: Any) -> Any:
-    try:
-        from .web_search_providers import (  # noqa: PLC0415
-            ExaSearchProvider,
-            ParallelSearchProvider,
-            PerplexitySearchProvider,
-        )
-    except ImportError:
-        from web_search_providers import (  # noqa: PLC0415
-            ExaSearchProvider,
-            ParallelSearchProvider,
-            PerplexitySearchProvider,
-        )
+    from web_search_providers import (  # noqa: PLC0415
+        ExaSearchProvider,
+        ParallelSearchProvider,
+        PerplexitySearchProvider,
+    )
 
     config = SearchProviderConfig(api_key=settings.api_key)
     if settings.provider == PARALLEL_PROVIDER:

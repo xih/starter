@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTEXT_DIR="$(mktemp -d)"
 SECRETS_FILE="$(mktemp)"
 DRY_RUN="${LIVEKIT_AGENT_DEPLOY_DRY_RUN:-0}"
-INFISICAL_PROJECT_ID="${INFISICAL_PROJECT_ID:-87922978-15ad-4880-add7-5ae10dbff217}"
+INFISICAL_PROJECT_ID="${INFISICAL_PROJECT_ID:-}"
 INFISICAL_ENV="${INFISICAL_ENV:-prod}"
 INFISICAL_PATH="${INFISICAL_PATH:-/}"
 INFISICAL_BOOTSTRAPPED="${LIVEKIT_AGENT_DEPLOY_INFISICAL_BOOTSTRAPPED:-0}"
@@ -32,6 +32,11 @@ required_env=(
 )
 
 if [[ "$INFISICAL_BOOTSTRAPPED" != "1" && "$SKIP_INFISICAL" != "1" ]]; then
+  if [[ -z "$INFISICAL_PROJECT_ID" ]]; then
+    echo "Missing INFISICAL_PROJECT_ID. Export it before deploying, or set LIVEKIT_AGENT_DEPLOY_SKIP_INFISICAL=1 for a local dry run with explicit env vars." >&2
+    exit 1
+  fi
+
   if ! command -v infisical >/dev/null 2>&1; then
     echo "Missing infisical CLI. Install/login to Infisical or set LIVEKIT_AGENT_DEPLOY_SKIP_INFISICAL=1 for a local dry run." >&2
     exit 1

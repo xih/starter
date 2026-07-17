@@ -1,9 +1,13 @@
 import json
+import sys
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-import src.agent as agent
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+import agent
 
 
 class PersonaAgentTests(unittest.TestCase):
@@ -57,7 +61,7 @@ class PersonaAgentTests(unittest.TestCase):
         with (
             patch.object(agent, "PERSONA_BASE_URL", "http://localhost:3000"),
             patch.object(agent, "PERSONA_READ_SECRET", "read-secret"),
-            patch("src.agent.urllib.request.urlopen", return_value=response) as urlopen,
+            patch("agent.urllib.request.urlopen", return_value=response) as urlopen,
         ):
             persona = agent.fetch_persona_config("wife-e2e", "user-123")
 
@@ -77,7 +81,7 @@ class PersonaAgentTests(unittest.TestCase):
     def test_fetch_persona_config_falls_back_on_fetch_failure(self):
         with (
             patch.object(agent, "PERSONA_BASE_URL", "http://localhost:3000"),
-            patch("src.agent.urllib.request.urlopen", side_effect=OSError("offline")),
+            patch("agent.urllib.request.urlopen", side_effect=OSError("offline")),
         ):
             persona = agent.fetch_persona_config(agent.DEFAULT_PERSONA_ID, "user-123")
 
@@ -97,7 +101,7 @@ class PersonaAgentTests(unittest.TestCase):
 
         with (
             patch.object(agent, "PERSONA_BASE_URL", "http://localhost:3000"),
-            patch("src.agent.urllib.request.urlopen", return_value=response),
+            patch("agent.urllib.request.urlopen", return_value=response),
         ):
             persona = agent.fetch_persona_config("wife-e2e", "user-123")
 
@@ -123,7 +127,7 @@ class PersonaAgentTests(unittest.TestCase):
 
         with (
             patch.object(agent, "PERSONA_BASE_URL", "http://localhost:3000"),
-            patch("src.agent.urllib.request.urlopen", return_value=response),
+            patch("agent.urllib.request.urlopen", return_value=response),
         ):
             persona = agent.fetch_persona_config("wife-e2e", "user-123")
 
@@ -145,7 +149,7 @@ class PersonaAgentTests(unittest.TestCase):
 
         with (
             patch.object(agent, "CARTESIA_API_KEY", "cartesia-key"),
-            patch("src.agent.cartesia.TTS") as cartesia_tts,
+            patch("agent.cartesia.TTS") as cartesia_tts,
         ):
             agent.create_tts(persona)
 
@@ -173,7 +177,7 @@ class PersonaAgentTests(unittest.TestCase):
 
         with (
             patch.object(agent, "CARTESIA_API_KEY", None),
-            patch("src.agent.inference.TTS") as inference_tts,
+            patch("agent.inference.TTS") as inference_tts,
         ):
             agent.create_tts(persona)
 
@@ -198,8 +202,8 @@ class PersonaAgentTests(unittest.TestCase):
 
         with (
             patch.object(agent, "CARTESIA_API_KEY", "cartesia-key"),
-            patch("src.agent.cartesia.TTS") as cartesia_tts,
-            patch("src.agent.inference.TTS") as inference_tts,
+            patch("agent.cartesia.TTS") as cartesia_tts,
+            patch("agent.inference.TTS") as inference_tts,
         ):
             agent.create_tts(persona)
 
@@ -228,7 +232,7 @@ class PersonaAgentTests(unittest.TestCase):
 
         with (
             patch.object(agent, "CARTESIA_API_KEY", None),
-            patch("src.agent.inference.TTS") as inference_tts,
+            patch("agent.inference.TTS") as inference_tts,
         ):
             agent.create_tts(persona)
 

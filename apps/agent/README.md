@@ -21,11 +21,8 @@ corepack pnpm --filter @starter/agent dev
 ```
 
 The script will automatically re-run itself through Infisical when required
-secrets are missing from the local shell. The default project is:
-
-```text
-87922978-15ad-4880-add7-5ae10dbff217
-```
+secrets are missing from the local shell. Export `INFISICAL_PROJECT_ID` or run
+the agent inside `infisical run` so the project is never embedded in source.
 
 Required Infisical `dev` secrets:
 
@@ -82,30 +79,38 @@ The LiveKit Cloud Agent deployment is pinned by `livekit.toml`:
 CA_jnUGCWeb8N3c
 ```
 
-The app intentionally keeps `package.json` for monorepo scripts. The LiveKit
-CLI auto-detects that file as a Node agent, so do not deploy directly from this
-directory. Use `scripts/deploy-livekit-cloud.sh`; it creates a Python-only temp
-context with the committed `Dockerfile`, `livekit.toml`, `pyproject.toml`,
-`uv.lock`, and the full `src` tree. The script bootstraps itself through
-Infisical and writes the LiveKit, agent, Cartesia, persona, embedding, and
-web-search provider secrets from Infisical into the LiveKit Cloud secrets file.
+LiveKit recommends deploying agents with the `lk agent deploy` CLI command from
+a working directory that contains `livekit.toml` and `Dockerfile`, and passing
+runtime secrets with a LiveKit secrets file or `--secrets` flags. This app keeps
+`package.json` for monorepo scripts, which makes the LiveKit CLI auto-detect the
+directory as a Node agent. Keep `scripts/deploy-livekit-cloud.sh` as a thin repo
+wrapper: it creates a Python-only temp context with the committed `Dockerfile`,
+`livekit.toml`, `pyproject.toml`, `uv.lock`, and `src` tree, then calls
+`lk agent deploy --secrets-file`.
+
+The wrapper bootstraps itself through Infisical and writes the agent, Cartesia,
+persona, embedding, and web-search provider secrets into LiveKit Cloud's
+encrypted agent secrets. `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and
+`LIVEKIT_API_SECRET` are included for local validation, but LiveKit Cloud
+generates its own project connection credentials for deployed agents.
 
 Deploy the current agent code to LiveKit Cloud with prod Infisical secrets:
 
 ```sh
 cd apps/agent
+export INFISICAL_PROJECT_ID="<infisical-project-id>"
 scripts/deploy-livekit-cloud.sh
 ```
 
-The deploy script defaults to project `87922978-15ad-4880-add7-5ae10dbff217`,
-`INFISICAL_ENV=prod`, and `INFISICAL_PATH=/`. Override those variables only
-when deploying a different Infisical environment.
+The deploy script requires `INFISICAL_PROJECT_ID`, defaults to
+`INFISICAL_ENV=prod` and `INFISICAL_PATH=/`, and never stores the project ID in
+source.
 
 Validate the deployment:
 
 ```sh
 infisical run \
-  --projectId 87922978-15ad-4880-add7-5ae10dbff217 \
+  --projectId "$INFISICAL_PROJECT_ID" \
   --env=prod \
   --path=/ \
   -- bash -lc '
@@ -128,7 +133,7 @@ Smoke test the dispatch name:
 
 ```sh
 infisical run \
-  --projectId 87922978-15ad-4880-add7-5ae10dbff217 \
+  --projectId "$INFISICAL_PROJECT_ID" \
   --env=prod \
   --path=/ \
   -- bash -lc '
@@ -162,7 +167,7 @@ End-to-end validation:
 
 ```sh
 infisical run \
-  --projectId 87922978-15ad-4880-add7-5ae10dbff217 \
+  --projectId "$INFISICAL_PROJECT_ID" \
   --env=prod \
   --path=/ \
   -- bash -lc 'lk room participants list "<room-name-from-qa-page>"'

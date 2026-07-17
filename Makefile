@@ -1,11 +1,16 @@
-INFISICAL_PROJECT_ID ?= 87922978-15ad-4880-add7-5ae10dbff217
 INFISICAL_ENV ?= dev
 VOICE_DEV_PORT ?= 3000
 VOICE_DEV_PERSONA_BASE_URL ?= http://localhost:$(VOICE_DEV_PORT)
 
-.PHONY: ci ci-install ci-format ci-lint ci-typecheck ci-test ci-build voice-dev persona-e2e persona-e2e-infisical persona-e2e-clone agent-check agent-deploy-check pr-ready livekit-agent-e2e
+.PHONY: ci ci-install ci-format ci-lint ci-typecheck ci-test ci-build voice-dev persona-e2e persona-e2e-infisical persona-e2e-clone agent-check agent-deploy-check pr-ready livekit-agent-e2e require-infisical-project
 
-voice-dev:
+require-infisical-project:
+	@if [ -z "$(INFISICAL_PROJECT_ID)" ]; then \
+		echo "Missing INFISICAL_PROJECT_ID. Export it before running Infisical-backed targets."; \
+		exit 1; \
+	fi
+
+voice-dev: require-infisical-project
 	@if lsof -nP -iTCP:$(VOICE_DEV_PORT) -sTCP:LISTEN >/dev/null 2>&1; then \
 		echo "Port $(VOICE_DEV_PORT) is already in use. Stop that server or run VOICE_DEV_PORT=3001 make voice-dev."; \
 		lsof -nP -iTCP:$(VOICE_DEV_PORT) -sTCP:LISTEN; \
@@ -39,10 +44,10 @@ ci-build:
 persona-e2e:
 	PERSONA_E2E=1 corepack pnpm --filter @starter/web test -- src/server/personas.e2e.test.ts
 
-persona-e2e-infisical:
+persona-e2e-infisical: require-infisical-project
 	infisical run --projectId $(INFISICAL_PROJECT_ID) --env=$(INFISICAL_ENV) -- sh -c 'PERSONA_E2E_BASE_URL="$${PERSONA_E2E_BASE_URL:-$(VOICE_DEV_PERSONA_BASE_URL)}" make persona-e2e'
 
-persona-e2e-clone:
+persona-e2e-clone: require-infisical-project
 	infisical run --projectId $(INFISICAL_PROJECT_ID) --env=$(INFISICAL_ENV) -- sh -c 'PERSONA_AGENT_READ_SECRET="$${PERSONA_AGENT_READ_SECRET:-dev-persona-secret}" PERSONA_E2E_BASE_URL="$${PERSONA_E2E_BASE_URL:-$(VOICE_DEV_PERSONA_BASE_URL)}" corepack pnpm exec concurrently -k -s first -n web,test "PORT=$(VOICE_DEV_PORT) corepack pnpm --filter @starter/web dev" "corepack pnpm exec wait-on $(VOICE_DEV_PERSONA_BASE_URL)/api/personas && PERSONA_E2E=1 corepack pnpm --filter @starter/web test -- src/server/personas.e2e.test.ts"'
 
 agent-check:
@@ -71,7 +76,7 @@ agent-deploy-check:
 
 pr-ready: ci agent-check agent-deploy-check
 
-livekit-agent-e2e:
+livekit-agent-e2e: require-infisical-project
 	corepack pnpm exec concurrently -k -s first -n agent,web \
 		"corepack pnpm --filter @starter/agent dev" \
-		"infisical run --projectId 87922978-15ad-4880-add7-5ae10dbff217 --env=dev -- corepack pnpm --filter @starter/web dev"
+		"infisical run --projectId $(INFISICAL_PROJECT_ID) --env=dev -- corepack pnpm --filter @starter/web dev"

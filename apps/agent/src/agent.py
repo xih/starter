@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
-import json
 import shutil
 import subprocess
 import sys
@@ -25,57 +25,32 @@ from livekit.agents import (
 )
 from livekit.plugins import cartesia
 
-try:
-    from .agent_web_search import (
-        LiveKitRpcSearchToolStatusNotifier,
-        SearchToolStatusNotifier,
-        run_web_search_tool,
-    )
-    from .web_search import (
-        WebSearchSettings,
-        create_default_http_client,
-        create_search_provider,
-        load_web_search_settings,
-    )
-    from .web_search_constants import (
-        DEFAULT_WEB_SEARCH_MAX_RESULTS,
-        DEFAULT_WEB_SEARCH_PROVIDER,
-        DEFAULT_WEB_SEARCH_TIMEOUT_SECONDS,
-        PROVIDER_SECRET_NAMES,
-        WEB_SEARCH_MAX_RESULTS_ENV,
-        WEB_SEARCH_PROVIDER_ENV,
-        WEB_SEARCH_TIMEOUT_SECONDS_ENV,
-    )
-except ImportError:
-    from agent_web_search import (
-        LiveKitRpcSearchToolStatusNotifier,
-        SearchToolStatusNotifier,
-        run_web_search_tool,
-    )
-    from web_search import (
-        WebSearchSettings,
-        create_default_http_client,
-        create_search_provider,
-        load_web_search_settings,
-    )
-    from web_search_constants import (
-        DEFAULT_WEB_SEARCH_MAX_RESULTS,
-        DEFAULT_WEB_SEARCH_PROVIDER,
-        DEFAULT_WEB_SEARCH_TIMEOUT_SECONDS,
-        PROVIDER_SECRET_NAMES,
-        WEB_SEARCH_MAX_RESULTS_ENV,
-        WEB_SEARCH_PROVIDER_ENV,
-        WEB_SEARCH_TIMEOUT_SECONDS_ENV,
-    )
+from agent_web_search import (
+    LiveKitRpcSearchToolStatusNotifier,
+    SearchToolStatusNotifier,
+    run_web_search_tool,
+)
+from web_search import (
+    WebSearchSettings,
+    create_default_http_client,
+    create_search_provider,
+    load_web_search_settings,
+)
+from web_search_constants import (
+    DEFAULT_WEB_SEARCH_MAX_RESULTS,
+    DEFAULT_WEB_SEARCH_PROVIDER,
+    DEFAULT_WEB_SEARCH_TIMEOUT_SECONDS,
+    PROVIDER_SECRET_NAMES,
+    WEB_SEARCH_MAX_RESULTS_ENV,
+    WEB_SEARCH_PROVIDER_ENV,
+    WEB_SEARCH_TIMEOUT_SECONDS_ENV,
+)
 
 load_dotenv()
 
 logger = logging.getLogger("portfolio_agent")
 
-INFISICAL_PROJECT_ID = os.getenv(
-    "INFISICAL_PROJECT_ID",
-    "87922978-15ad-4880-add7-5ae10dbff217",
-)
+INFISICAL_PROJECT_ID = os.getenv("INFISICAL_PROJECT_ID")
 INFISICAL_ENV = os.getenv("INFISICAL_ENV", "dev")
 INFISICAL_BOOTSTRAPPED = "LIVEKIT_AGENT_INFISICAL_BOOTSTRAPPED"
 REQUIRED_ENV_VARS = (
@@ -355,7 +330,7 @@ def missing_required_env() -> list[str]:
 def print_env_doctor() -> int:
     missing = missing_required_env()
     print("LiveKit agent environment")
-    print(f"  INFISICAL_PROJECT_ID: {INFISICAL_PROJECT_ID}")
+    print(f"  INFISICAL_PROJECT_ID: {'set' if INFISICAL_PROJECT_ID else 'missing'}")
     print(f"  INFISICAL_ENV: {INFISICAL_ENV}")
     print(f"  LIVEKIT_AGENT_NAME: {AGENT_NAME}")
     print(f"  LIVEKIT_AGENT_STT_MODEL: {STT_MODEL}")
@@ -411,6 +386,11 @@ def bootstrap_from_infisical_if_needed() -> None:
             "Missing required LiveKit/agent env vars and could not find the "
             "`infisical` CLI. Install/login to Infisical or run the agent with "
             "`infisical run --projectId ... --env=dev -- <command>`."
+        )
+    if not INFISICAL_PROJECT_ID:
+        raise SystemExit(
+            "Missing required LiveKit/agent env vars and INFISICAL_PROJECT_ID is not set. "
+            "Export INFISICAL_PROJECT_ID or run the agent inside `infisical run`."
         )
 
     command = [

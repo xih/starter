@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Any, AsyncIterator
 
 from dotenv import load_dotenv
-from livekit import agents
+from livekit import agents, rtc
 from livekit.agents import (
     Agent,
     AgentSession,
@@ -70,6 +70,7 @@ CARTESIA_API_KEY = os.getenv("CARTESIA_API_KEY")
 PERSONA_BASE_URL = os.getenv("LIVEKIT_AGENT_PERSONA_BASE_URL")
 PERSONA_READ_SECRET = os.getenv("PERSONA_AGENT_READ_SECRET")
 DEFAULT_PERSONA_ID = os.getenv("LIVEKIT_AGENT_DEFAULT_PERSONA_ID", "portfolio-agent")
+PERSONA_TTS_SWITCH_RPC_METHOD = "persona.switch_tts"
 SESSION_RECORDING_ENABLED_ENV = "LIVEKIT_AGENT_SESSION_RECORDING_ENABLED"
 SESSION_RECORD_AUDIO_ENV = "LIVEKIT_AGENT_RECORD_AUDIO"
 SESSION_RECORD_LOGS_ENV = "LIVEKIT_AGENT_RECORD_LOGS"
@@ -242,6 +243,64 @@ def create_tts(persona: PersonaConfig):
 
     logger.info("Using LiveKit inference TTS for persona `%s`.", persona.id)
     return inference.TTS(**tts_kwargs)
+
+
+def update_session_tts(session: AgentSession, persona: PersonaConfig) -> None:
+    # LiveKit reads the session TTS at speech generation time, but the current
+    # SDK does not expose a public setter. Keep this helper isolated so it is
+    # easy to replace if the SDK adds one.
+    session._tts = create_tts(persona)
+    session._tts_error_counts = 0
+
+
+async def interrupt_active_speech(session: AgentSession) -> None:
+    try:
+        await session.interrupt(force=True)
+    except RuntimeError:
+        logger.debug("Skipping persona TTS switch interrupt before session start.")
+
+
+def create_persona_tts_switch_rpc_handler(session: AgentSession):
+    async def switch_persona_tts(data: rtc.RpcInvocationData) -> str:
+        try:
+            payload = json.loads(data.payload or "{}")
+        except json.JSONDecodeError as error:
+            raise rtc.RpcError(1400, "Invalid persona switch payload.") from error
+
+        if not isinstance(payload, dict):
+            raise rtc.RpcError(1400, "Invalid persona switch payload.")
+
+        persona_id = payload.get("persona_id")
+        user_id = payload.get("user_id")
+
+        if not isinstance(persona_id, str) or not persona_id.strip():
+            raise rtc.RpcError(1400, "Missing persona_id.")
+
+        persona = fetch_persona_config(
+            persona_id,
+            user_id if isinstance(user_id, str) else None,
+        )
+        update_session_tts(session, persona)
+        await interrupt_active_speech(session)
+
+        logger.info(
+            "portfolio_agent_tts_switched persona_id=%s voice_id=%s model=%s caller=%s",
+            persona.id,
+            persona.tts_voice_id,
+            persona.tts_model,
+            data.caller_identity,
+        )
+
+        return json.dumps(
+            {
+                "ok": True,
+                "persona_id": persona.id,
+                "tts_model": persona.tts_model,
+                "tts_voice_id": persona.tts_voice_id,
+            }
+        )
+
+    return switch_persona_tts
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -479,6 +538,10 @@ async def entrypoint(ctx: JobContext) -> None:
     )
 
     register_session_observability(session)
+    ctx.room.local_participant.register_rpc_method(
+        PERSONA_TTS_SWITCH_RPC_METHOD,
+        create_persona_tts_switch_rpc_handler(session),
+    )
 
     await session.start(
         room=ctx.room,

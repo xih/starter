@@ -34,7 +34,18 @@ function createBrowserSafeId() {
     return crypto.randomUUID();
   }
 
-  return Math.random().toString(36).slice(2, 15);
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.getRandomValues === "function"
+  ) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+      "",
+    );
+  }
+
+  throw new Error("Secure browser randomness is required to start voice chat.");
 }
 
 function createRoomName() {

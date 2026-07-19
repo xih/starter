@@ -493,6 +493,49 @@ describe("POST /api/livekit/guest-session", () => {
     expect(createDispatchCall?.[2]?.metadata).toContain(sessionId);
   });
 
+  it("preserves selected persona metadata when ensuring dispatch for an active guest session", async () => {
+    cookieValue = "existing-device";
+    const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
+      await import("~/server/livekit/guest-session");
+    const [deviceHash, ipHash] = await Promise.all([
+      hashGuestIdentifier("existing-device"),
+      hashGuestIdentifier("203.0.113.10"),
+    ]);
+    const sessionId = "guest_session_existing";
+    const userId = `guest_${deviceHash.slice(0, 16)}`;
+    redisStore.set(guestActiveKey(deviceHash, ipHash), sessionId);
+    redisStore.set(guestSessionKey(sessionId), {
+      agentName: "dennis-portfolio-agent",
+      createdAt: new Date().toISOString(),
+      deviceHash,
+      expiresAt: new Date(Date.now() + 30_000).toISOString(),
+      ipHash,
+      personaId: "wife",
+      participantIdentity: "guest_guest_session_existing",
+      roomName: "guest_guest_session_existing",
+      sessionId,
+      status: "active",
+      userId,
+    });
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: { ensure_dispatch: true, persona_id: "wife" },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as {
+      reused_session?: boolean;
+      room_name?: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.reused_session).toBe(true);
+    expect(payload.room_name).toBe("guest_guest_session_existing");
+    const createDispatchCall = createDispatchMock.mock.calls[0];
+    expect(createDispatchCall?.[2]?.metadata).toContain('"persona_id":"wife"');
+  });
+
   it("does not hide not-found dispatch failures when reusing an active guest session", async () => {
     cookieValue = "existing-device";
     createDispatchMock.mockRejectedValueOnce({

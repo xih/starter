@@ -102,17 +102,21 @@ export function TestingSession({
   showDebugPanel = true,
   tokenEndpoint,
 }: TestingSessionProps) {
+  const agentMetadata = useMemo(
+    () => ({
+      persona_id: selectedPersonaId,
+      session_id: roomName,
+      user_id: "testing-user",
+    }),
+    [roomName, selectedPersonaId],
+  );
   const tokenSource = useMemo(
     () => TokenSource.endpoint(tokenEndpoint),
     [tokenEndpoint],
   );
   const session = useSession(tokenSource, {
     agentName,
-    agentMetadata: JSON.stringify({
-      persona_id: selectedPersonaId,
-      session_id: roomName,
-      user_id: "testing-user",
-    }),
+    agentMetadata: JSON.stringify(agentMetadata),
     participantName: "Testing Guest",
     roomName,
   });
@@ -121,6 +125,7 @@ export function TestingSession({
     <SessionProvider session={session}>
       <TestingSessionLayout
         agentName={agentName}
+        agentMetadata={agentMetadata}
         className={className}
         desktopHero={desktopHero}
         desktopSectionClassName={desktopSectionClassName}
@@ -149,6 +154,7 @@ export function TestingSession({
 
 function TestingSessionLayout({
   agentName,
+  agentMetadata,
   className,
   desktopHero,
   desktopSectionClassName,
@@ -170,10 +176,16 @@ function TestingSessionLayout({
   showMobileHeader,
   tokenEndpoint,
 }: Omit<TestingSessionProps, "endRequestKey"> & {
+  agentMetadata: {
+    persona_id: string;
+    session_id: string;
+    user_id: string;
+  };
   endRequestKey: number;
   session: ReturnType<typeof useSession>;
 }) {
   const controller = useLiveKitSessionController(session, {
+    agentMetadata,
     endRequestKey,
     onMobileConversationChange:
       mobileLayout === "ask" ? onMobileConversationChange : undefined,

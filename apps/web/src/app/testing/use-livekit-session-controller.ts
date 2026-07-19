@@ -42,6 +42,11 @@ const MIN_PENDING_REPLY_MS = 700;
 const PENDING_REPLY_TIMEOUT_MS = 20_000;
 
 export type LiveKitSessionControllerOptions = {
+  agentMetadata: {
+    persona_id: string;
+    session_id: string;
+    user_id: string;
+  };
   endRequestKey: number;
   onMobileConversationChange?: (hasConversation: boolean) => void;
   onSessionEnded: () => void;
@@ -101,6 +106,7 @@ function stateFromSession({
 export function useLiveKitSessionController(
   session: ReturnType<typeof useSession>,
   {
+    agentMetadata,
     endRequestKey,
     onMobileConversationChange,
     onSessionEnded,
@@ -421,7 +427,13 @@ export function useLiveKitSessionController(
     didEnsureGuestDispatchRef.current = true;
 
     void fetch(tokenEndpoint, {
-      body: JSON.stringify({ ensure_dispatch: true }),
+      body: JSON.stringify({
+        ensure_dispatch: true,
+        persona_id: agentMetadata.persona_id,
+        room_config: {
+          agents: [{ agent_metadata: JSON.stringify(agentMetadata) }],
+        },
+      }),
       headers: { "Content-Type": "application/json" },
       method: "POST",
     })
@@ -440,9 +452,10 @@ export function useLiveKitSessionController(
             ? error.message
             : "Unknown LiveKit dispatch error";
         setErrorMessage(`Could not dispatch the portfolio agent: ${message}`);
+        setManualState("error");
         console.error("Testing LiveKit guest dispatch ensure failed", error);
       });
-  }, [session.connectionState, tokenEndpoint]);
+  }, [agentMetadata, session.connectionState, tokenEndpoint]);
 
   useEffect(() => {
     if (session.connectionState !== ConnectionState.Connected) return;

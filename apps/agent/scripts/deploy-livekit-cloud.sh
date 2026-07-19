@@ -16,7 +16,6 @@ required_env=(
   LIVEKIT_URL
   LIVEKIT_API_KEY
   LIVEKIT_API_SECRET
-  LIVEKIT_AGENT_TTS_VOICE_ID
   PARALLEL_API_KEY
   EXA_API_KEY
   PERPLEXITY_API_KEY
@@ -28,6 +27,16 @@ for name in "${required_env[@]}"; do
     exit 1
   fi
 done
+
+if [[ "${LIVEKIT_AGENT_PROVIDER:-livekit}" == "livekit" && -z "${LIVEKIT_AGENT_TTS_VOICE_ID:-}" ]]; then
+  echo "Missing required environment variable for LIVEKIT_AGENT_PROVIDER=livekit: LIVEKIT_AGENT_TTS_VOICE_ID" >&2
+  exit 1
+fi
+
+if [[ "${LIVEKIT_AGENT_PROVIDER:-livekit}" == "openai" && -z "${OPENAI_API_KEY:-}" ]]; then
+  echo "Missing required environment variable for LIVEKIT_AGENT_PROVIDER=openai: OPENAI_API_KEY" >&2
+  exit 1
+fi
 
 cp "$ROOT_DIR/Dockerfile" "$CONTEXT_DIR/Dockerfile"
 cp "$ROOT_DIR/.dockerignore" "$CONTEXT_DIR/.dockerignore"
@@ -41,11 +50,17 @@ cp -R "$ROOT_DIR/src" "$CONTEXT_DIR/src"
   printf "LIVEKIT_API_KEY=%s\n" "$LIVEKIT_API_KEY"
   printf "LIVEKIT_API_SECRET=%s\n" "$LIVEKIT_API_SECRET"
   printf "LIVEKIT_AGENT_NAME=%s\n" "${LIVEKIT_AGENT_NAME:-dennis-portfolio-agent}"
+  printf "LIVEKIT_AGENT_PROVIDER=%s\n" "${LIVEKIT_AGENT_PROVIDER:-livekit}"
   printf "LIVEKIT_AGENT_STT_MODEL=%s\n" "${LIVEKIT_AGENT_STT_MODEL:-deepgram/nova-3}"
   printf "LIVEKIT_AGENT_STT_LANGUAGE=%s\n" "${LIVEKIT_AGENT_STT_LANGUAGE:-en}"
   printf "LIVEKIT_AGENT_LLM_MODEL=%s\n" "${LIVEKIT_AGENT_LLM_MODEL:-google/gemini-2.5-flash-lite}"
   printf "LIVEKIT_AGENT_TTS_MODEL=%s\n" "${LIVEKIT_AGENT_TTS_MODEL:-cartesia/sonic-3.5}"
-  printf "LIVEKIT_AGENT_TTS_VOICE_ID=%s\n" "$LIVEKIT_AGENT_TTS_VOICE_ID"
+  printf "LIVEKIT_AGENT_TTS_VOICE_ID=%s\n" "${LIVEKIT_AGENT_TTS_VOICE_ID:-}"
+  printf "OPENAI_AGENT_STT_MODEL=%s\n" "${OPENAI_AGENT_STT_MODEL:-gpt-4o-mini-transcribe}"
+  printf "OPENAI_AGENT_LLM_MODEL=%s\n" "${OPENAI_AGENT_LLM_MODEL:-gpt-4.1-mini}"
+  printf "OPENAI_AGENT_TTS_MODEL=%s\n" "${OPENAI_AGENT_TTS_MODEL:-gpt-4o-mini-tts}"
+  printf "OPENAI_AGENT_TTS_VOICE=%s\n" "${OPENAI_AGENT_TTS_VOICE:-ash}"
+  printf "OPENAI_API_KEY=%s\n" "${OPENAI_API_KEY:-}"
   printf "WEB_SEARCH_PROVIDER=%s\n" "${WEB_SEARCH_PROVIDER:-parallel}"
   printf "WEB_SEARCH_MAX_RESULTS=%s\n" "${WEB_SEARCH_MAX_RESULTS:-5}"
   printf "WEB_SEARCH_TIMEOUT_SECONDS=%s\n" "${WEB_SEARCH_TIMEOUT_SECONDS:-8}"
@@ -72,7 +87,8 @@ verify_deploy_context() {
     LIVEKIT_API_KEY
     LIVEKIT_API_SECRET
     LIVEKIT_AGENT_NAME
-    LIVEKIT_AGENT_TTS_VOICE_ID
+    LIVEKIT_AGENT_PROVIDER
+    OPENAI_API_KEY
     WEB_SEARCH_PROVIDER
     WEB_SEARCH_MAX_RESULTS
     WEB_SEARCH_TIMEOUT_SECONDS

@@ -18,6 +18,7 @@ from livekit.agents import (
     function_tool,
     inference,
 )
+from livekit.plugins import openai
 
 from agent_web_search import (
     LiveKitRpcSearchToolStatusNotifier,
@@ -50,19 +51,18 @@ INFISICAL_PROJECT_ID = os.getenv(
 )
 INFISICAL_ENV = os.getenv("INFISICAL_ENV", "dev")
 INFISICAL_BOOTSTRAPPED = "LIVEKIT_AGENT_INFISICAL_BOOTSTRAPPED"
-REQUIRED_ENV_VARS = (
-    "LIVEKIT_URL",
-    "LIVEKIT_API_KEY",
-    "LIVEKIT_API_SECRET",
-    "LIVEKIT_AGENT_TTS_VOICE_ID",
-)
-
 AGENT_NAME = os.getenv("LIVEKIT_AGENT_NAME", "dennis-portfolio-agent")
+VALID_AGENT_PROVIDERS = ("openai", "livekit")
+AGENT_PROVIDER = os.getenv("LIVEKIT_AGENT_PROVIDER", "livekit").strip().lower()
 STT_MODEL = os.getenv("LIVEKIT_AGENT_STT_MODEL", "deepgram/nova-3")
 STT_LANGUAGE = os.getenv("LIVEKIT_AGENT_STT_LANGUAGE", "en")
 LLM_MODEL = os.getenv("LIVEKIT_AGENT_LLM_MODEL", "google/gemini-2.5-flash-lite")
 TTS_MODEL = os.getenv("LIVEKIT_AGENT_TTS_MODEL", "cartesia/sonic-3.5")
 TTS_VOICE_ID = os.getenv("LIVEKIT_AGENT_TTS_VOICE_ID")
+OPENAI_STT_MODEL = os.getenv("OPENAI_AGENT_STT_MODEL", "gpt-4o-mini-transcribe")
+OPENAI_LLM_MODEL = os.getenv("OPENAI_AGENT_LLM_MODEL", "gpt-4.1-mini")
+OPENAI_TTS_MODEL = os.getenv("OPENAI_AGENT_TTS_MODEL", "gpt-4o-mini-tts")
+OPENAI_TTS_VOICE = os.getenv("OPENAI_AGENT_TTS_VOICE", "ash")
 
 INSTRUCTIONS = " ".join(
     [
@@ -168,20 +168,84 @@ async def _search_progress_context(context: RunContext | None) -> AsyncIterator[
 
 
 def missing_required_env() -> list[str]:
-    return [key for key in REQUIRED_ENV_VARS if not os.getenv(key)]
+    required = [
+        "LIVEKIT_URL",
+        "LIVEKIT_API_KEY",
+        "LIVEKIT_API_SECRET",
+    ]
+
+    if AGENT_PROVIDER == "livekit":
+        required.append("LIVEKIT_AGENT_TTS_VOICE_ID")
+    elif AGENT_PROVIDER == "openai":
+        required.append("OPENAI_API_KEY")
+
+    return [key for key in required if not os.getenv(key)]
+
+
+def validate_agent_provider() -> str | None:
+    if AGENT_PROVIDER in VALID_AGENT_PROVIDERS:
+        return None
+
+    return (
+        f"Unsupported LIVEKIT_AGENT_PROVIDER={AGENT_PROVIDER!r}. "
+        f"Expected one of: {', '.join(VALID_AGENT_PROVIDERS)}."
+    )
+
+
+def create_agent_session() -> AgentSession:
+    provider_error = validate_agent_provider()
+    if provider_error:
+        raise ValueError(provider_error)
+
+    if AGENT_PROVIDER == "livekit":
+        return AgentSession(
+            stt=inference.STT(
+                model=STT_MODEL,
+                language=STT_LANGUAGE,
+            ),
+            llm=inference.LLM(
+                model=LLM_MODEL,
+            ),
+            tts=inference.TTS(
+                model=TTS_MODEL,
+                voice=TTS_VOICE_ID,
+            ),
+        )
+
+    return AgentSession(
+        stt=openai.STT(
+            model=OPENAI_STT_MODEL,
+            language=STT_LANGUAGE,
+        ),
+        llm=openai.LLM(
+            model=OPENAI_LLM_MODEL,
+        ),
+        tts=openai.TTS(
+            model=OPENAI_TTS_MODEL,
+            voice=OPENAI_TTS_VOICE,
+            instructions="Speak in a warm, concise, conversational tone.",
+        ),
+    )
 
 
 def print_env_doctor() -> int:
+    provider_error = validate_agent_provider()
     missing = missing_required_env()
     print("LiveKit agent environment")
     print(f"  INFISICAL_PROJECT_ID: {INFISICAL_PROJECT_ID}")
     print(f"  INFISICAL_ENV: {INFISICAL_ENV}")
     print(f"  LIVEKIT_AGENT_NAME: {AGENT_NAME}")
+    print(f"  LIVEKIT_AGENT_PROVIDER: {AGENT_PROVIDER}")
     print(f"  LIVEKIT_AGENT_STT_MODEL: {STT_MODEL}")
     print(f"  LIVEKIT_AGENT_STT_LANGUAGE: {STT_LANGUAGE}")
     print(f"  LIVEKIT_AGENT_LLM_MODEL: {LLM_MODEL}")
     print(f"  LIVEKIT_AGENT_TTS_MODEL: {TTS_MODEL}")
     print(f"  LIVEKIT_AGENT_TTS_VOICE_ID: {'set' if TTS_VOICE_ID else 'missing'}")
+    print(f"  OPENAI_AGENT_STT_MODEL: {OPENAI_STT_MODEL}")
+    print(f"  OPENAI_AGENT_LLM_MODEL: {OPENAI_LLM_MODEL}")
+    print(f"  OPENAI_AGENT_TTS_MODEL: {OPENAI_TTS_MODEL}")
+    print(f"  OPENAI_AGENT_TTS_VOICE: {OPENAI_TTS_VOICE}")
+    print(f"  OPENAI_API_KEY: {'set' if os.getenv('OPENAI_API_KEY') else 'missing'}")
     print(
         "  WEB_SEARCH_PROVIDER: "
         f"{os.getenv(WEB_SEARCH_PROVIDER_ENV, DEFAULT_WEB_SEARCH_PROVIDER)}"
@@ -200,8 +264,18 @@ def print_env_doctor() -> int:
     for key in PROVIDER_SECRET_NAMES.values():
         print(f"  {key}: {'set' if os.getenv(key) else 'missing'}")
 
-    for key in REQUIRED_ENV_VARS:
+    for key in (
+        "LIVEKIT_URL",
+        "LIVEKIT_API_KEY",
+        "LIVEKIT_API_SECRET",
+        "LIVEKIT_AGENT_TTS_VOICE_ID",
+    ):
         print(f"  {key}: {'set' if os.getenv(key) else 'missing'}")
+
+    if provider_error:
+        print()
+        print(provider_error)
+        return 1
 
     if missing:
         print()
@@ -264,44 +338,21 @@ async def entrypoint(ctx: JobContext) -> None:
         getattr(ctx.job, "id", "unknown"),
     )
 
-    session = AgentSession(
-        stt=inference.STT(
-            model=STT_MODEL,
-            language=STT_LANGUAGE,
-        ),
-        llm=inference.LLM(
-            model=LLM_MODEL,
-        ),
-        tts=inference.TTS(
-            model=TTS_MODEL,
-            voice=TTS_VOICE_ID,
-        ),
-    )
+    session = create_agent_session()
 
     register_session_observability(session)
 
     await session.start(
         room=ctx.room,
         agent=PortfolioAgent(agent_id=AGENT_NAME, instructions=INSTRUCTIONS),
-        record={
-            "audio": True,
-            "logs": True,
-            "traces": True,
-            "transcript": True,
-        },
     )
 
     logger.info(
-        "portfolio_agent_session_started agent_name=%s room=%s llm_model=%s",
+        "portfolio_agent_session_started agent_name=%s room=%s provider=%s llm_model=%s",
         AGENT_NAME,
         ctx.room.name,
-        LLM_MODEL,
-    )
-
-    await session.generate_reply(
-        instructions=(
-            "Greet the user briefly and say you are ready for a quick voice test."
-        ),
+        AGENT_PROVIDER,
+        OPENAI_LLM_MODEL if AGENT_PROVIDER != "livekit" else LLM_MODEL,
     )
 
 

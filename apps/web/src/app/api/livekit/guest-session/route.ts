@@ -15,6 +15,7 @@ import {
   guestIpCooldownKey,
   guestSessionKey,
   hashGuestIdentifier,
+  ensureGuestAgentDispatch,
   isOriginAllowed,
   issueGuestLiveKitToken,
   type GuestSessionRecord,
@@ -58,6 +59,31 @@ export function OPTIONS(request: Request) {
   });
 }
 
+export function GET(request: Request) {
+  if (!isOriginAllowed(request.headers.get("origin"))) {
+    return jsonWithCors(
+      request,
+      { error: "Origin is not allowed to inspect LiveKit guest sessions." },
+      { status: 403 },
+    );
+  }
+
+  const env = assertGuestSessionEnv();
+
+  if (!env.ok) {
+    return jsonWithCors(
+      request,
+      {
+        error: env.error,
+        issues: env.issues,
+      },
+      { status: 500 },
+    );
+  }
+
+  return jsonWithCors(request, { ok: true }, { status: 200 });
+}
+
 export async function POST(request: Request) {
   if (!isOriginAllowed(request.headers.get("origin"))) {
     return jsonWithCors(
@@ -79,6 +105,13 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  const requestBody = await request.json().catch(() => null);
+  const shouldEnsureDispatch =
+    typeof requestBody === "object" &&
+    requestBody !== null &&
+    "ensure_dispatch" in requestBody &&
+    requestBody.ensure_dispatch === true;
 
   const redis = createRedis();
   const sessionId = createId("guest_session");
@@ -104,6 +137,22 @@ export async function POST(request: Request) {
     activeRecord?.status === "active" &&
     Date.parse(activeRecord.expiresAt) > Date.now()
   ) {
+    if (shouldEnsureDispatch) {
+      try {
+        await ensureGuestAgentDispatch(activeRecord, { force: true });
+      } catch (error) {
+        return jsonWithCors(
+          request,
+          {
+            error:
+              error instanceof Error
+                ? `Failed to ensure LiveKit agent dispatch: ${error.message}`
+                : "Failed to ensure LiveKit agent dispatch.",
+          },
+          { status: 500 },
+        );
+      }
+    }
     const payload = await issueGuestLiveKitToken(activeRecord);
 
     return jsonWithCors(
@@ -152,6 +201,22 @@ export async function POST(request: Request) {
       concurrentRecord?.status === "active" &&
       Date.parse(concurrentRecord.expiresAt) > Date.now()
     ) {
+      if (shouldEnsureDispatch) {
+        try {
+          await ensureGuestAgentDispatch(concurrentRecord, { force: true });
+        } catch (error) {
+          return jsonWithCors(
+            request,
+            {
+              error:
+                error instanceof Error
+                  ? `Failed to ensure LiveKit agent dispatch: ${error.message}`
+                  : "Failed to ensure LiveKit agent dispatch.",
+            },
+            { status: 500 },
+          );
+        }
+      }
       const payload = await issueGuestLiveKitToken(concurrentRecord);
 
       return jsonWithCors(

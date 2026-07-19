@@ -37,6 +37,7 @@ export type AgentSideBarProps = {
   inputValue?: string;
   isMicrophoneEnabled?: boolean;
   isSending?: boolean;
+  isThinking?: boolean;
   latestSearchSources?: SourceData[];
   messages?: AgentSideBarMessage[];
   onChangeInput?: (value: string) => void;
@@ -569,6 +570,7 @@ export function AgentSideBar({
   inputValue = "",
   isMicrophoneEnabled = true,
   isSending = false,
+  isThinking = false,
   latestSearchSources = [],
   messages = defaultMessages,
   onChangeInput,
@@ -584,7 +586,7 @@ export function AgentSideBar({
   const resolvedMessages =
     state === "begin"
       ? []
-      : state === "agent-streaming"
+      : state === "agent-streaming" || isThinking
         ? [
             ...messages,
             {
@@ -615,16 +617,14 @@ export function AgentSideBar({
               <AgentTitle className="w-full">Ask a question</AgentTitle>
             </div>
           ) : (
-            <>
-              {state === "error" ? <ErrorToast message={errorMessage} /> : null}
-              <ChatConversation
-                latestSearchSources={latestSearchSources}
-                messages={resolvedMessages}
-              />
-            </>
+            <ChatConversation
+              latestSearchSources={latestSearchSources}
+              messages={resolvedMessages}
+            />
           )}
 
           <div className="mt-token-24 shrink-0">
+            {state === "error" ? <ErrorToast message={errorMessage} /> : null}
             <AgentPromptBar
               inputValue={inputValue}
               isMicrophoneEnabled={isMicrophoneEnabled}

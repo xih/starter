@@ -1,7 +1,11 @@
 import { RoomAgentDispatch, RoomConfiguration } from "@livekit/protocol";
 import { Client as QStashClient } from "@upstash/qstash";
 import { Redis } from "@upstash/redis";
-import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
+import {
+  AccessToken,
+  AgentDispatchClient,
+  RoomServiceClient,
+} from "livekit-server-sdk";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
@@ -22,6 +26,7 @@ import {
   LIVEKIT_GUEST_COOKIE_NAME,
   LIVEKIT_GUEST_COOLDOWN_ENABLED,
   LIVEKIT_GUEST_COOLDOWN_SECONDS,
+  LIVEKIT_GUEST_ROOM_DEPARTURE_TIMEOUT_SECONDS,
   LIVEKIT_GUEST_REDIS_PREFIX,
   LIVEKIT_GUEST_SESSION_SECONDS,
   LIVEKIT_GUEST_SIGNUP_URL,
@@ -99,7 +104,7 @@ export type LiveKitGuestTokenPayload = {
   duration_seconds: number;
   cleanup_enabled: boolean;
   signup_url: string;
-  agent_dispatch_mode: "token_room_config";
+  agent_dispatch_mode: "connected_explicit_dispatch" | "token_room_config";
   agent_dispatch_names: string[];
 };
 
@@ -124,7 +129,7 @@ export function isOriginAllowed(origin: string | null) {
 
 export function getCorsHeaders(request: Request) {
   return getLiveKitCorsHeaders({
-    allowMethods: "POST, DELETE, OPTIONS",
+    allowMethods: "GET, POST, DELETE, OPTIONS",
     configuredOrigins: liveKitEnv.LIVEKIT_ALLOWED_ORIGINS,
     nodeEnv: liveKitEnv.NODE_ENV,
     request,
@@ -265,6 +270,20 @@ export function createRoomServiceClient() {
   );
 }
 
+export function createAgentDispatchClient() {
+  const env = assertLiveKitTokenEnv();
+
+  if (!env.ok) {
+    throw new Error(env.error);
+  }
+
+  return new AgentDispatchClient(
+    env.LIVEKIT_URL,
+    env.LIVEKIT_API_KEY,
+    env.LIVEKIT_API_SECRET,
+  );
+}
+
 export function isRoomNotFoundError(error: unknown) {
   if (typeof error !== "object" || error === null) {
     return String(error).toLowerCase().includes("not found");
@@ -283,6 +302,100 @@ export function isRoomNotFoundError(error: unknown) {
     maybeError.code === "not_found" ||
     message.toLowerCase().includes("not found")
   );
+}
+
+export function isDispatchAlreadyExistsError(error: unknown) {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+
+    return (
+      message.includes("already") ||
+      message.includes("duplicate") ||
+      message.includes("exists")
+    );
+  }
+
+  if (typeof error !== "object" || error === null) {
+    const message = String(error).toLowerCase();
+
+    return (
+      message.includes("already") ||
+      message.includes("duplicate") ||
+      message.includes("exists")
+    );
+  }
+
+  const maybeError = error as {
+    code?: unknown;
+    message?: unknown;
+    status?: unknown;
+  };
+  const message =
+    typeof maybeError.message === "string"
+      ? maybeError.message.toLowerCase()
+      : "";
+
+  return (
+    maybeError.status === 409 ||
+    maybeError.code === "already_exists" ||
+    message.includes("already") ||
+    message.includes("duplicate") ||
+    message.includes("exists")
+  );
+}
+
+export async function ensureGuestAgentDispatch(
+  record: GuestSessionRecord,
+  { force = false }: { force?: boolean } = {},
+) {
+  const dispatchClient = createAgentDispatchClient();
+
+  if (!force) {
+    const dispatches = await dispatchClient.listDispatch(record.roomName);
+    const activeDispatch = dispatches.some((dispatch) => {
+      const deletedAt = dispatch.state?.deletedAt;
+
+      return (
+        dispatch.agentName === record.agentName &&
+        (deletedAt === undefined || deletedAt === 0n)
+      );
+    });
+
+    if (activeDispatch) return;
+  }
+
+  try {
+    await dispatchClient.createDispatch(record.roomName, record.agentName, {
+      metadata: JSON.stringify({
+        source: "guest_session",
+        session_id: record.sessionId,
+        expires_at: record.expiresAt,
+      }),
+    });
+  } catch (error) {
+    if (!isDispatchAlreadyExistsError(error)) {
+      throw error;
+    }
+  }
+}
+
+export async function createGuestLiveKitRoom(record: GuestSessionRecord) {
+  await createRoomServiceClient().createRoom({
+    agents: [
+      new RoomAgentDispatch({
+        agentName: record.agentName,
+        metadata: JSON.stringify({
+          source: "guest_session",
+          session_id: record.sessionId,
+          expires_at: record.expiresAt,
+        }),
+      }),
+    ],
+    departureTimeout: LIVEKIT_GUEST_ROOM_DEPARTURE_TIMEOUT_SECONDS,
+    emptyTimeout: LIVEKIT_GUEST_SESSION_SECONDS,
+    maxParticipants: 4,
+    name: record.roomName,
+  });
 }
 
 export const createId = createLiveKitId;
@@ -397,17 +510,10 @@ export async function issueGuestLiveKitToken(record: GuestSessionRecord) {
   });
 
   token.roomConfig = new RoomConfiguration({
+    departureTimeout: LIVEKIT_GUEST_ROOM_DEPARTURE_TIMEOUT_SECONDS,
+    emptyTimeout: LIVEKIT_GUEST_SESSION_SECONDS,
+    maxParticipants: 4,
     name: record.roomName,
-    agents: [
-      new RoomAgentDispatch({
-        agentName: record.agentName,
-        metadata: JSON.stringify({
-          source: "guest_session",
-          session_id: record.sessionId,
-          expires_at: record.expiresAt,
-        }),
-      }),
-    ],
   });
 
   return {
@@ -419,7 +525,7 @@ export async function issueGuestLiveKitToken(record: GuestSessionRecord) {
     duration_seconds: LIVEKIT_GUEST_SESSION_SECONDS,
     cleanup_enabled: LIVEKIT_GUEST_CLEANUP_ENABLED,
     signup_url: LIVEKIT_GUEST_SIGNUP_URL,
-    agent_dispatch_mode: "token_room_config",
+    agent_dispatch_mode: "connected_explicit_dispatch",
     agent_dispatch_names: [record.agentName],
   } satisfies LiveKitGuestTokenPayload;
 }

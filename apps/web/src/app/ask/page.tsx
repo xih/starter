@@ -17,8 +17,19 @@ import { PortfolioRouteTransitionPreview } from "../portfolio/transition-preview
 const DEFAULT_AGENT_NAME = "dennis-portfolio-agent";
 const DEFAULT_TOKEN_ENDPOINT = "/api/livekit/guest-session";
 
+function createBrowserSafeId() {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return Math.random().toString(36).slice(2, 15);
+}
+
 function createRoomName() {
-  return `portfolio_ask_${crypto.randomUUID()}`;
+  return `portfolio_ask_${createBrowserSafeId()}`;
 }
 
 export default function AskPage() {
@@ -38,6 +49,7 @@ export default function AskPage() {
   const [roomName, setRoomName] = useState(createRoomName);
   const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
   const isReturningRef = useRef(false);
+  const returnTimeoutRef = useRef<number | null>(null);
   const isMobileChatExperience = isDesktop === false;
 
   useEffect(() => {
@@ -47,7 +59,12 @@ export default function AskPage() {
     updateViewportMode();
     mediaQuery.addEventListener("change", updateViewportMode);
 
-    return () => mediaQuery.removeEventListener("change", updateViewportMode);
+    return () => {
+      mediaQuery.removeEventListener("change", updateViewportMode);
+      if (returnTimeoutRef.current) {
+        window.clearTimeout(returnTimeoutRef.current);
+      }
+    };
   }, []);
 
   const returnToPortfolio = () => {
@@ -55,7 +72,7 @@ export default function AskPage() {
 
     isReturningRef.current = true;
     setIsLeaving(true);
-    window.setTimeout(() => {
+    returnTimeoutRef.current = window.setTimeout(() => {
       router.replace("/");
     }, askTransition.duration * 1000);
   };

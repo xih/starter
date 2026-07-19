@@ -59,10 +59,10 @@ STT_LANGUAGE = os.getenv("LIVEKIT_AGENT_STT_LANGUAGE", "en")
 LLM_MODEL = os.getenv("LIVEKIT_AGENT_LLM_MODEL", "google/gemini-2.5-flash-lite")
 TTS_MODEL = os.getenv("LIVEKIT_AGENT_TTS_MODEL", "cartesia/sonic-3.5")
 TTS_VOICE_ID = os.getenv("LIVEKIT_AGENT_TTS_VOICE_ID")
-OPENAI_STT_MODEL = os.getenv("OPENAI_AGENT_STT_MODEL", "gpt-4o-mini-transcribe")
-OPENAI_LLM_MODEL = os.getenv("OPENAI_AGENT_LLM_MODEL", "gpt-4.1-mini")
-OPENAI_TTS_MODEL = os.getenv("OPENAI_AGENT_TTS_MODEL", "gpt-4o-mini-tts")
-OPENAI_TTS_VOICE = os.getenv("OPENAI_AGENT_TTS_VOICE", "ash")
+OPENAI_STT_MODEL = os.getenv("OPENAI_AGENT_STT_MODEL", "whisper-1")
+OPENAI_LLM_MODEL = os.getenv("OPENAI_AGENT_LLM_MODEL", "gpt-4o-mini")
+OPENAI_TTS_MODEL = os.getenv("OPENAI_AGENT_TTS_MODEL", "tts-1")
+OPENAI_TTS_VOICE = os.getenv("OPENAI_AGENT_TTS_VOICE", "alloy")
 
 INSTRUCTIONS = " ".join(
     [

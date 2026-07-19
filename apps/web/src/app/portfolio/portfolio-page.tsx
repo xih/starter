@@ -26,8 +26,19 @@ const DEFAULT_VOICE: VoiceOption = {
 };
 const projects = ["Nell", "AGI", "Krea", "Skydio"];
 
+function createBrowserSafeId() {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return Math.random().toString(36).slice(2, 15);
+}
+
 function createRoomName() {
-  return `portfolio_agent_${crypto.randomUUID()}`;
+  return `portfolio_agent_${createBrowserSafeId()}`;
 }
 
 function WaveGradientShader() {
@@ -254,6 +265,7 @@ export function PortfolioPage() {
   const [sessionStarted, setSessionStarted] = useState(false);
   const [isPushingMobile, setIsPushingMobile] = useState(false);
   const [roomName, setRoomName] = useState("portfolio_agent_pending");
+  const mobileAskTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
@@ -271,6 +283,9 @@ export function PortfolioPage() {
 
     return () => {
       mediaQuery.removeEventListener("change", resumeAskIfMobile);
+      if (mobileAskTimeoutRef.current) {
+        window.clearTimeout(mobileAskTimeoutRef.current);
+      }
     };
   }, [router]);
 
@@ -282,7 +297,7 @@ export function PortfolioPage() {
   const startMobileAsk = () => {
     window.sessionStorage.setItem(ASK_TRANSITION_STORAGE_KEY, "push");
     setIsPushingMobile(true);
-    window.setTimeout(() => {
+    mobileAskTimeoutRef.current = window.setTimeout(() => {
       router.push("/ask");
     }, askTransition.duration * 1000);
   };

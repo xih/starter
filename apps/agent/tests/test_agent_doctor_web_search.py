@@ -67,6 +67,10 @@ class AgentDoctorWebSearchTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertIn("LIVEKIT_AGENT_PROVIDER: openai", text)
+        self.assertIn("OPENAI_AGENT_STT_MODEL: whisper-1", text)
+        self.assertIn("OPENAI_AGENT_LLM_MODEL: gpt-4o-mini", text)
+        self.assertIn("OPENAI_AGENT_TTS_MODEL: tts-1", text)
+        self.assertIn("OPENAI_AGENT_TTS_VOICE: alloy", text)
         self.assertIn("OPENAI_API_KEY: set", text)
 
     def test_doctor_rejects_unknown_agent_provider(self) -> None:

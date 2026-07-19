@@ -188,6 +188,16 @@ function createRequest(
   });
 }
 
+function createGetRequest(
+  path: string,
+  { headers = {} }: { headers?: Record<string, string> } = {},
+) {
+  return new Request(`${SITE_ORIGIN}${path}`, {
+    headers,
+    method: "GET",
+  });
+}
+
 async function importGuestRoute() {
   vi.resetModules();
   return import("./route");
@@ -262,6 +272,26 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
     expect(response.headers.get("set-cookie")).toContain("Max-Age=300");
     expect(response.headers.get("set-cookie")).toContain("SameSite=lax");
+  });
+
+  it("allows same-origin GET preflight requests without an Origin header", async () => {
+    const { GET } = await importGuestRoute();
+    const response = GET(createGetRequest("/api/livekit/guest-session"));
+    const payload = (await response.json()) as { ok?: boolean };
+
+    expect(response.status).toBe(200);
+    expect(payload.ok).toBe(true);
+  });
+
+  it("rejects GET preflight requests from disallowed origins", async () => {
+    const { GET } = await importGuestRoute();
+    const response = GET(
+      createGetRequest("/api/livekit/guest-session", {
+        headers: { Origin: UNOWNED_ORIGIN },
+      }),
+    );
+
+    expect(response.status).toBe(403);
   });
 
   it("does not schedule the delayed expire callback when cleanup is disabled", async () => {

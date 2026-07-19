@@ -424,10 +424,24 @@ export function useLiveKitSessionController(
       body: JSON.stringify({ ensure_dispatch: true }),
       headers: { "Content-Type": "application/json" },
       method: "POST",
-    }).catch((error) => {
-      didEnsureGuestDispatchRef.current = false;
-      console.error("Testing LiveKit guest dispatch ensure failed", error);
-    });
+    })
+      .then(async (response) => {
+        if (response.ok) return;
+
+        const body = await response.text().catch(() => "");
+        throw new Error(
+          `received ${response.status}${body ? ` / ${body}` : ""}`,
+        );
+      })
+      .catch((error) => {
+        didEnsureGuestDispatchRef.current = false;
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unknown LiveKit dispatch error";
+        setErrorMessage(`Could not dispatch the portfolio agent: ${message}`);
+        console.error("Testing LiveKit guest dispatch ensure failed", error);
+      });
   }, [session.connectionState, tokenEndpoint]);
 
   useEffect(() => {

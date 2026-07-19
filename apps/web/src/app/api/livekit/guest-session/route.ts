@@ -60,7 +60,9 @@ export function OPTIONS(request: Request) {
 }
 
 export function GET(request: Request) {
-  if (!isOriginAllowed(request.headers.get("origin"))) {
+  const origin = request.headers.get("origin");
+
+  if (origin !== null && !isOriginAllowed(origin)) {
     return jsonWithCors(
       request,
       { error: "Origin is not allowed to inspect LiveKit guest sessions." },

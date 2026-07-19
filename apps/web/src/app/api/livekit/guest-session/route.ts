@@ -217,7 +217,7 @@ export async function POST(request: Request) {
   ) {
     if (shouldEnsureDispatch) {
       try {
-        await ensureGuestAgentDispatch(activeRecord, { force: true });
+        await ensureGuestAgentDispatch(activeRecord);
       } catch (error) {
         return jsonWithCors(
           request,
@@ -240,6 +240,17 @@ export async function POST(request: Request) {
         reused_session: true,
       },
       { status: 200 },
+    );
+  }
+
+  if (shouldEnsureDispatch) {
+    return jsonWithCors(
+      request,
+      {
+        error: "No active LiveKit guest session is available to dispatch.",
+        code: "active_session_missing",
+      },
+      { status: 404 },
     );
   }
 
@@ -289,7 +300,7 @@ export async function POST(request: Request) {
     ) {
       if (shouldEnsureDispatch) {
         try {
-          await ensureGuestAgentDispatch(concurrentRecord, { force: true });
+          await ensureGuestAgentDispatch(concurrentRecord);
         } catch (error) {
           return jsonWithCors(
             request,

@@ -23,9 +23,10 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 
 import { AgentSideBar } from "~/components/AgentSideBar";
+import { usePersonaSwitchRpc } from "~/components/persona-switch-rpc";
 import {
   fallbackPersonaVoiceOptions,
   type PersonaVoiceOption,
@@ -197,6 +198,31 @@ function TestingSessionLayout({
     personas?.find((persona) => persona.id === selectedPersonaId) ??
     personas?.[0];
   const selectedVoice = personaToVoice(selectedPersona);
+  const switchPersonaTts = usePersonaSwitchRpc({
+    agentIdentity: controller.agent.identity,
+    localParticipant: session.room.localParticipant,
+    roomName,
+    userId: agentMetadata.user_id,
+  });
+  const selectPersona = useCallback(
+    (personaId: string) => {
+      if (personaId === selectedPersonaId) return;
+
+      onSelectPersona?.(personaId);
+
+      if (!controller.isConnected) return;
+
+      void switchPersonaTts({ personaId }).catch((error) => {
+        console.error("Testing persona TTS switch failed", error);
+      });
+    },
+    [
+      controller.isConnected,
+      onSelectPersona,
+      selectedPersonaId,
+      switchPersonaTts,
+    ],
+  );
 
   return (
     <div
@@ -249,7 +275,7 @@ function TestingSessionLayout({
         <DesktopAgentSidebar
           className={desktopSidebarClassName}
           controller={controller}
-          onSelectPersona={onSelectPersona}
+          onSelectPersona={selectPersona}
           personas={personas}
           selectedPersonaId={selectedPersonaId}
           voiceName={selectedVoice.name}

@@ -536,6 +536,81 @@ describe("POST /api/livekit/guest-session", () => {
     expect(createDispatchCall?.[2]?.metadata).toContain('"persona_id":"wife"');
   });
 
+  it("does not create duplicate dispatches when an active dispatch already exists", async () => {
+    cookieValue = "existing-device";
+    listDispatchMock.mockResolvedValueOnce([
+      {
+        agentName: "dennis-portfolio-agent",
+        id: "dispatch_active",
+        room: "guest_guest_session_existing",
+        state: {},
+      },
+    ]);
+    const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
+      await import("~/server/livekit/guest-session");
+    const [deviceHash, ipHash] = await Promise.all([
+      hashGuestIdentifier("existing-device"),
+      hashGuestIdentifier("203.0.113.10"),
+    ]);
+    const sessionId = "guest_session_existing";
+    const userId = `guest_${deviceHash.slice(0, 16)}`;
+    redisStore.set(guestActiveKey(deviceHash, ipHash), sessionId);
+    redisStore.set(guestSessionKey(sessionId), {
+      agentName: "dennis-portfolio-agent",
+      createdAt: new Date().toISOString(),
+      deviceHash,
+      expiresAt: new Date(Date.now() + 30_000).toISOString(),
+      ipHash,
+      personaId: "portfolio-agent",
+      participantIdentity: "guest_guest_session_existing",
+      roomName: "guest_guest_session_existing",
+      sessionId,
+      status: "active",
+      userId,
+    });
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: { ensure_dispatch: true, persona_id: "portfolio-agent" },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(listDispatchMock).toHaveBeenCalledWith(
+      "guest_guest_session_existing",
+    );
+    expect(createDispatchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects ensure-only requests when no matching active session exists", async () => {
+    cookieValue = "existing-device";
+    const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
+      await import("~/server/livekit/guest-session");
+    const [deviceHash, ipHash] = await Promise.all([
+      hashGuestIdentifier("existing-device"),
+      hashGuestIdentifier("203.0.113.10"),
+    ]);
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: { ensure_dispatch: true, persona_id: "portfolio-agent" },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as { code?: string };
+
+    expect(response.status).toBe(404);
+    expect(payload.code).toBe("active_session_missing");
+    expect(redisStore.get(guestActiveKey(deviceHash, ipHash))).toBeUndefined();
+    expect(
+      Array.from(redisStore.keys()).some((key) =>
+        key.startsWith(guestSessionKey("")),
+      ),
+    ).toBe(false);
+    expect(createDispatchMock).not.toHaveBeenCalled();
+  });
+
   it("does not hide not-found dispatch failures when reusing an active guest session", async () => {
     cookieValue = "existing-device";
     createDispatchMock.mockRejectedValueOnce({

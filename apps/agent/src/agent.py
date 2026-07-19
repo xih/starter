@@ -57,7 +57,6 @@ BASE_REQUIRED_ENV_VARS = (
     "LIVEKIT_URL",
     "LIVEKIT_API_KEY",
     "LIVEKIT_API_SECRET",
-    "LIVEKIT_AGENT_TTS_VOICE_ID",
 )
 
 AGENT_NAME = os.getenv("LIVEKIT_AGENT_NAME", "dennis-portfolio-agent")
@@ -465,6 +464,8 @@ def missing_required_env() -> list[str]:
 
     if AGENT_PROVIDER == "openai":
         required.append("OPENAI_API_KEY")
+    else:
+        required.append("LIVEKIT_AGENT_TTS_VOICE_ID")
 
     return [key for key in required if not os.getenv(key)]
 
@@ -516,7 +517,7 @@ def print_env_doctor() -> int:
     for key in PROVIDER_SECRET_NAMES.values():
         print(f"  {key}: {'set' if os.getenv(key) else 'missing'}")
 
-    for key in BASE_REQUIRED_ENV_VARS:
+    for key in (*BASE_REQUIRED_ENV_VARS, "LIVEKIT_AGENT_TTS_VOICE_ID"):
         print(f"  {key}: {'set' if os.getenv(key) else 'missing'}")
 
     if provider_error:

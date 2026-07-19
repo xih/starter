@@ -9,6 +9,15 @@ type PublishJSONPayload = {
   delay?: number;
   url?: string;
 };
+type AgentDispatchRecord = {
+  agentName: string;
+  id?: string;
+  room: string;
+  state?: { deletedAt?: bigint };
+};
+type CreateDispatchOptions = {
+  metadata?: string;
+};
 
 const DEV_TUNNEL_ORIGIN = "https://dev-tunnel.invalid";
 const UNOWNED_ORIGIN = "https://attacker.invalid";
@@ -36,6 +45,18 @@ const publishJSONMock = vi.fn(async (_payload: PublishJSONPayload) => ({
   messageId: "msg_guest_expire",
 }));
 const deleteRoomMock = vi.fn(async () => undefined);
+const listDispatchMock = vi.fn(async (): Promise<AgentDispatchRecord[]> => []);
+const createDispatchMock = vi.fn(
+  async (
+    _roomName: string,
+    _agentName: string,
+    _options?: CreateDispatchOptions,
+  ): Promise<AgentDispatchRecord> => ({
+    agentName: "dennis-portfolio-agent",
+    id: "dispatch_1",
+    room: "guest_guest_session_existing",
+  }),
+);
 const cookieSetMock = vi.fn();
 let cookieValue: string | undefined;
 
@@ -72,6 +93,12 @@ vi.mock("livekit-server-sdk", () => ({
       addGrant: vi.fn(),
       roomConfig: undefined,
       toJwt: vi.fn(async () => "mock.jwt"),
+    };
+  }),
+  AgentDispatchClient: vi.fn(function AgentDispatchClientMock() {
+    return {
+      createDispatch: createDispatchMock,
+      listDispatch: listDispatchMock,
     };
   }),
   RoomServiceClient: vi.fn(function RoomServiceClientMock() {
@@ -151,6 +178,16 @@ function createRequest(
   });
 }
 
+function createGetRequest(
+  path: string,
+  { headers = {} }: { headers?: Record<string, string> } = {},
+) {
+  return new Request(`${SITE_ORIGIN}${path}`, {
+    headers,
+    method: "GET",
+  });
+}
+
 async function importGuestRoute() {
   vi.resetModules();
   return import("./route");
@@ -169,6 +206,7 @@ describe("POST /api/livekit/guest-session", () => {
     redisStore.clear();
     cookieValue = undefined;
     vi.clearAllMocks();
+    listDispatchMock.mockResolvedValue([]);
   });
 
   it("issues a guest token with server-owned room and agent values", async () => {
@@ -196,15 +234,35 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.status).toBe(201);
     expect(payload.participant_token).toBe("mock.jwt");
     expect(payload.cleanup_enabled).toBe(false);
-    expect(payload.duration_seconds).toBe(3_600);
+    expect(payload.duration_seconds).toBe(300);
     expect(payload.signup_url).toBe("/api/auth/signin");
     expect(payload.room_name).toBe(`guest_${payload.session_id}`);
     expect(payload.room_name).not.toBe("attacker-room");
     expect(payload.agent_dispatch_names).toEqual(["dennis-portfolio-agent"]);
     expect(response.headers.get("set-cookie")).toContain("lk_guest_device=");
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
-    expect(response.headers.get("set-cookie")).toContain("Max-Age=3600");
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=300");
     expect(response.headers.get("set-cookie")).toContain("SameSite=lax");
+  });
+
+  it("allows same-origin GET preflight requests without an Origin header", async () => {
+    const { GET } = await importGuestRoute();
+    const response = GET(createGetRequest("/api/livekit/guest-session"));
+    const payload = (await response.json()) as { ok?: boolean };
+
+    expect(response.status).toBe(200);
+    expect(payload.ok).toBe(true);
+  });
+
+  it("rejects GET preflight requests from disallowed origins", async () => {
+    const { GET } = await importGuestRoute();
+    const response = GET(
+      createGetRequest("/api/livekit/guest-session", {
+        headers: { Origin: UNOWNED_ORIGIN },
+      }),
+    );
+
+    expect(response.status).toBe(403);
   });
 
   it("persists selected persona metadata for guest token dispatch", async () => {
@@ -344,7 +402,7 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.status).toBe(201);
     const publishCall = publishJSONMock.mock.calls[0]?.[0];
     expect(publishCall?.body?.session_id).toMatch(/^guest_session_/);
-    expect(publishCall?.delay).toBe(3_600);
+    expect(publishCall?.delay).toBe(300);
     expect(publishCall?.url).toBe(
       `${SITE_ORIGIN}/api/livekit/guest-session/expire`,
     );
@@ -391,6 +449,208 @@ describe("POST /api/livekit/guest-session", () => {
     expect(payload.participant_token).toBe("mock.jwt");
     expect(payload.reused_session).toBe(true);
     expect(payload.room_name).toBe("guest_guest_session_existing");
+  });
+
+  it("ignores duplicate dispatch races when reusing an active guest session", async () => {
+    cookieValue = "existing-device";
+    createDispatchMock.mockRejectedValueOnce(
+      new Error("dispatch already exists"),
+    );
+    const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
+      await import("~/server/livekit/guest-session");
+    const [deviceHash, ipHash] = await Promise.all([
+      hashGuestIdentifier("existing-device"),
+      hashGuestIdentifier("203.0.113.10"),
+    ]);
+    const sessionId = "guest_session_existing";
+    const userId = `guest_${deviceHash.slice(0, 16)}`;
+    redisStore.set(guestActiveKey(deviceHash, ipHash), sessionId);
+    redisStore.set(guestSessionKey(sessionId), {
+      agentName: "dennis-portfolio-agent",
+      createdAt: new Date().toISOString(),
+      deviceHash,
+      expiresAt: new Date(Date.now() + 30_000).toISOString(),
+      ipHash,
+      personaId: "portfolio-agent",
+      participantIdentity: "guest_guest_session_existing",
+      roomName: "guest_guest_session_existing",
+      sessionId,
+      status: "active",
+      userId,
+    });
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: { ensure_dispatch: true },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const createDispatchCall = createDispatchMock.mock.calls[0];
+    expect(createDispatchCall?.[0]).toBe("guest_guest_session_existing");
+    expect(createDispatchCall?.[1]).toBe("dennis-portfolio-agent");
+    expect(createDispatchCall?.[2]?.metadata).toContain(sessionId);
+  });
+
+  it("preserves selected persona metadata when ensuring dispatch for an active guest session", async () => {
+    cookieValue = "existing-device";
+    const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
+      await import("~/server/livekit/guest-session");
+    const [deviceHash, ipHash] = await Promise.all([
+      hashGuestIdentifier("existing-device"),
+      hashGuestIdentifier("203.0.113.10"),
+    ]);
+    const sessionId = "guest_session_existing";
+    const userId = `guest_${deviceHash.slice(0, 16)}`;
+    redisStore.set(guestActiveKey(deviceHash, ipHash), sessionId);
+    redisStore.set(guestSessionKey(sessionId), {
+      agentName: "dennis-portfolio-agent",
+      createdAt: new Date().toISOString(),
+      deviceHash,
+      expiresAt: new Date(Date.now() + 30_000).toISOString(),
+      ipHash,
+      personaId: "wife",
+      participantIdentity: "guest_guest_session_existing",
+      roomName: "guest_guest_session_existing",
+      sessionId,
+      status: "active",
+      userId,
+    });
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: { ensure_dispatch: true, persona_id: "wife" },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as {
+      reused_session?: boolean;
+      room_name?: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.reused_session).toBe(true);
+    expect(payload.room_name).toBe("guest_guest_session_existing");
+    const createDispatchCall = createDispatchMock.mock.calls[0];
+    expect(createDispatchCall?.[2]?.metadata).toContain('"persona_id":"wife"');
+  });
+
+  it("does not create duplicate dispatches when an active dispatch already exists", async () => {
+    cookieValue = "existing-device";
+    listDispatchMock.mockResolvedValueOnce([
+      {
+        agentName: "dennis-portfolio-agent",
+        id: "dispatch_active",
+        room: "guest_guest_session_existing",
+        state: {},
+      },
+    ]);
+    const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
+      await import("~/server/livekit/guest-session");
+    const [deviceHash, ipHash] = await Promise.all([
+      hashGuestIdentifier("existing-device"),
+      hashGuestIdentifier("203.0.113.10"),
+    ]);
+    const sessionId = "guest_session_existing";
+    const userId = `guest_${deviceHash.slice(0, 16)}`;
+    redisStore.set(guestActiveKey(deviceHash, ipHash), sessionId);
+    redisStore.set(guestSessionKey(sessionId), {
+      agentName: "dennis-portfolio-agent",
+      createdAt: new Date().toISOString(),
+      deviceHash,
+      expiresAt: new Date(Date.now() + 30_000).toISOString(),
+      ipHash,
+      personaId: "portfolio-agent",
+      participantIdentity: "guest_guest_session_existing",
+      roomName: "guest_guest_session_existing",
+      sessionId,
+      status: "active",
+      userId,
+    });
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: { ensure_dispatch: true, persona_id: "portfolio-agent" },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(listDispatchMock).toHaveBeenCalledWith(
+      "guest_guest_session_existing",
+    );
+    expect(createDispatchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects ensure-only requests when no matching active session exists", async () => {
+    cookieValue = "existing-device";
+    const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
+      await import("~/server/livekit/guest-session");
+    const [deviceHash, ipHash] = await Promise.all([
+      hashGuestIdentifier("existing-device"),
+      hashGuestIdentifier("203.0.113.10"),
+    ]);
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: { ensure_dispatch: true, persona_id: "portfolio-agent" },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as { code?: string };
+
+    expect(response.status).toBe(404);
+    expect(payload.code).toBe("active_session_missing");
+    expect(redisStore.get(guestActiveKey(deviceHash, ipHash))).toBeUndefined();
+    expect(
+      Array.from(redisStore.keys()).some((key) =>
+        key.startsWith(guestSessionKey("")),
+      ),
+    ).toBe(false);
+    expect(createDispatchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not hide not-found dispatch failures when reusing an active guest session", async () => {
+    cookieValue = "existing-device";
+    createDispatchMock.mockRejectedValueOnce({
+      code: "not_found",
+      message: "requested room not found",
+      status: 404,
+    });
+    const { guestActiveKey, guestSessionKey, hashGuestIdentifier } =
+      await import("~/server/livekit/guest-session");
+    const [deviceHash, ipHash] = await Promise.all([
+      hashGuestIdentifier("existing-device"),
+      hashGuestIdentifier("203.0.113.10"),
+    ]);
+    const sessionId = "guest_session_existing";
+    const userId = `guest_${deviceHash.slice(0, 16)}`;
+    redisStore.set(guestActiveKey(deviceHash, ipHash), sessionId);
+    redisStore.set(guestSessionKey(sessionId), {
+      agentName: "dennis-portfolio-agent",
+      createdAt: new Date().toISOString(),
+      deviceHash,
+      expiresAt: new Date(Date.now() + 30_000).toISOString(),
+      ipHash,
+      personaId: "portfolio-agent",
+      participantIdentity: "guest_guest_session_existing",
+      roomName: "guest_guest_session_existing",
+      sessionId,
+      status: "active",
+      userId,
+    });
+    const { POST } = await importGuestRoute();
+    const response = await POST(
+      createRequest("/api/livekit/guest-session", {
+        body: { ensure_dispatch: true },
+        headers: { "x-forwarded-for": "203.0.113.10" },
+      }),
+    );
+    const payload = (await response.json()) as { error?: string };
+
+    expect(response.status).toBe(500);
+    expect(payload.error).toContain("Failed to ensure LiveKit agent dispatch");
   });
 
   it("reuses an active guest session before enforcing completed-trial cooldown", async () => {
@@ -554,7 +814,7 @@ describe("POST /api/livekit/guest-session", () => {
     expect(redisSetMock).toHaveBeenCalledWith(
       guestActiveKey(deviceHash, ipHash),
       expect.any(String),
-      { ex: 3_600, nx: true },
+      { ex: 300, nx: true },
     );
     expect(redisDelMock).not.toHaveBeenCalled();
   });

@@ -32,6 +32,11 @@ export {
   type VoiceSelectorProps,
 } from "./voice";
 export {
+  AskMobileExperience,
+  type AskMobileExperienceProps,
+} from "./ask-mobile";
+export { SectionHeader, type SectionHeaderProps } from "./section-header";
+export {
   ChatMessageWithSources,
   SourcesChip,
   SourcesRail,
@@ -44,3 +49,4 @@ export {
   type AgentSideBarProps,
   type AgentSideBarState,
 } from "./agent-sidebar";
+export { PortfolioFooter, type PortfolioFooterProps } from "./portfolio-footer";

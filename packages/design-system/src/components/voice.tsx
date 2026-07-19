@@ -30,6 +30,7 @@ export type AgentControlBarState =
 
 export type AgentControlBarProps = {
   className?: string;
+  idleAction?: "end" | "send";
   inputValue?: string;
   isMicrophoneEnabled?: boolean;
   onChangeInput?: (value: string) => void;
@@ -189,6 +190,7 @@ export function VoiceSelectorPill({
 }) {
   return (
     <button
+      aria-label="Select voice"
       className={cn(
         "inline-flex h-[36px] items-center gap-[8px] rounded-full border border-[#e5e5e5] bg-white px-[15px] text-[#121318]",
         className,
@@ -268,6 +270,7 @@ export function VoiceParameterPanel({
 
 export function AgentControlBar({
   className,
+  idleAction = "end",
   inputValue,
   isMicrophoneEnabled = true,
   onChangeInput,
@@ -361,7 +364,7 @@ export function AgentControlBar({
           >
             <Square className="size-[14px] fill-current" />
           </button>
-        ) : isTyping ? (
+        ) : isTyping || idleAction === "send" ? (
           <button
             aria-label="Send message"
             className="flex size-[36px] items-center justify-center rounded-full bg-[#121318] text-white"

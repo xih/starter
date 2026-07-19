@@ -351,12 +351,12 @@ export const liveKitOpenApiSpec = {
           session_id: { type: "string" },
           room_name: { type: "string" },
           expires_at: { type: "string", format: "date-time" },
-          duration_seconds: { type: "number", enum: [3600] },
+          duration_seconds: { type: "number", enum: [300] },
           cleanup_enabled: { type: "boolean" },
           signup_url: { type: "string" },
           agent_dispatch_mode: {
             type: "string",
-            enum: ["token_room_config"],
+            enum: ["connected_explicit_dispatch", "token_room_config"],
           },
           agent_dispatch_names: {
             type: "array",

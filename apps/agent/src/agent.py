@@ -23,7 +23,7 @@ from livekit.agents import (
     function_tool,
     inference,
 )
-from livekit.plugins import cartesia
+from livekit.plugins import cartesia, openai
 
 from agent_web_search import (
     LiveKitRpcSearchToolStatusNotifier,
@@ -53,19 +53,24 @@ logger = logging.getLogger("portfolio_agent")
 INFISICAL_PROJECT_ID = os.getenv("INFISICAL_PROJECT_ID")
 INFISICAL_ENV = os.getenv("INFISICAL_ENV", "dev")
 INFISICAL_BOOTSTRAPPED = "LIVEKIT_AGENT_INFISICAL_BOOTSTRAPPED"
-REQUIRED_ENV_VARS = (
+BASE_REQUIRED_ENV_VARS = (
     "LIVEKIT_URL",
     "LIVEKIT_API_KEY",
     "LIVEKIT_API_SECRET",
-    "LIVEKIT_AGENT_TTS_VOICE_ID",
 )
 
 AGENT_NAME = os.getenv("LIVEKIT_AGENT_NAME", "dennis-portfolio-agent")
+VALID_AGENT_PROVIDERS = ("openai", "livekit")
+AGENT_PROVIDER = os.getenv("LIVEKIT_AGENT_PROVIDER", "livekit").strip().lower()
 STT_MODEL = os.getenv("LIVEKIT_AGENT_STT_MODEL", "deepgram/nova-3")
 STT_LANGUAGE = os.getenv("LIVEKIT_AGENT_STT_LANGUAGE", "en")
 LLM_MODEL = os.getenv("LIVEKIT_AGENT_LLM_MODEL", "google/gemini-2.5-flash-lite")
 TTS_MODEL = os.getenv("LIVEKIT_AGENT_TTS_MODEL", "cartesia/sonic-3.5")
 TTS_VOICE_ID = os.getenv("LIVEKIT_AGENT_TTS_VOICE_ID")
+OPENAI_STT_MODEL = os.getenv("OPENAI_AGENT_STT_MODEL", "whisper-1")
+OPENAI_LLM_MODEL = os.getenv("OPENAI_AGENT_LLM_MODEL", "gpt-4o-mini")
+OPENAI_TTS_MODEL = os.getenv("OPENAI_AGENT_TTS_MODEL", "tts-1")
+OPENAI_TTS_VOICE = os.getenv("OPENAI_AGENT_TTS_VOICE", "alloy")
 CARTESIA_API_KEY = os.getenv("CARTESIA_API_KEY")
 PERSONA_BASE_URL = os.getenv("LIVEKIT_AGENT_PERSONA_BASE_URL")
 PERSONA_READ_SECRET = os.getenv("PERSONA_AGENT_READ_SECRET")
@@ -303,6 +308,49 @@ def create_persona_tts_switch_rpc_handler(session: AgentSession):
     return switch_persona_tts
 
 
+def validate_agent_provider() -> str | None:
+    if AGENT_PROVIDER in VALID_AGENT_PROVIDERS:
+        return None
+
+    return (
+        f"Unsupported LIVEKIT_AGENT_PROVIDER={AGENT_PROVIDER!r}. "
+        f"Expected one of: {', '.join(VALID_AGENT_PROVIDERS)}."
+    )
+
+
+def create_agent_session(persona: PersonaConfig) -> AgentSession:
+    provider_error = validate_agent_provider()
+    if provider_error:
+        raise ValueError(provider_error)
+
+    if AGENT_PROVIDER == "openai":
+        return AgentSession(
+            stt=openai.STT(
+                model=OPENAI_STT_MODEL,
+                language=STT_LANGUAGE,
+            ),
+            llm=openai.LLM(
+                model=OPENAI_LLM_MODEL,
+            ),
+            tts=openai.TTS(
+                model=OPENAI_TTS_MODEL,
+                voice=OPENAI_TTS_VOICE,
+                instructions="Speak in a warm, concise, conversational tone.",
+            ),
+        )
+
+    return AgentSession(
+        stt=inference.STT(
+            model=STT_MODEL,
+            language=STT_LANGUAGE,
+        ),
+        llm=inference.LLM(
+            model=LLM_MODEL,
+        ),
+        tts=create_tts(persona),
+    )
+
+
 def env_bool(name: str, default: bool) -> bool:
     value = os.getenv(name)
 
@@ -412,20 +460,34 @@ async def _search_progress_context(context: RunContext | None) -> AsyncIterator[
 
 
 def missing_required_env() -> list[str]:
-    return [key for key in REQUIRED_ENV_VARS if not os.getenv(key)]
+    required = list(BASE_REQUIRED_ENV_VARS)
+
+    if AGENT_PROVIDER == "openai":
+        required.append("OPENAI_API_KEY")
+    else:
+        required.append("LIVEKIT_AGENT_TTS_VOICE_ID")
+
+    return [key for key in required if not os.getenv(key)]
 
 
 def print_env_doctor() -> int:
+    provider_error = validate_agent_provider()
     missing = missing_required_env()
     print("LiveKit agent environment")
     print(f"  INFISICAL_PROJECT_ID: {'set' if INFISICAL_PROJECT_ID else 'missing'}")
     print(f"  INFISICAL_ENV: {INFISICAL_ENV}")
     print(f"  LIVEKIT_AGENT_NAME: {AGENT_NAME}")
+    print(f"  LIVEKIT_AGENT_PROVIDER: {AGENT_PROVIDER}")
     print(f"  LIVEKIT_AGENT_STT_MODEL: {STT_MODEL}")
     print(f"  LIVEKIT_AGENT_STT_LANGUAGE: {STT_LANGUAGE}")
     print(f"  LIVEKIT_AGENT_LLM_MODEL: {LLM_MODEL}")
     print(f"  LIVEKIT_AGENT_TTS_MODEL: {TTS_MODEL}")
     print(f"  LIVEKIT_AGENT_TTS_VOICE_ID: {'set' if TTS_VOICE_ID else 'missing'}")
+    print(f"  OPENAI_AGENT_STT_MODEL: {OPENAI_STT_MODEL}")
+    print(f"  OPENAI_AGENT_LLM_MODEL: {OPENAI_LLM_MODEL}")
+    print(f"  OPENAI_AGENT_TTS_MODEL: {OPENAI_TTS_MODEL}")
+    print(f"  OPENAI_AGENT_TTS_VOICE: {OPENAI_TTS_VOICE}")
+    print(f"  OPENAI_API_KEY: {'set' if os.getenv('OPENAI_API_KEY') else 'missing'}")
     print(
         "  LIVEKIT_AGENT_SESSION_RECORDING_ENABLED: "
         f"{env_bool(SESSION_RECORDING_ENABLED_ENV, True)}"
@@ -455,8 +517,13 @@ def print_env_doctor() -> int:
     for key in PROVIDER_SECRET_NAMES.values():
         print(f"  {key}: {'set' if os.getenv(key) else 'missing'}")
 
-    for key in REQUIRED_ENV_VARS:
+    for key in (*BASE_REQUIRED_ENV_VARS, "LIVEKIT_AGENT_TTS_VOICE_ID"):
         print(f"  {key}: {'set' if os.getenv(key) else 'missing'}")
+
+    if provider_error:
+        print()
+        print(provider_error)
+        return 1
 
     if missing:
         print()
@@ -526,16 +593,7 @@ async def entrypoint(ctx: JobContext) -> None:
         getattr(ctx.job, "id", "unknown"),
     )
 
-    session = AgentSession(
-        stt=inference.STT(
-            model=STT_MODEL,
-            language=STT_LANGUAGE,
-        ),
-        llm=inference.LLM(
-            model=LLM_MODEL,
-        ),
-        tts=create_tts(persona),
-    )
+    session = create_agent_session(persona)
 
     register_session_observability(session)
     ctx.room.local_participant.register_rpc_method(
@@ -553,11 +611,12 @@ async def entrypoint(ctx: JobContext) -> None:
     )
 
     logger.info(
-        "portfolio_agent_session_started agent_name=%s persona_id=%s room=%s llm_model=%s",
+        "portfolio_agent_session_started agent_name=%s persona_id=%s room=%s provider=%s llm_model=%s",
         AGENT_NAME,
         persona.id,
         ctx.room.name,
-        LLM_MODEL,
+        AGENT_PROVIDER,
+        OPENAI_LLM_MODEL if AGENT_PROVIDER == "openai" else LLM_MODEL,
     )
 
     await session.generate_reply(instructions=persona.greeting)

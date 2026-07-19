@@ -1,17 +1,25 @@
 INFISICAL_ENV ?= dev
 INFISICAL_PROJECT_ARG := $(if $(INFISICAL_PROJECT_ID),--projectId $(INFISICAL_PROJECT_ID),)
+VOICE_DEV_HOST ?= localhost
 VOICE_DEV_PORT ?= 3000
-VOICE_DEV_PERSONA_BASE_URL ?= http://localhost:$(VOICE_DEV_PORT)
+VOICE_DEV_PORT_MAX ?= 3010
+VOICE_DEV_PERSONA_BASE_URL_ORIGIN := $(origin VOICE_DEV_PERSONA_BASE_URL)
+VOICE_DEV_PERSONA_BASE_URL ?= http://$(VOICE_DEV_HOST):$(VOICE_DEV_PORT)
 
-.PHONY: ci ci-install ci-format ci-lint ci-typecheck ci-test ci-build voice-dev persona-e2e persona-e2e-infisical persona-e2e-clone agent-check agent-deploy-check pr-ready livekit-agent-e2e
+.PHONY: ci ci-install ci-format ci-lint ci-typecheck ci-test ci-build voice-dev voice-dev-check persona-e2e persona-e2e-infisical persona-e2e-clone agent-check agent-deploy-check pr-ready livekit-agent-e2e
 
 voice-dev:
-	@if lsof -nP -iTCP:$(VOICE_DEV_PORT) -sTCP:LISTEN >/dev/null 2>&1; then \
-		echo "Port $(VOICE_DEV_PORT) is already in use. Stop that server or run VOICE_DEV_PORT=3001 make voice-dev."; \
-		lsof -nP -iTCP:$(VOICE_DEV_PORT) -sTCP:LISTEN; \
-		exit 1; \
-	fi
-	infisical run $(INFISICAL_PROJECT_ARG) --env=$(INFISICAL_ENV) -- sh -c 'PERSONA_AGENT_READ_SECRET="$${PERSONA_AGENT_READ_SECRET:-dev-persona-secret}" LIVEKIT_AGENT_PERSONA_BASE_URL="$${LIVEKIT_AGENT_PERSONA_BASE_URL:-$(VOICE_DEV_PERSONA_BASE_URL)}" corepack pnpm exec concurrently -k -n web,agent -c cyan,magenta "PORT=$(VOICE_DEV_PORT) corepack pnpm --filter @starter/web dev" "corepack pnpm --filter @starter/agent dev:python"'
+	@INFISICAL_ENV="$(INFISICAL_ENV)" \
+		INFISICAL_PROJECT_ID="$(INFISICAL_PROJECT_ID)" \
+		VOICE_DEV_HOST="$(VOICE_DEV_HOST)" \
+		VOICE_DEV_PORT="$(VOICE_DEV_PORT)" \
+		VOICE_DEV_PORT_MAX="$(VOICE_DEV_PORT_MAX)" \
+		VOICE_DEV_PERSONA_BASE_URL="$(VOICE_DEV_PERSONA_BASE_URL)" \
+		VOICE_DEV_PERSONA_BASE_URL_ORIGIN="$(VOICE_DEV_PERSONA_BASE_URL_ORIGIN)" \
+		scripts/voice-dev.sh
+
+voice-dev-check:
+	scripts/test-voice-dev.sh
 
 ci: ci-install ci-format ci-lint ci-typecheck ci-test ci-build
 

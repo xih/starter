@@ -29,6 +29,12 @@ esac
 STUB
   chmod +x "$bindir/lsof"
 
+  cat > "$bindir/corepack" <<'STUB'
+#!/bin/sh
+echo "COREPACK_ARGS=$*"
+STUB
+  chmod +x "$bindir/corepack"
+
   if ! output="$(PATH="$bindir:$PATH" TMPDIR="$tmpdir" "$@" 2>&1)"; then
     echo "FAIL: $name" >&2
     echo "$output" >&2
@@ -87,9 +93,21 @@ exit 1
 STUB
 chmod +x "$bindir/lsof"
 
+cat > "$bindir/corepack" <<'STUB'
+#!/bin/sh
+echo "COREPACK_ARGS=$*"
+STUB
+chmod +x "$bindir/corepack"
+
 reserved_output="$(PATH="$bindir:$PATH" TMPDIR="$tmpdir" VOICE_DEV_PORT=3001 "$repo_root/scripts/voice-dev.sh")"
 expect_contains "reserved fallback" "$reserved_output" "Port 3001 is reserved by another voice-dev startup; trying 3002."
 expect_contains "reserved fallback" "$reserved_output" "VOICE_DEV_SELECTED_BASE_URL=http://localhost:3002"
+if [ ! -d "$tmpdir/starter-voice-dev-ports/3001.lock" ]; then
+  echo "FAIL: reserved fallback" >&2
+  echo "Expected another process's reserved lock to remain in place." >&2
+  rm -rf "$tmpdir"
+  exit 1
+fi
 rm -rf "$tmpdir"
 
 tmpdir="$(mktemp -d)"
@@ -102,15 +120,13 @@ exit 0
 STUB
 chmod +x "$bindir/lsof"
 
-if PATH="$bindir:$PATH" TMPDIR="$tmpdir" VOICE_DEV_PORT=3000 VOICE_DEV_PORT_MAX=3000 "$repo_root/scripts/voice-dev.sh" >/tmp/voice-dev-test-output.$$ 2>&1; then
+if PATH="$bindir:$PATH" TMPDIR="$tmpdir" VOICE_DEV_PORT=3000 VOICE_DEV_PORT_MAX=3000 "$repo_root/scripts/voice-dev.sh" >"$tmpdir/output" 2>&1; then
   echo "FAIL: exhausted range" >&2
-  cat /tmp/voice-dev-test-output.$$ >&2
-  rm -f /tmp/voice-dev-test-output.$$
+  cat "$tmpdir/output" >&2
   rm -rf "$tmpdir"
   exit 1
 fi
-exhausted_output="$(cat /tmp/voice-dev-test-output.$$)"
-rm -f /tmp/voice-dev-test-output.$$
+exhausted_output="$(cat "$tmpdir/output")"
 rm -rf "$tmpdir"
 expect_contains "exhausted range" "$exhausted_output" "No available voice-dev port found from 3000 through 3000."
 

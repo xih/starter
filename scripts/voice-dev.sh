@@ -5,6 +5,14 @@ port="${VOICE_DEV_PORT:-3000}"
 max_port="${VOICE_DEV_PORT_MAX:-3010}"
 host="${VOICE_DEV_HOST:-localhost}"
 lock_root="${TMPDIR:-/tmp}/starter-voice-dev-ports"
+acquired_lock_dir=""
+
+cleanup() {
+  if [ -n "$acquired_lock_dir" ]; then
+    rm -rf "$acquired_lock_dir"
+  fi
+}
+trap cleanup EXIT INT TERM
 
 mkdir -p "$lock_root"
 
@@ -14,6 +22,7 @@ while :; do
   if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
     echo "Port $port is already in use; trying $((port + 1))."
   elif mkdir "$lock_dir" 2>/dev/null; then
+    acquired_lock_dir="$lock_dir"
     printf '%s\n' "$$" > "$lock_dir/pid"
     break
   else
@@ -31,11 +40,6 @@ while :; do
     exit 1
   fi
 done
-
-cleanup() {
-  rm -rf "$lock_dir"
-}
-trap cleanup EXIT INT TERM
 
 base_url="http://$host:$port"
 persona_base_url="$base_url"

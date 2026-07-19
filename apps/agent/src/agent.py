@@ -58,10 +58,6 @@ BASE_REQUIRED_ENV_VARS = (
     "LIVEKIT_API_KEY",
     "LIVEKIT_API_SECRET",
     "LIVEKIT_AGENT_TTS_VOICE_ID",
-    "CARTESIA_API_KEY",
-    "OPENAI_API_KEY",
-    "LIVEKIT_AGENT_PERSONA_BASE_URL",
-    "PERSONA_AGENT_READ_SECRET",
 )
 
 AGENT_NAME = os.getenv("LIVEKIT_AGENT_NAME", "dennis-portfolio-agent")
@@ -465,7 +461,12 @@ async def _search_progress_context(context: RunContext | None) -> AsyncIterator[
 
 
 def missing_required_env() -> list[str]:
-    return [key for key in BASE_REQUIRED_ENV_VARS if not os.getenv(key)]
+    required = list(BASE_REQUIRED_ENV_VARS)
+
+    if AGENT_PROVIDER == "openai":
+        required.append("OPENAI_API_KEY")
+
+    return [key for key in required if not os.getenv(key)]
 
 
 def print_env_doctor() -> int:
@@ -485,6 +486,7 @@ def print_env_doctor() -> int:
     print(f"  OPENAI_AGENT_LLM_MODEL: {OPENAI_LLM_MODEL}")
     print(f"  OPENAI_AGENT_TTS_MODEL: {OPENAI_TTS_MODEL}")
     print(f"  OPENAI_AGENT_TTS_VOICE: {OPENAI_TTS_VOICE}")
+    print(f"  OPENAI_API_KEY: {'set' if os.getenv('OPENAI_API_KEY') else 'missing'}")
     print(
         "  LIVEKIT_AGENT_SESSION_RECORDING_ENABLED: "
         f"{env_bool(SESSION_RECORDING_ENABLED_ENV, True)}"

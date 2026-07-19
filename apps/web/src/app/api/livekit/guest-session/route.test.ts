@@ -487,13 +487,10 @@ describe("POST /api/livekit/guest-session", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(createDispatchMock).toHaveBeenCalledWith(
-      "guest_guest_session_existing",
-      "dennis-portfolio-agent",
-      expect.objectContaining({
-        metadata: expect.stringContaining(sessionId),
-      }),
-    );
+    const createDispatchCall = createDispatchMock.mock.calls[0];
+    expect(createDispatchCall?.[0]).toBe("guest_guest_session_existing");
+    expect(createDispatchCall?.[1]).toBe("dennis-portfolio-agent");
+    expect(createDispatchCall?.[2]?.metadata).toContain(sessionId);
   });
 
   it("does not hide not-found dispatch failures when reusing an active guest session", async () => {

@@ -26,6 +26,10 @@ import {
 import { useMemo, type ReactNode } from "react";
 
 import { AgentSideBar } from "~/components/AgentSideBar";
+import {
+  fallbackPersonaVoiceOptions,
+  type PersonaVoiceOption,
+} from "~/components/PersonaVoiceSwitcher";
 import { OrbShader } from "~/components/OrbShader";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -41,6 +45,18 @@ const DEFAULT_MOBILE_VOICE: VoiceOption = {
   name: "Masa Son",
 };
 
+function personaToVoice(persona: PersonaVoiceOption | undefined): VoiceOption {
+  if (!persona) {
+    return DEFAULT_MOBILE_VOICE;
+  }
+
+  return {
+    avatar: persona.avatar_url,
+    description: persona.description,
+    name: persona.display_name,
+  };
+}
+
 export type TestingSessionProps = {
   agentName: string;
   className?: string;
@@ -52,7 +68,10 @@ export type TestingSessionProps = {
   mobileLayout?: "portfolio" | "ask";
   onMobileBack?: () => void;
   onMobileConversationChange?: (hasConversation: boolean) => void;
+  onSelectPersona?: (personaId: string) => void;
   persistMobileAskResume?: boolean;
+  personas?: PersonaVoiceOption[];
+  selectedPersonaId?: string;
   showMobileHeader?: boolean;
   showMobileBackButton?: boolean;
   onSessionEnded: () => void;
@@ -72,7 +91,10 @@ export function TestingSession({
   mobileLayout = "portfolio",
   onMobileBack,
   onMobileConversationChange,
+  onSelectPersona,
   persistMobileAskResume = false,
+  personas = fallbackPersonaVoiceOptions,
+  selectedPersonaId = "portfolio-agent",
   showMobileHeader = true,
   showMobileBackButton = true,
   onSessionEnded,
@@ -86,6 +108,11 @@ export function TestingSession({
   );
   const session = useSession(tokenSource, {
     agentName,
+    agentMetadata: JSON.stringify({
+      persona_id: selectedPersonaId,
+      session_id: roomName,
+      user_id: "testing-user",
+    }),
     participantName: "Testing Guest",
     roomName,
   });
@@ -103,9 +130,12 @@ export function TestingSession({
         mobileLayout={mobileLayout}
         onMobileBack={onMobileBack}
         onMobileConversationChange={onMobileConversationChange}
+        onSelectPersona={onSelectPersona}
         onSessionEnded={onSessionEnded}
         persistMobileAskResume={persistMobileAskResume}
+        personas={personas}
         roomName={roomName}
+        selectedPersonaId={selectedPersonaId}
         session={session}
         showDebugPanel={showDebugPanel}
         showMobileBackButton={showMobileBackButton}
@@ -128,9 +158,12 @@ function TestingSessionLayout({
   mobileLayout,
   onMobileBack,
   onMobileConversationChange,
+  onSelectPersona,
   onSessionEnded,
   persistMobileAskResume,
+  personas,
   roomName,
+  selectedPersonaId,
   session,
   showDebugPanel,
   showMobileBackButton,
@@ -148,6 +181,10 @@ function TestingSessionLayout({
     persistMobileAskResume: persistMobileAskResume ?? false,
     tokenEndpoint,
   });
+  const selectedPersona =
+    personas?.find((persona) => persona.id === selectedPersonaId) ??
+    personas?.[0];
+  const selectedVoice = personaToVoice(selectedPersona);
 
   return (
     <div
@@ -187,17 +224,23 @@ function TestingSessionLayout({
             onBack={onMobileBack}
             showBackButton={showMobileBackButton ?? true}
             showHeader={showMobileHeader ?? true}
+            voice={selectedVoice}
           />
         ) : (
           <PortfolioMobileSessionShell
             controller={controller}
             mobileHero={mobileHero}
+            voice={selectedVoice}
           />
         )}
 
         <DesktopAgentSidebar
           className={desktopSidebarClassName}
           controller={controller}
+          onSelectPersona={onSelectPersona}
+          personas={personas}
+          selectedPersonaId={selectedPersonaId}
+          voiceName={selectedVoice.name}
         />
       </section>
     </div>
@@ -329,11 +372,13 @@ function AskMobileSessionShell({
   onBack,
   showBackButton,
   showHeader,
+  voice,
 }: {
   controller: LiveKitSessionController;
   onBack?: () => void;
   showBackButton: boolean;
   showHeader: boolean;
+  voice: VoiceOption;
 }) {
   return (
     <AskMobileExperience
@@ -367,7 +412,7 @@ function AskMobileSessionShell({
       }
       showBackButton={showBackButton}
       showHeader={showHeader}
-      voice={DEFAULT_MOBILE_VOICE}
+      voice={voice}
     />
   );
 }
@@ -375,9 +420,11 @@ function AskMobileSessionShell({
 function PortfolioMobileSessionShell({
   controller,
   mobileHero,
+  voice,
 }: {
   controller: LiveKitSessionController;
   mobileHero?: ReactNode;
+  voice: VoiceOption;
 }) {
   return (
     <div className="relative min-h-svh overflow-hidden md:hidden">
@@ -421,7 +468,7 @@ function PortfolioMobileSessionShell({
           onStopResponse={controller.endSession}
           onToggleMicrophone={controller.toggleMicrophone}
           state={controller.mobileControlState}
-          voice={DEFAULT_MOBILE_VOICE}
+          voice={voice}
         />
       </div>
     </div>
@@ -431,9 +478,17 @@ function PortfolioMobileSessionShell({
 function DesktopAgentSidebar({
   className,
   controller,
+  onSelectPersona,
+  personas,
+  selectedPersonaId,
+  voiceName,
 }: {
   className?: string;
   controller: LiveKitSessionController;
+  onSelectPersona?: (personaId: string) => void;
+  personas?: PersonaVoiceOption[];
+  selectedPersonaId?: string;
+  voiceName: string;
 }) {
   return (
     <div className="hidden md:block">
@@ -443,17 +498,19 @@ function DesktopAgentSidebar({
         inputValue={controller.inputValue}
         isMicrophoneEnabled={controller.isMicrophoneEnabled}
         isSending={controller.isSending}
-        isThinking={controller.showPendingReply}
         latestSearchSources={controller.completedSources}
         messages={controller.messages}
         onChangeInput={controller.setInputValue}
         onEnd={controller.endSession}
         onSend={controller.sendMessage}
+        onSelectPersona={onSelectPersona}
         onStart={controller.startSession}
         onStopResponse={controller.endSession}
         onToggleMicrophone={controller.toggleMicrophone}
+        personas={personas}
+        selectedPersonaId={selectedPersonaId}
         state={controller.state}
-        voiceName="Portfolio Agent"
+        voiceName={voiceName}
       />
     </div>
   );

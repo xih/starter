@@ -727,6 +727,18 @@ wheels = [
 ]
 
 [[package]]
+name = "livekit-plugins-cartesia"
+version = "1.6.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "livekit-agents" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2a/49/57110dd78a6397848c9e306abc5acc3af5dcd07c8377cb3efdf7a49f22a5/livekit_plugins_cartesia-1.6.4.tar.gz", hash = "sha256:17f502f58af7f5e835cc580b9644678d044c023e6d7abf2d4b314ccc53267619", size = 18195, upload-time = "2026-06-24T20:49:41.76Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4c/31/d99ea46858def84a0bcf2afe84fe8f06ed558ebf870cb638479f02b7ab6d/livekit_plugins_cartesia-1.6.4-py3-none-any.whl", hash = "sha256:4ef5887112299a5a43e6dc849190c5c4c3a854015f8c7d23b6c1919740e5dc8d", size = 25532, upload-time = "2026-06-24T20:49:40.632Z" },
+]
+
+[[package]]
 name = "livekit-plugins-openai"
 version = "1.6.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1490,6 +1502,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "httpx" },
     { name = "livekit-agents", extra = ["openai"] },
+    { name = "livekit-plugins-cartesia" },
     { name = "python-dotenv" },
 ]
 
@@ -1497,6 +1510,7 @@ dependencies = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "livekit-agents", extras = ["openai"], specifier = "~=1.6" },
+    { name = "livekit-plugins-cartesia", specifier = "~=1.6" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
 ]
 

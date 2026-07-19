@@ -11,13 +11,20 @@ import {
   Square,
 } from "lucide-react";
 import { SourcesRail, type SourceData } from "@starter/design-system";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 import { cn } from "~/lib/utils";
 
 export type AgentSideBarState =
   | "intro"
   | "loading"
+  | "switching"
   | "begin"
   | "agent-streaming"
   | "idle"
@@ -31,13 +38,19 @@ export type AgentSideBarMessage = {
   isStreaming?: boolean;
 };
 
+export type AgentSideBarPersona = {
+  avatar_url?: string;
+  description: string;
+  display_name: string;
+  id: string;
+};
+
 export type AgentSideBarProps = {
   className?: string;
   errorMessage?: string;
   inputValue?: string;
   isMicrophoneEnabled?: boolean;
   isSending?: boolean;
-  isThinking?: boolean;
   latestSearchSources?: SourceData[];
   messages?: AgentSideBarMessage[];
   onChangeInput?: (value: string) => void;
@@ -45,7 +58,10 @@ export type AgentSideBarProps = {
   onSend?: (message: string) => void | Promise<void>;
   onStart?: () => void;
   onStopResponse?: () => void;
+  onSelectPersona?: (personaId: string) => void;
   onToggleMicrophone?: () => void | Promise<void>;
+  personas?: AgentSideBarPersona[];
+  selectedPersonaId?: string;
   state?: AgentSideBarState;
   voiceName?: string;
 };
@@ -60,26 +76,30 @@ const hostAvatars = [
 
 const voiceOptions = [
   {
-    avatar: "/agent-sidebar/avatar-1.png",
+    avatar_url: "/agent-sidebar/avatar-1.png",
     description: "Warm, direct, reflective",
-    name: "Masa Son",
+    display_name: "Masa Son",
+    id: "masa-son",
   },
   {
-    avatar: "/agent-sidebar/avatar-2.png",
+    avatar_url: "/agent-sidebar/avatar-2.png",
     description: "Calm, precise, product-minded",
-    name: "Sam Altman",
+    display_name: "Sam Altman",
+    id: "sam-altman",
   },
   {
-    avatar: "/agent-sidebar/avatar-3.png",
+    avatar_url: "/agent-sidebar/avatar-3.png",
     description: "Fast, energetic, technical",
-    name: "Elon Musk",
+    display_name: "Elon Musk",
+    id: "elon-musk",
   },
   {
-    avatar: "/agent-sidebar/avatar-4.png",
+    avatar_url: "/agent-sidebar/avatar-4.png",
     description: "Neutral test voice",
-    name: "Portfolio Agent",
+    display_name: "Portfolio Agent",
+    id: "portfolio-agent",
   },
-];
+] satisfies AgentSideBarPersona[];
 
 const defaultMessages: AgentSideBarMessage[] = [
   {
@@ -265,16 +285,18 @@ export function VoiceSelector({
 
 function VoicePanel({
   onSelect,
-  selectedVoice,
+  personas,
+  selectedPersonaId,
 }: {
-  onSelect: (voiceName: string) => void;
-  selectedVoice: string;
+  onSelect: (personaId: string) => void;
+  personas: AgentSideBarPersona[];
+  selectedPersonaId: string;
 }) {
   return (
     <div className="absolute bottom-full left-0 z-10 mb-token-8 w-[341px] max-w-[calc(100vw-var(--spacing-48))] rounded-token-m border border-[var(--color-border-opaque)] bg-[var(--agent-sidebar-surface)] p-token-8 shadow-[var(--agent-sidebar-menu-shadow)]">
       <div className="flex flex-col gap-token-4">
-        {voiceOptions.map((voice) => {
-          const selected = voice.name === selectedVoice;
+        {personas.map((voice) => {
+          const selected = voice.id === selectedPersonaId;
 
           return (
             <button
@@ -282,20 +304,22 @@ function VoicePanel({
                 "flex w-full items-center gap-token-12 rounded-token-s px-token-12 py-token-8 text-left transition hover:bg-[var(--color-background-secondary)]",
                 selected && "bg-[var(--color-background-secondary)]",
               )}
-              key={voice.name}
-              onClick={() => onSelect(voice.name)}
+              key={voice.id}
+              onClick={() => onSelect(voice.id)}
               type="button"
             >
               <span className="relative size-[32px] shrink-0 overflow-hidden rounded-token-round">
-                <img
-                  alt=""
-                  className="absolute inset-0 size-full object-cover"
-                  src={voice.avatar}
-                />
+                {voice.avatar_url ? (
+                  <img
+                    alt=""
+                    className="absolute inset-0 size-full object-cover"
+                    src={voice.avatar_url}
+                  />
+                ) : null}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-text)]">
-                  {voice.name}
+                  {voice.display_name}
                 </span>
                 <span className="block truncate font-body text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--agent-sidebar-muted)]">
                   {voice.description}
@@ -366,8 +390,11 @@ function AgentPromptBar({
   onChangeInput,
   onEnd,
   onSend,
+  onSelectPersona,
   onStopResponse,
   onToggleMicrophone,
+  personas = voiceOptions,
+  selectedPersonaId,
   state,
   voiceName,
 }: Pick<
@@ -378,20 +405,55 @@ function AgentPromptBar({
   | "onChangeInput"
   | "onEnd"
   | "onSend"
+  | "onSelectPersona"
   | "onStopResponse"
   | "onToggleMicrophone"
+  | "personas"
+  | "selectedPersonaId"
   | "state"
   | "voiceName"
 >) {
   const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState(voiceName ?? "Masa Son");
+  const voiceControlsRef = useRef<HTMLDivElement>(null);
+  const resolvedPersonaId =
+    selectedPersonaId ?? personas[0]?.id ?? "portfolio-agent";
   const hasInput = inputValue.trim().length > 0;
   const isTyping = state === "user-typing" || hasInput;
   const isStreaming = state === "agent-streaming";
   const placeholder = "How are you feeling today?";
   const selectedVoiceOption =
-    voiceOptions.find((voice) => voice.name === selectedVoice) ??
-    voiceOptions.find((voice) => voice.name === "Masa Son");
+    personas.find((voice) => voice.id === resolvedPersonaId) ?? personas[0];
+  const selectedVoiceName =
+    selectedVoiceOption?.display_name ?? voiceName ?? "Portfolio Agent";
+
+  useEffect(() => {
+    if (!isVoicePanelOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        !voiceControlsRef.current?.contains(event.target)
+      ) {
+        setIsVoicePanelOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsVoicePanelOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isVoicePanelOpen]);
 
   return (
     <div className="w-full rounded-[31px] border border-[var(--agent-sidebar-border)] bg-[var(--agent-sidebar-surface)] px-token-20 py-token-16 shadow-[var(--agent-sidebar-shadow)]">
@@ -414,14 +476,18 @@ function AgentPromptBar({
         </div>
 
         <div className="flex items-start justify-between">
-          <div className="relative flex items-center gap-token-4">
+          <div
+            className="relative flex items-center gap-token-4"
+            ref={voiceControlsRef}
+          >
             {isVoicePanelOpen ? (
               <VoicePanel
-                onSelect={(nextVoice) => {
-                  setSelectedVoice(nextVoice);
+                onSelect={(personaId) => {
+                  onSelectPersona?.(personaId);
                   setIsVoicePanelOpen(false);
                 }}
-                selectedVoice={selectedVoice}
+                personas={personas}
+                selectedPersonaId={resolvedPersonaId}
               />
             ) : null}
             <MicSelector
@@ -429,10 +495,10 @@ function AgentPromptBar({
               onToggle={onToggleMicrophone}
             />
             <VoiceSelector
-              avatar={selectedVoiceOption?.avatar}
+              avatar={selectedVoiceOption?.avatar_url}
               isOpen={isVoicePanelOpen}
               onClick={() => setIsVoicePanelOpen((open) => !open)}
-              voiceName={selectedVoice}
+              voiceName={selectedVoiceName}
             />
           </div>
           <div className="ml-auto">
@@ -564,13 +630,25 @@ function LoadingState() {
   );
 }
 
+function SwitchingState({ voiceName }: { voiceName: string }) {
+  return (
+    <div className="mb-token-16 rounded-token-m border border-[var(--agent-sidebar-border)] bg-[var(--color-background-secondary)] px-token-16 py-token-12">
+      <p className="font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-text)]">
+        Switching to {voiceName}
+      </p>
+      <p className="mt-token-2 font-body text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--agent-sidebar-muted)]">
+        Reconnecting with the new voice and persona.
+      </p>
+    </div>
+  );
+}
+
 export function AgentSideBar({
   className,
   errorMessage = "Could not start voice session. Run the token probe and share the endpoint status with engineering.",
   inputValue = "",
   isMicrophoneEnabled = true,
   isSending = false,
-  isThinking = false,
   latestSearchSources = [],
   messages = defaultMessages,
   onChangeInput,
@@ -578,15 +656,22 @@ export function AgentSideBar({
   onSend,
   onStart,
   onStopResponse,
+  onSelectPersona,
   onToggleMicrophone,
+  personas,
+  selectedPersonaId,
   state = "intro",
   voiceName = "Masa Son",
 }: AgentSideBarProps) {
   const showConversation = !["intro", "loading"].includes(state);
+  const selectedPersona =
+    personas?.find((voice) => voice.id === selectedPersonaId) ?? personas?.[0];
+  const selectedVoiceName =
+    selectedPersona?.display_name ?? voiceName ?? "Portfolio Agent";
   const resolvedMessages =
     state === "begin"
       ? []
-      : state === "agent-streaming" || isThinking
+      : state === "agent-streaming"
         ? [
             ...messages,
             {
@@ -617,14 +702,19 @@ export function AgentSideBar({
               <AgentTitle className="w-full">Ask a question</AgentTitle>
             </div>
           ) : (
-            <ChatConversation
-              latestSearchSources={latestSearchSources}
-              messages={resolvedMessages}
-            />
+            <>
+              {state === "error" ? <ErrorToast message={errorMessage} /> : null}
+              {state === "switching" ? (
+                <SwitchingState voiceName={selectedVoiceName} />
+              ) : null}
+              <ChatConversation
+                latestSearchSources={latestSearchSources}
+                messages={resolvedMessages}
+              />
+            </>
           )}
 
           <div className="mt-token-24 shrink-0">
-            {state === "error" ? <ErrorToast message={errorMessage} /> : null}
             <AgentPromptBar
               inputValue={inputValue}
               isMicrophoneEnabled={isMicrophoneEnabled}
@@ -632,8 +722,11 @@ export function AgentSideBar({
               onChangeInput={onChangeInput}
               onEnd={onEnd}
               onSend={onSend}
+              onSelectPersona={onSelectPersona}
               onStopResponse={onStopResponse}
               onToggleMicrophone={onToggleMicrophone}
+              personas={personas}
+              selectedPersonaId={selectedPersonaId}
               state={state}
               voiceName={voiceName}
             />

@@ -13,6 +13,7 @@ import {
   optionalEnv,
   parseNodeEnv,
 } from "~/server/livekit/route-policy";
+import { DEFAULT_PERSONA_ID, getPersona } from "~/server/personas";
 
 export const runtime = "nodejs";
 
@@ -59,6 +60,9 @@ const roomConfigSchema = z
 
 const tokenRequestSchema = z.object({
   dispatch_agent: z.boolean().optional(),
+  persona_id: z.string().min(1).max(80).optional(),
+  user_id: z.string().min(1).max(160).optional(),
+  session_id: z.string().min(1).max(160).optional(),
   room_name: z.string().min(1).max(160).optional(),
   participant_identity: z.string().min(1).max(160).optional(),
   participant_name: z.string().min(1).max(160).optional(),
@@ -104,6 +108,55 @@ function isAuthorizedForLiveKitToken(request: Request) {
     request,
     tokenAuthSecret: env.LIVEKIT_TOKEN_AUTH_SECRET,
   });
+}
+
+function parseAgentMetadata(metadata: string | undefined) {
+  if (!metadata) {
+    return null;
+  }
+
+  const parsed = (() => {
+    try {
+      return JSON.parse(metadata) as unknown;
+    } catch {
+      return null;
+    }
+  })();
+
+  return parsed && typeof parsed === "object"
+    ? (parsed as Record<string, unknown>)
+    : null;
+}
+
+function createDispatchMetadata({
+  existingMetadata,
+  personaId,
+  sessionId,
+  userId,
+}: {
+  existingMetadata?: string;
+  personaId: string;
+  sessionId: string;
+  userId?: string;
+}) {
+  const parsed = parseAgentMetadata(existingMetadata);
+  const metadata: Record<string, unknown> = {
+    ...(parsed ?? {}),
+    persona_id: personaId,
+    session_id: sessionId,
+  };
+
+  if (userId) {
+    metadata.user_id = userId;
+  }
+
+  return JSON.stringify(metadata);
+}
+
+function isResolvedDispatchAgent<T>(
+  dispatchAgent: T | null,
+): dispatchAgent is T {
+  return dispatchAgent !== null;
 }
 
 export function OPTIONS(request: Request) {
@@ -208,9 +261,39 @@ export async function POST(request: Request) {
   });
 
   if (agentsToDispatch.length > 0) {
+    const dispatchAgents = await Promise.all(
+      agentsToDispatch.map(async (requestedAgent) => {
+        const existingMetadata =
+          requestedAgent.agent_metadata ?? requestedAgent.metadata;
+        const parsedAgentMetadata = parseAgentMetadata(existingMetadata);
+        const metadataPersonaId =
+          typeof parsedAgentMetadata?.persona_id === "string"
+            ? parsedAgentMetadata.persona_id
+            : undefined;
+        const personaId =
+          body.persona_id ?? metadataPersonaId ?? DEFAULT_PERSONA_ID;
+        const persona = await getPersona(personaId);
+
+        if (!persona) {
+          return null;
+        }
+
+        return { existingMetadata, persona, requestedAgent };
+      }),
+    );
+
+    if (!dispatchAgents.every(isResolvedDispatchAgent)) {
+      return jsonWithCors(
+        request,
+        { error: "Unknown persona requested.", code: "unknown_persona" },
+        { status: 400 },
+      );
+    }
+
     token.roomConfig = new RoomConfiguration({
       name: roomName,
-      agents: agentsToDispatch.map((requestedAgent) => {
+      agents: dispatchAgents.map((dispatchAgent) => {
+        const { existingMetadata, persona, requestedAgent } = dispatchAgent;
         const agentName =
           requestedAgent.agent_name ??
           requestedAgent.agentName ??
@@ -218,7 +301,12 @@ export async function POST(request: Request) {
 
         return new RoomAgentDispatch({
           agentName,
-          metadata: requestedAgent.agent_metadata ?? requestedAgent.metadata,
+          metadata: createDispatchMetadata({
+            existingMetadata,
+            personaId: persona.id,
+            sessionId: body.session_id ?? roomName,
+            userId: body.user_id,
+          }),
           deployment: requestedAgent.deployment,
         });
       }),

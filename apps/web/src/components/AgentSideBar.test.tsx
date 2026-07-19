@@ -1,9 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { AgentSideBar, type AgentSideBarMessage } from "./AgentSideBar";
+import { fallbackPersonaVoiceOptions } from "./PersonaVoiceSwitcher";
 
 const messages: AgentSideBarMessage[] = [
   {
@@ -45,5 +46,29 @@ describe("AgentSideBar", () => {
     expect(
       screen.getByRole("link", { name: /Argentina stun England/i }),
     ).toHaveAttribute("href", "https://example.com/argentina-england");
+  });
+
+  it("dismisses the desktop voice panel when clicking outside", () => {
+    render(
+      <div>
+        <AgentSideBar
+          messages={[]}
+          onSelectPersona={vi.fn()}
+          personas={fallbackPersonaVoiceOptions}
+          selectedPersonaId="portfolio-agent"
+          state="idle"
+        />
+        <button type="button">Outside target</button>
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /select voice/i }));
+    expect(screen.getByText("Wife E2E")).toBeVisible();
+
+    fireEvent.pointerDown(
+      screen.getByRole("button", { name: /outside target/i }),
+    );
+
+    expect(screen.queryByText("Wife E2E")).not.toBeInTheDocument();
   });
 });

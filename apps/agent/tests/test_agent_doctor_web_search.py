@@ -19,7 +19,10 @@ class AgentDoctorWebSearchTests(unittest.TestCase):
             "LIVEKIT_API_KEY": "livekit-key",
             "LIVEKIT_API_SECRET": "livekit-secret",
             "LIVEKIT_AGENT_TTS_VOICE_ID": "voice-id",
+            "CARTESIA_API_KEY": "cartesia-super-secret",
             "OPENAI_API_KEY": "openai-super-secret",
+            "LIVEKIT_AGENT_PERSONA_BASE_URL": "https://portfolio.example",
+            "PERSONA_AGENT_READ_SECRET": "persona-super-secret",
             "WEB_SEARCH_PROVIDER": "parallel",
             "PARALLEL_API_KEY": "parallel-super-secret",
             "WEB_SEARCH_MAX_RESULTS": "5",
@@ -51,8 +54,12 @@ class AgentDoctorWebSearchTests(unittest.TestCase):
             "LIVEKIT_URL": "wss://voice.example.livekit.cloud",
             "LIVEKIT_API_KEY": "livekit-key",
             "LIVEKIT_API_SECRET": "livekit-secret",
+            "LIVEKIT_AGENT_TTS_VOICE_ID": "voice-id",
             "LIVEKIT_AGENT_PROVIDER": "openai",
+            "CARTESIA_API_KEY": "cartesia-super-secret",
             "OPENAI_API_KEY": "openai-super-secret",
+            "LIVEKIT_AGENT_PERSONA_BASE_URL": "https://portfolio.example",
+            "PERSONA_AGENT_READ_SECRET": "persona-super-secret",
         }
 
         with patch.dict(os.environ, env, clear=True):

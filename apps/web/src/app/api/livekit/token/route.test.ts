@@ -3,14 +3,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SITE_ORIGIN } from "~/config/site";
 
 const MISCONFIGURED_PRODUCTION_ORIGIN = "https://preview.invalid";
+const accessTokenRecords: Array<{
+  addGrant: ReturnType<typeof vi.fn>;
+  roomConfig?: unknown;
+  toJwt: ReturnType<typeof vi.fn>;
+}> = [];
 
 vi.mock("livekit-server-sdk", () => ({
   AccessToken: vi.fn(function AccessTokenMock() {
-    return {
+    const record = {
       addGrant: vi.fn(),
       roomConfig: undefined,
       toJwt: vi.fn(async () => "admin.jwt"),
     };
+
+    accessTokenRecords.push(record);
+
+    return record;
   }),
 }));
 
@@ -52,6 +61,21 @@ function createRequest(headers: Record<string, string> = {}) {
   });
 }
 
+function createDispatchRequest(
+  body: unknown,
+  headers: Record<string, string> = {},
+) {
+  return new Request(`${SITE_ORIGIN}/api/livekit/token`, {
+    body: JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+      Origin: SITE_ORIGIN,
+      ...headers,
+    },
+    method: "POST",
+  });
+}
+
 async function importRoute() {
   vi.resetModules();
   return import("./route");
@@ -62,6 +86,7 @@ describe("POST /api/livekit/token", () => {
     clearEnv();
     setEnv();
     vi.clearAllMocks();
+    accessTokenRecords.length = 0;
   });
 
   it("rejects missing QA/admin auth in production", async () => {
@@ -86,6 +111,194 @@ describe("POST /api/livekit/token", () => {
     expect(response.status).toBe(201);
     expect(payload.participant_token).toBe("admin.jwt");
     expect(payload.agent_dispatch_mode).toBe("disabled");
+  });
+
+  it("rejects an unknown persona", async () => {
+    const { POST } = await importRoute();
+    const response = await POST(
+      createDispatchRequest(
+        { persona_id: "missing-persona" },
+        { Authorization: "Bearer admin-secret" },
+      ),
+    );
+    const payload = (await response.json()) as { code: string };
+
+    expect(response.status).toBe(400);
+    expect(payload.code).toBe("unknown_persona");
+  });
+
+  it("skips persona validation when agent dispatch is disabled", async () => {
+    const { POST } = await importRoute();
+    const response = await POST(
+      createDispatchRequest(
+        { dispatch_agent: false, persona_id: "missing-persona" },
+        { Authorization: "Bearer admin-secret" },
+      ),
+    );
+    const payload = (await response.json()) as {
+      agent_dispatch_mode: string;
+      participant_token: string;
+    };
+
+    expect(response.status).toBe(201);
+    expect(payload.participant_token).toBe("admin.jwt");
+    expect(payload.agent_dispatch_mode).toBe("disabled");
+  });
+
+  it("serializes compact persona metadata for dispatched agents", async () => {
+    const { POST } = await importRoute();
+    const response = await POST(
+      createDispatchRequest(
+        {
+          persona_id: "wife",
+          room_config: {
+            agents: [{ agentName: "dennis-portfolio-agent" }],
+          },
+          user_id: "local-qa",
+        },
+        { Authorization: "Bearer admin-secret" },
+      ),
+    );
+    const payload = (await response.json()) as {
+      agent_dispatch_names: string[];
+    };
+    const roomConfig = accessTokenRecords[0]?.roomConfig as {
+      agents?: Array<{ metadata?: string }>;
+    };
+    const metadata = JSON.parse(roomConfig.agents?.[0]?.metadata ?? "{}") as {
+      persona_id?: string;
+      user_id?: string;
+    };
+
+    expect(response.status).toBe(201);
+    expect(payload.agent_dispatch_names).toEqual(["dennis-portfolio-agent"]);
+    expect(metadata).toMatchObject({
+      persona_id: "wife",
+      user_id: "local-qa",
+    });
+  });
+
+  it("merges persona metadata into custom agent metadata", async () => {
+    const { POST } = await importRoute();
+    const response = await POST(
+      createDispatchRequest(
+        {
+          persona_id: "wife",
+          room_config: {
+            agents: [
+              {
+                agentName: "dennis-portfolio-agent",
+                metadata: JSON.stringify({ source: "qa" }),
+              },
+            ],
+          },
+          session_id: "session-123",
+          user_id: "local-qa",
+        },
+        { Authorization: "Bearer admin-secret" },
+      ),
+    );
+    const roomConfig = accessTokenRecords[0]?.roomConfig as {
+      agents?: Array<{ metadata?: string }>;
+    };
+    const metadata = JSON.parse(roomConfig.agents?.[0]?.metadata ?? "{}") as {
+      persona_id?: string;
+      session_id?: string;
+      source?: string;
+      user_id?: string;
+    };
+
+    expect(response.status).toBe(201);
+    expect(metadata).toMatchObject({
+      persona_id: "wife",
+      session_id: "session-123",
+      source: "qa",
+      user_id: "local-qa",
+    });
+  });
+
+  it("preserves user id supplied only in agent metadata", async () => {
+    const { POST } = await importRoute();
+    const response = await POST(
+      createDispatchRequest(
+        {
+          room_config: {
+            agents: [
+              {
+                agentName: "dennis-portfolio-agent",
+                agent_metadata: JSON.stringify({
+                  persona_id: "wife",
+                  user_id: "metadata-user",
+                }),
+              },
+            ],
+          },
+        },
+        { Authorization: "Bearer admin-secret" },
+      ),
+    );
+    const roomConfig = accessTokenRecords[0]?.roomConfig as {
+      agents?: Array<{ metadata?: string }>;
+    };
+    const metadata = JSON.parse(roomConfig.agents?.[0]?.metadata ?? "{}") as {
+      persona_id?: string;
+      user_id?: string;
+    };
+
+    expect(response.status).toBe(201);
+    expect(metadata).toMatchObject({
+      persona_id: "wife",
+      user_id: "metadata-user",
+    });
+  });
+
+  it("resolves persona metadata for each dispatched agent", async () => {
+    const { POST } = await importRoute();
+    const response = await POST(
+      createDispatchRequest(
+        {
+          room_config: {
+            agents: [
+              {
+                agentName: "dennis-portfolio-agent",
+                agent_metadata: JSON.stringify({
+                  persona_id: "portfolio-agent",
+                }),
+              },
+              {
+                agentName: "dennis-portfolio-agent",
+                agent_metadata: JSON.stringify({
+                  persona_id: "wife",
+                  user_id: "wife-user",
+                }),
+              },
+            ],
+          },
+        },
+        { Authorization: "Bearer admin-secret" },
+      ),
+    );
+    const roomConfig = accessTokenRecords[0]?.roomConfig as {
+      agents?: Array<{ metadata?: string }>;
+    };
+    const firstMetadata = JSON.parse(
+      roomConfig.agents?.[0]?.metadata ?? "{}",
+    ) as {
+      persona_id?: string;
+    };
+    const secondMetadata = JSON.parse(
+      roomConfig.agents?.[1]?.metadata ?? "{}",
+    ) as {
+      persona_id?: string;
+      user_id?: string;
+    };
+
+    expect(response.status).toBe(201);
+    expect(firstMetadata.persona_id).toBe("portfolio-agent");
+    expect(secondMetadata).toMatchObject({
+      persona_id: "wife",
+      user_id: "wife-user",
+    });
   });
 
   it("allows the canonical production portfolio origin", async () => {

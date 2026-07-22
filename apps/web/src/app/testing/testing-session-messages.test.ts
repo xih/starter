@@ -35,6 +35,7 @@ describe("testing session message state", () => {
     ];
     const pending: PendingReplyMarker = {
       liveMessageCount: beforeSend.length,
+      sentAt: Date.now(),
       startedAt: Date.now(),
       tempId: "local-user",
     };
@@ -63,6 +64,7 @@ describe("testing session message state", () => {
   it("does not depend on epoch timestamps to decide that the agent replied", () => {
     const pending: PendingReplyMarker = {
       liveMessageCount: 0,
+      sentAt: 1_721_000_000_000,
       startedAt: 1_721_000_000_000,
       tempId: "local-user",
     };
@@ -114,11 +116,27 @@ describe("testing session message state", () => {
         now: 25_000,
         pendingReply: {
           liveMessageCount: 1,
+          sentAt: 1_000,
           startedAt: 1_000,
           tempId: "temp-user",
         },
         timeoutMs: 20_000,
       }),
     ).toBe(true);
+  });
+
+  it("does not time out queued messages before they are sent to LiveKit", () => {
+    expect(
+      isPendingReplyTimedOut({
+        now: 120_000,
+        pendingReply: {
+          liveMessageCount: 1,
+          sentAt: null,
+          startedAt: 1_000,
+          tempId: "temp-user",
+        },
+        timeoutMs: 20_000,
+      }),
+    ).toBe(false);
   });
 });

@@ -46,10 +46,10 @@ Optional agent tuning variables:
 
 ```text
 LIVEKIT_AGENT_NAME
-LIVEKIT_AGENT_STT_MODEL
-LIVEKIT_AGENT_STT_LANGUAGE
-LIVEKIT_AGENT_LLM_MODEL
-LIVEKIT_AGENT_TTS_MODEL
+OPENAI_AGENT_STT_MODEL
+OPENAI_AGENT_LLM_MODEL
+OPENAI_AGENT_TTS_MODEL
+OPENAI_AGENT_TTS_VOICE
 WEB_SEARCH_PROVIDER
 WEB_SEARCH_MAX_RESULTS
 WEB_SEARCH_TIMEOUT_SECONDS
@@ -60,14 +60,20 @@ LIVEKIT_AGENT_RECORD_TRACES
 LIVEKIT_AGENT_RECORD_TRANSCRIPT
 ```
 
-LiveKit Cloud Agent insights are enabled by default. The agent passes
+The realtime room and Cloud Agent dispatch still run on LiveKit, but the model
+provider is pinned to OpenAI in `src/agent.py` so STT, LLM, and TTS do not
+consume LiveKit Inference credits. `LIVEKIT_AGENT_PROVIDER` is intentionally
+ignored.
+
+LiveKit Cloud Agent insights are opt-in for this portfolio demo to avoid
+metering public trial sessions unnecessarily. Set
+`LIVEKIT_AGENT_SESSION_RECORDING_ENABLED=true` to pass
 `record={"audio": true, "logs": true, "traces": true, "transcript": true}` into
 `AgentSession.start()`, which uploads audio, transcripts, traces, and logs to
 the Agent insights tab after each session. The LiveKit Cloud project must also
 have data recording enabled by an owner in the Cloud dashboard; if that owner
 setting is disabled, the SDK exporter returns 401 errors such as `project data
-recording is disabled by owner`. For temporary local/dev suppression only, set
-`LIVEKIT_AGENT_SESSION_RECORDING_ENABLED=false`.
+recording is disabled by owner`.
 
 Web search providers:
 
@@ -151,14 +157,7 @@ infisical run \
   --projectId "$INFISICAL_PROJECT_ID" \
   --env=prod \
   --path=/ \
-  -- bash -lc '
-    room="agent_smoke_$(date +%s)"
-    lk dispatch create --room "$room" --agent-name dennis-portfolio-agent
-    sleep 8
-    lk dispatch list "$room"
-    lk room participants list "$room"
-    lk room delete "$room"
-  '
+  -- bash -lc 'cd apps/agent && scripts/smoke-livekit-dispatch.sh'
 ```
 
 Expected smoke-test output:
@@ -166,6 +165,8 @@ Expected smoke-test output:
 - `lk dispatch list` shows `AgentName` as `dennis-portfolio-agent`.
 - `lk room participants list` shows an active participant like
   `agent-AJ_...`.
+- The smoke script polls for up to 60 seconds so a sleeping Cloud Agent has
+  time to wake before the check fails.
 - `lk agent status` shows the latest deployment version and healthy/sleeping
   replicas.
 - `lk room delete` removes the smoke room.

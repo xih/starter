@@ -7,6 +7,7 @@ export type OrderedAgentSideBarMessage = AgentSideBarMessage & {
 
 export type PendingReplyMarker = {
   liveMessageCount: number;
+  sentAt: number | null;
   startedAt: number;
   tempId: string;
 };
@@ -100,5 +101,9 @@ export function isPendingReplyTimedOut({
   pendingReply: PendingReplyMarker | null;
   timeoutMs: number;
 }) {
-  return pendingReply !== null && now - pendingReply.startedAt >= timeoutMs;
+  return (
+    pendingReply !== null &&
+    pendingReply.sentAt !== null &&
+    now - pendingReply.sentAt >= timeoutMs
+  );
 }

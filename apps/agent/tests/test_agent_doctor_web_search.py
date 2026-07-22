@@ -40,7 +40,7 @@ class AgentDoctorWebSearchTests(unittest.TestCase):
         text = output.getvalue()
 
         self.assertEqual(exit_code, 0)
-        self.assertIn("LIVEKIT_AGENT_PROVIDER: livekit", text)
+        self.assertIn("LIVEKIT_AGENT_PROVIDER: openai", text)
         self.assertIn("OPENAI_API_KEY: set", text)
         self.assertIn("WEB_SEARCH_PROVIDER: parallel", text)
         self.assertIn("PARALLEL_API_KEY: set", text)
@@ -49,12 +49,11 @@ class AgentDoctorWebSearchTests(unittest.TestCase):
         self.assertNotIn("parallel-super-secret", text)
         self.assertNotIn("openai-super-secret", text)
 
-    def test_doctor_can_still_validate_openai_provider(self) -> None:
+    def test_doctor_uses_openai_provider_constant(self) -> None:
         env = {
             "LIVEKIT_URL": "wss://voice.example.livekit.cloud",
             "LIVEKIT_API_KEY": "livekit-key",
             "LIVEKIT_API_SECRET": "livekit-secret",
-            "LIVEKIT_AGENT_PROVIDER": "openai",
             "CARTESIA_API_KEY": "cartesia-super-secret",
             "OPENAI_API_KEY": "openai-super-secret",
             "LIVEKIT_AGENT_PERSONA_BASE_URL": "https://portfolio.example",
@@ -79,12 +78,13 @@ class AgentDoctorWebSearchTests(unittest.TestCase):
         self.assertIn("OPENAI_AGENT_TTS_VOICE: alloy", text)
         self.assertIn("OPENAI_API_KEY: set", text)
 
-    def test_doctor_rejects_unknown_agent_provider(self) -> None:
+    def test_doctor_ignores_livekit_agent_provider_env_override(self) -> None:
         env = {
             "LIVEKIT_URL": "wss://voice.example.livekit.cloud",
             "LIVEKIT_API_KEY": "livekit-key",
             "LIVEKIT_API_SECRET": "livekit-secret",
             "LIVEKIT_AGENT_PROVIDER": "livkit",
+            "OPENAI_API_KEY": "openai-super-secret",
         }
 
         with patch.dict(os.environ, env, clear=True):
@@ -97,9 +97,9 @@ class AgentDoctorWebSearchTests(unittest.TestCase):
 
         text = output.getvalue()
 
-        self.assertEqual(exit_code, 1)
-        self.assertIn("Unsupported LIVEKIT_AGENT_PROVIDER='livkit'", text)
-        self.assertIn("Expected one of: openai, livekit", text)
+        self.assertEqual(exit_code, 0)
+        self.assertIn("LIVEKIT_AGENT_PROVIDER: openai", text)
+        self.assertNotIn("Unsupported LIVEKIT_AGENT_PROVIDER", text)
 
 
 if __name__ == "__main__":

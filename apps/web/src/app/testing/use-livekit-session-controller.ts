@@ -2,9 +2,9 @@
 
 import {
   useAgent,
-  useSession,
   useSessionMessages,
 } from "@livekit/components-react";
+import type { useSession } from "@livekit/components-react";
 import {
   agentControlBarLayout,
   type AgentControlBarState,
@@ -37,7 +37,10 @@ import {
   type PendingReplyMarker,
 } from "./testing-session-messages";
 
-const SESSION_AUTO_END_MS = 5 * 60 * 1000;
+const SESSION_AUTO_END_MS = 2 * 60 * 1000;
+const SESSION_IDLE_END_MS = 30_000;
+const AGENT_READY_TIMEOUT_MS = 45_000;
+const HIDDEN_TAB_DISCONNECT_MS = 5_000;
 const MIN_PENDING_REPLY_MS = 700;
 const PENDING_REPLY_TIMEOUT_MS = 20_000;
 
@@ -121,6 +124,7 @@ export function useLiveKitSessionController(
   const didAutoStartRef = useRef(false);
   const didEnsureGuestDispatchRef = useRef(false);
   const didPersistMobileAskResumeRef = useRef(false);
+  const didCleanupAfterErrorRef = useRef(false);
   const pendingOutboundMessagesRef = useRef<
     Array<{ tempId: string; text: string; timestamp: number }>
   >([]);
@@ -189,6 +193,37 @@ export function useLiveKitSessionController(
   const completedSources = getCompletedSources(toolCallStatus);
   const visibleToolCallStatus = getVisibleToolCallStatus(toolCallStatus);
 
+  const cleanupLiveKitSession = useCallback(async () => {
+    const sessionEndResult = await Promise.allSettled([session.end()]);
+    const deleteResult = await Promise.allSettled([
+      fetch("/api/livekit/guest-session", {
+        method: "DELETE",
+        keepalive: true,
+      }),
+    ]);
+
+    for (const result of [...sessionEndResult, ...deleteResult]) {
+      if (result.status === "rejected") {
+        console.error("Testing LiveKit session cleanup failed", result.reason);
+      }
+    }
+  }, [session]);
+
+  const cleanupAfterError = useCallback(
+    (message: string) => {
+      if (didCleanupAfterErrorRef.current) return;
+
+      didCleanupAfterErrorRef.current = true;
+      setErrorMessage(message);
+      setManualState("error");
+      pendingOutboundMessagesRef.current = [];
+      startAbortControllerRef.current?.abort();
+      startAbortControllerRef.current = null;
+      void cleanupLiveKitSession();
+    },
+    [cleanupLiveKitSession],
+  );
+
   const sendLiveMessage = useCallback(
     async ({
       tempId,
@@ -200,6 +235,12 @@ export function useLiveKitSessionController(
       timestamp: number;
     }) => {
       try {
+        const sentAt = Date.now();
+        setPendingReply((currentPendingReply) =>
+          currentPendingReply?.tempId === tempId
+            ? { ...currentPendingReply, sentAt }
+            : currentPendingReply,
+        );
         await sessionMessages.send(text);
       } catch (error) {
         console.error("Testing message send failed", error);
@@ -240,6 +281,7 @@ export function useLiveKitSessionController(
       setInputValue("");
       setPendingReply({
         liveMessageCount: liveMessages.length,
+        sentAt: null,
         startedAt: timestamp,
         tempId,
       });
@@ -279,6 +321,7 @@ export function useLiveKitSessionController(
       "Connecting to LiveKit. If this fails, check the endpoint and browser console.",
     );
     setManualState("loading");
+    didCleanupAfterErrorRef.current = false;
     void (async () => {
       try {
         const preflightErrorMessage = await getTokenEndpointPreflightError(
@@ -328,27 +371,10 @@ export function useLiveKitSessionController(
     startAbortControllerRef.current = null;
 
     void (async () => {
-      const sessionEndResult = await Promise.allSettled([session.end()]);
-
-      const deleteResult = await Promise.allSettled([
-        fetch("/api/livekit/guest-session", {
-          method: "DELETE",
-          keepalive: true,
-        }),
-      ]);
-
-      for (const result of [...sessionEndResult, ...deleteResult]) {
-        if (result.status === "rejected") {
-          console.error(
-            "Testing LiveKit session cleanup failed",
-            result.reason,
-          );
-        }
-      }
-
+      await cleanupLiveKitSession();
       onSessionEnded();
     })();
-  }, [onSessionEnded, persistMobileAskResume, session]);
+  }, [cleanupLiveKitSession, onSessionEnded, persistMobileAskResume]);
 
   useEffect(() => {
     if (session.connectionState !== ConnectionState.Connected) return;
@@ -365,11 +391,7 @@ export function useLiveKitSessionController(
 
       startAbortControllerRef.current?.abort();
 
-      void session.end();
-      void fetch("/api/livekit/guest-session", {
-        method: "DELETE",
-        keepalive: true,
-      });
+      void cleanupLiveKitSession();
     };
 
     window.addEventListener("pagehide", handlePageHide);
@@ -377,7 +399,11 @@ export function useLiveKitSessionController(
     return () => {
       window.removeEventListener("pagehide", handlePageHide);
     };
-  }, [persistMobileAskResume, session, session.connectionState]);
+  }, [
+    cleanupLiveKitSession,
+    persistMobileAskResume,
+    session.connectionState,
+  ]);
 
   useEffect(() => {
     if (!persistMobileAskResume) return;
@@ -451,22 +477,92 @@ export function useLiveKitSessionController(
           error instanceof Error
             ? error.message
             : "Unknown LiveKit dispatch error";
-        setErrorMessage(`Could not dispatch the portfolio agent: ${message}`);
-        setManualState("error");
+        cleanupAfterError(`Could not dispatch the portfolio agent: ${message}`);
         console.error("Testing LiveKit guest dispatch ensure failed", error);
       });
-  }, [agentMetadata, session.connectionState, tokenEndpoint]);
+  }, [agentMetadata, cleanupAfterError, session.connectionState, tokenEndpoint]);
 
   useEffect(() => {
     if (session.connectionState !== ConnectionState.Connected) return;
 
     const timeoutId = window.setTimeout(() => {
-      setErrorMessage("Voice session ended after 5 minutes.");
+      setErrorMessage("Voice session ended after 2 minutes.");
       endSession();
     }, SESSION_AUTO_END_MS);
 
     return () => window.clearTimeout(timeoutId);
   }, [endSession, session.connectionState]);
+
+  useEffect(() => {
+    if (session.connectionState !== ConnectionState.Connected) return;
+    if (messages.length > 0 || pendingReply || inputValue.trim().length > 0) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      cleanupAfterError(
+        "Voice session ended because it was idle. Start again when you are ready to ask.",
+      );
+    }, SESSION_IDLE_END_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    cleanupAfterError,
+    inputValue,
+    messages.length,
+    pendingReply,
+    session.connectionState,
+  ]);
+
+  useEffect(() => {
+    if (session.connectionState !== ConnectionState.Connected) return;
+    if (
+      agent.state === "listening" ||
+      agent.state === "speaking" ||
+      agent.state === "thinking"
+    ) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      cleanupAfterError(
+        "The voice agent did not become ready in time. The room was closed to avoid using extra LiveKit minutes.",
+      );
+    }, AGENT_READY_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [agent.state, cleanupAfterError, session.connectionState]);
+
+  useEffect(() => {
+    if (session.connectionState !== ConnectionState.Connected) return;
+
+    let disconnectTimeoutId: number | null = null;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        if (disconnectTimeoutId !== null) {
+          window.clearTimeout(disconnectTimeoutId);
+          disconnectTimeoutId = null;
+        }
+        return;
+      }
+
+      disconnectTimeoutId = window.setTimeout(() => {
+        cleanupAfterError(
+          "Voice session ended because the tab was hidden. Start again when you are ready.",
+        );
+      }, HIDDEN_TAB_DISCONNECT_MS);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    handleVisibilityChange();
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (disconnectTimeoutId !== null) {
+        window.clearTimeout(disconnectTimeoutId);
+      }
+    };
+  }, [cleanupAfterError, session.connectionState]);
 
   useEffect(() => {
     if (!session.room) return;
@@ -489,13 +585,15 @@ export function useLiveKitSessionController(
         );
       }
     }
-  }, [hasAgentMessageAfterPending, pendingReply]);
+  }, [cleanupLiveKitSession, hasAgentMessageAfterPending, pendingReply]);
 
   useEffect(() => {
     if (!pendingReply || hasAgentMessageAfterPending) return;
 
     const remainingMs = Math.max(
-      PENDING_REPLY_TIMEOUT_MS - (Date.now() - pendingReply.startedAt),
+      pendingReply.sentAt === null
+        ? PENDING_REPLY_TIMEOUT_MS
+        : PENDING_REPLY_TIMEOUT_MS - (Date.now() - pendingReply.sentAt),
       0,
     );
     const timeoutId = window.setTimeout(() => {
@@ -511,11 +609,14 @@ export function useLiveKitSessionController(
 
       setPendingReply(null);
       setManualState("error");
-      setErrorMessage("The agent did not respond. Try again in a moment.");
+      setErrorMessage(
+        "The agent joined but did not respond in time. The room was closed to avoid using extra LiveKit minutes.",
+      );
+      void cleanupLiveKitSession();
     }, remainingMs);
 
     return () => window.clearTimeout(timeoutId);
-  }, [hasAgentMessageAfterPending, pendingReply]);
+  }, [cleanupLiveKitSession, hasAgentMessageAfterPending, pendingReply]);
 
   useEffect(() => {
     if (latestUserMessageIdRef.current === latestUserMessageId) {

@@ -61,7 +61,7 @@ BASE_REQUIRED_ENV_VARS = (
 
 AGENT_NAME = os.getenv("LIVEKIT_AGENT_NAME", "dennis-portfolio-agent")
 VALID_AGENT_PROVIDERS = ("openai", "livekit")
-AGENT_PROVIDER = os.getenv("LIVEKIT_AGENT_PROVIDER", "livekit").strip().lower()
+AGENT_PROVIDER = "openai"
 STT_MODEL = os.getenv("LIVEKIT_AGENT_STT_MODEL", "deepgram/nova-3")
 STT_LANGUAGE = os.getenv("LIVEKIT_AGENT_STT_LANGUAGE", "en")
 LLM_MODEL = os.getenv("LIVEKIT_AGENT_LLM_MODEL", "google/gemini-2.5-flash-lite")
@@ -361,7 +361,7 @@ def env_bool(name: str, default: bool) -> bool:
 
 
 def session_recording_options() -> bool | dict[str, bool]:
-    if not env_bool(SESSION_RECORDING_ENABLED_ENV, True):
+    if not env_bool(SESSION_RECORDING_ENABLED_ENV, False):
         return False
 
     return {
@@ -490,7 +490,7 @@ def print_env_doctor() -> int:
     print(f"  OPENAI_API_KEY: {'set' if os.getenv('OPENAI_API_KEY') else 'missing'}")
     print(
         "  LIVEKIT_AGENT_SESSION_RECORDING_ENABLED: "
-        f"{env_bool(SESSION_RECORDING_ENABLED_ENV, True)}"
+        f"{env_bool(SESSION_RECORDING_ENABLED_ENV, False)}"
     )
     print(f"  LIVEKIT_AGENT_RECORD_AUDIO: {env_bool(SESSION_RECORD_AUDIO_ENV, True)}")
     print(f"  LIVEKIT_AGENT_RECORD_LOGS: {env_bool(SESSION_RECORD_LOGS_ENV, True)}")

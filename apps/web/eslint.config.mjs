@@ -21,6 +21,7 @@ export default [
       "next.config.js",
       "node_modules/**",
       "postcss.config.js",
+      "scripts/*.mjs",
       "public/ort-wasm-simd-threaded.mjs",
       "public/vad.worklet.bundle.min.js",
       "public/storybook/**",

@@ -13,11 +13,31 @@ export type AgentSideBarState =
 
 export type AgentSideBarProps = {
   className?: string;
+  inputValue?: string;
+  isMicrophoneEnabled?: boolean;
+  onChangeInput?: (value: string) => void;
+  onEnd?: () => void;
+  onOpenVoicePanel?: () => void;
+  onSend?: (value: string) => void | Promise<void>;
+  onStart?: () => void;
+  onStopResponse?: () => void | Promise<void>;
+  onToggleMicrophone?: () => void | Promise<void>;
+  onUseVoice?: () => void;
   state?: AgentSideBarState;
 };
 
 export function AgentSideBar({
   className,
+  inputValue,
+  isMicrophoneEnabled,
+  onChangeInput,
+  onEnd,
+  onOpenVoicePanel,
+  onSend,
+  onStart,
+  onStopResponse,
+  onToggleMicrophone,
+  onUseVoice,
   state = "intro",
 }: AgentSideBarProps) {
   const showConversation =
@@ -43,6 +63,7 @@ export function AgentSideBar({
             </h2>
             <button
               className="font-body mt-[16px] h-[32px] rounded-[8px] bg-[#121318] px-[14px] text-[14px] font-[700] text-white"
+              onClick={onStart}
               type="button"
             >
               Chat
@@ -76,6 +97,15 @@ export function AgentSideBar({
       ) : null}
       <AgentControlBar
         className="w-full"
+        inputValue={inputValue}
+        isMicrophoneEnabled={isMicrophoneEnabled}
+        onChangeInput={onChangeInput}
+        onEnd={onEnd}
+        onOpenVoicePanel={onOpenVoicePanel}
+        onSend={onSend}
+        onStopResponse={onStopResponse}
+        onToggleMicrophone={onToggleMicrophone}
+        onUseVoice={onUseVoice}
         state={
           state === "user-typing"
             ? "user-typing"

@@ -3,6 +3,7 @@ import "@starter/design-system/styles";
 import "~/styles/globals.css";
 import "dialkit/styles.css";
 
+import { DialRoot } from "dialkit";
 import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
 import { ThemeProvider } from "next-themes";
@@ -66,6 +67,7 @@ export default function RootLayout({
             <TRPCReactProvider>
               {children}
               <Toaster position="bottom-right" />
+              <DialRoot defaultOpen={false} />
             </TRPCReactProvider>
           </ThemeProvider>
         </VoiceRecorderProvider>

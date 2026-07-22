@@ -41,10 +41,12 @@ export function DialKitRoot() {
 
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
   }, []);
 
@@ -63,7 +65,7 @@ export function DialKitRoot() {
       }}
     >
       <div
-        className="flex h-10 cursor-grab items-center justify-between border-b border-white/10 px-3 active:cursor-grabbing"
+        className="flex h-10 cursor-grab touch-none items-center justify-between border-b border-white/10 px-3 active:cursor-grabbing"
         onPointerDown={(event) => {
           dragStartRef.current = {
             pointerX: event.clientX,

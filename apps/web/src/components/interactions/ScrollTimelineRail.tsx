@@ -46,12 +46,32 @@ export function ScrollTimelineRail({
   const hasDraggedRef = useRef(false);
   const scrubProgressRef = useRef(progress);
   const suppressNextClickRef = useRef(false);
+  const suppressResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const scrubbingRef = useRef(false);
   const normalizedProgress = Math.min(1, Math.max(0, progress));
 
   useEffect(() => {
     scrubProgressRef.current = normalizedProgress;
   }, [normalizedProgress]);
+
+  const clearSuppressionReset = useCallback(() => {
+    if (suppressResetTimeoutRef.current === null) {
+      return;
+    }
+
+    clearTimeout(suppressResetTimeoutRef.current);
+    suppressResetTimeoutRef.current = null;
+  }, []);
+
+  const resetSuppressionAfterClickTick = useCallback(() => {
+    clearSuppressionReset();
+    suppressResetTimeoutRef.current = setTimeout(() => {
+      suppressNextClickRef.current = false;
+      suppressResetTimeoutRef.current = null;
+    }, 0);
+  }, [clearSuppressionReset]);
 
   const getProgressFromClientY = useCallback(
     (clientY: number) => {
@@ -100,6 +120,7 @@ export function ScrollTimelineRail({
 
       suppressNextClickRef.current = true;
       onSelectProgress?.(scrubProgressRef.current);
+      resetSuppressionAfterClickTick();
     }
 
     window.addEventListener("pointermove", handlePointerMove);
@@ -111,22 +132,15 @@ export function ScrollTimelineRail({
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
     };
-  }, [getProgressFromClientY, onScrubEnd, onScrubMove, onSelectProgress]);
+  }, [
+    getProgressFromClientY,
+    onScrubEnd,
+    onScrubMove,
+    onSelectProgress,
+    resetSuppressionAfterClickTick,
+  ]);
 
-  function getClosestSection(progressValue: number) {
-    const firstSection = sections[0];
-
-    if (!firstSection) {
-      return undefined;
-    }
-
-    return sections.reduce((closest, section) => {
-      return Math.abs(section.progress - progressValue) <
-        Math.abs(closest.progress - progressValue)
-        ? section
-        : closest;
-    }, firstSection);
-  }
+  useEffect(() => clearSuppressionReset, [clearSuppressionReset]);
 
   function startScrub(event: ReactPointerEvent<HTMLDivElement>) {
     if (!forceVisible || !trackRef.current) {
@@ -200,13 +214,11 @@ export function ScrollTimelineRail({
                 onClick={() => {
                   if (suppressNextClickRef.current) {
                     suppressNextClickRef.current = false;
+                    clearSuppressionReset();
                     return;
                   }
 
-                  onSelectSection?.(
-                    getClosestSection(scrubProgressRef.current)?.id ??
-                      section.id,
-                  );
+                  onSelectSection?.(section.id);
                 }}
                 type="button"
               >

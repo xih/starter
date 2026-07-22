@@ -105,6 +105,7 @@ function ArchiveScrollTimelineExperience({
   pattern,
   reducedMotionOverride,
 }: ArchiveScrollTimelineDemoProps & { controls: TimelineTimingDefaults }) {
+  const articleRef = useRef<HTMLElement>(null);
   const readerRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLElement>(null);
   const phaseTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -116,7 +117,6 @@ function ArchiveScrollTimelineExperience({
   const [hovering, setHovering] = useState(false);
   const [localFullscreen, setLocalFullscreen] = useState(false);
   const [sameRegionPulse, setSameRegionPulse] = useState(false);
-  const [viewportOriginY, setViewportOriginY] = useState(360);
   const [selectedSectionId, setSelectedSectionId] = useState(
     pattern.sections[0]?.id,
   );
@@ -187,12 +187,14 @@ function ArchiveScrollTimelineExperience({
     const highestVisibleOrigin = (scrollTop + maxVisibleGap) / scaleDelta;
     const preferredOrigin =
       scrollTop + reader.clientHeight * viewportFocusRatio;
+    const nextOriginY = Math.min(
+      highestVisibleOrigin,
+      Math.max(lowestVisibleOrigin, preferredOrigin),
+    );
 
-    setViewportOriginY(
-      Math.min(
-        highestVisibleOrigin,
-        Math.max(lowestVisibleOrigin, preferredOrigin),
-      ),
+    articleRef.current?.style.setProperty(
+      "transform-origin",
+      `50% ${nextOriginY}px`,
     );
   }
 
@@ -390,54 +392,45 @@ function ArchiveScrollTimelineExperience({
 
     setSameRegionPulse(isSameScrollRegion);
     setPhase("zoomingOut");
+
+    if (isSameScrollRegion) {
+      phaseTimeouts.current = [
+        setTimeout(() => {
+          setProgress(targetProgress);
+          updateViewportOrigin(targetScrollTop);
+          setPhase("zoomingIn");
+        }, getSameRegionPulseDuration()),
+        setTimeout(() => {
+          setSameRegionPulse(false);
+          setPhase("idle");
+        }, getSameRegionPulseTotal()),
+      ];
+
+      return;
+    }
+
     phaseTimeouts.current = [
-      setTimeout(
-        () => {
-          if (!isSameScrollRegion) {
-            setSameRegionPulse(false);
-            setPhase("traveling");
-            programmaticTravelRef.current = true;
-            animateReaderScroll({
-              duration: controls.travelDurationMs,
-              targetScrollTop,
-              onComplete: () => {
-                programmaticTravelRef.current = false;
-                setProgress(targetProgress);
-                setSelectedSectionId(targetSection.id);
-                updateViewportOrigin(targetScrollTop);
-                setPhase("zoomingIn");
-                phaseTimeouts.current.push(
-                  setTimeout(() => {
-                    setPhase("idle");
-                  }, controls.zoomDurationMs),
-                );
-              },
-            });
-          }
-        },
-        isSameScrollRegion
-          ? Math.round(getSameRegionPulseDuration() * 0.75)
-          : controls.travelStartDelayMs,
-      ),
-      setTimeout(
-        () => {
-          if (isSameScrollRegion) {
+      setTimeout(() => {
+        setSameRegionPulse(false);
+        setPhase("traveling");
+        programmaticTravelRef.current = true;
+        animateReaderScroll({
+          duration: controls.travelDurationMs,
+          targetScrollTop,
+          onComplete: () => {
+            programmaticTravelRef.current = false;
             setProgress(targetProgress);
+            setSelectedSectionId(targetSection.id);
             updateViewportOrigin(targetScrollTop);
             setPhase("zoomingIn");
-          }
-        },
-        isSameScrollRegion ? getSameRegionPulseDuration() : 0,
-      ),
-      setTimeout(
-        () => {
-          if (isSameScrollRegion) {
-            setSameRegionPulse(false);
-            setPhase("idle");
-          }
-        },
-        isSameScrollRegion ? getSameRegionPulseTotal() : 0,
-      ),
+            phaseTimeouts.current.push(
+              setTimeout(() => {
+                setPhase("idle");
+              }, controls.zoomDurationMs),
+            );
+          },
+        });
+      }, controls.travelStartDelayMs),
     ];
   }
 
@@ -535,6 +528,7 @@ function ArchiveScrollTimelineExperience({
             displayPhase !== "idle" && "shadow-[0_0_0_1px_rgba(0,0,0,0.04)]",
             displayPhase === "zoomingIn" && "scale-100",
           )}
+          ref={articleRef}
           style={{
             backfaceVisibility: "hidden",
             contain: "paint",
@@ -542,7 +536,6 @@ function ArchiveScrollTimelineExperience({
               displayPhase === "zoomingOut" || displayPhase === "traveling"
                 ? `translateZ(0) scale(${controls.minimapScale})`
                 : undefined,
-            transformOrigin: `50% ${viewportOriginY}px`,
             transitionDuration: sameRegionPulse
               ? `${getSameRegionPulseDuration()}ms`
               : `${controls.zoomDurationMs}ms`,

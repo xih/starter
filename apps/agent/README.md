@@ -65,15 +65,14 @@ provider is pinned to OpenAI in `src/agent.py` so STT, LLM, and TTS do not
 consume LiveKit Inference credits. `LIVEKIT_AGENT_PROVIDER` is intentionally
 ignored.
 
-LiveKit Cloud Agent insights are opt-in for this portfolio demo to avoid
-metering public trial sessions unnecessarily. Set
-`LIVEKIT_AGENT_SESSION_RECORDING_ENABLED=true` to pass
+LiveKit Cloud Agent insights are enabled by default. The agent passes
 `record={"audio": true, "logs": true, "traces": true, "transcript": true}` into
 `AgentSession.start()`, which uploads audio, transcripts, traces, and logs to
 the Agent insights tab after each session. The LiveKit Cloud project must also
 have data recording enabled by an owner in the Cloud dashboard; if that owner
 setting is disabled, the SDK exporter returns 401 errors such as `project data
-recording is disabled by owner`.
+recording is disabled by owner`. For temporary local/dev suppression only, set
+`LIVEKIT_AGENT_SESSION_RECORDING_ENABLED=false`.
 
 Web search providers:
 

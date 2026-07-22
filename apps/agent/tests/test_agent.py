@@ -356,9 +356,17 @@ class PersonaAgentTests(unittest.TestCase):
         session.interrupt.assert_awaited_once_with(force=True)
         self.assertEqual(json.loads(response)["tts_voice_id"], "voice-123")
 
-    def test_session_recording_options_defaults_to_disabled(self):
+    def test_session_recording_options_defaults_to_full_livekit_insights(self):
         with patch.dict(agent.os.environ, {}, clear=True):
-            self.assertFalse(agent.session_recording_options())
+            self.assertEqual(
+                agent.session_recording_options(),
+                {
+                    "audio": True,
+                    "logs": True,
+                    "traces": True,
+                    "transcript": True,
+                },
+            )
 
     def test_session_recording_options_can_disable_all_recording(self):
         with patch.dict(

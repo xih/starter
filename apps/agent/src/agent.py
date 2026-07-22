@@ -361,7 +361,7 @@ def env_bool(name: str, default: bool) -> bool:
 
 
 def session_recording_options() -> bool | dict[str, bool]:
-    if not env_bool(SESSION_RECORDING_ENABLED_ENV, False):
+    if not env_bool(SESSION_RECORDING_ENABLED_ENV, True):
         return False
 
     return {
@@ -490,7 +490,7 @@ def print_env_doctor() -> int:
     print(f"  OPENAI_API_KEY: {'set' if os.getenv('OPENAI_API_KEY') else 'missing'}")
     print(
         "  LIVEKIT_AGENT_SESSION_RECORDING_ENABLED: "
-        f"{env_bool(SESSION_RECORDING_ENABLED_ENV, False)}"
+        f"{env_bool(SESSION_RECORDING_ENABLED_ENV, True)}"
     )
     print(f"  LIVEKIT_AGENT_RECORD_AUDIO: {env_bool(SESSION_RECORD_AUDIO_ENV, True)}")
     print(f"  LIVEKIT_AGENT_RECORD_LOGS: {env_bool(SESSION_RECORD_LOGS_ENV, True)}")

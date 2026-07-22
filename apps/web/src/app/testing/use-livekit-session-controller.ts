@@ -192,6 +192,10 @@ export function useLiveKitSessionController(
     : agentControlBarLayout.mobileOrbSize;
   const completedSources = getCompletedSources(toolCallStatus);
   const visibleToolCallStatus = getVisibleToolCallStatus(toolCallStatus);
+  const isAgentReady =
+    agent.state === "listening" ||
+    agent.state === "speaking" ||
+    agent.state === "thinking";
 
   const cleanupLiveKitSession = useCallback(async () => {
     const sessionEndResult = await Promise.allSettled([session.end()]);
@@ -495,6 +499,7 @@ export function useLiveKitSessionController(
 
   useEffect(() => {
     if (session.connectionState !== ConnectionState.Connected) return;
+    if (!isAgentReady) return;
     if (messages.length > 0 || pendingReply || inputValue.trim().length > 0) {
       return;
     }
@@ -509,6 +514,7 @@ export function useLiveKitSessionController(
   }, [
     cleanupAfterError,
     inputValue,
+    isAgentReady,
     messages.length,
     pendingReply,
     session.connectionState,
@@ -516,13 +522,7 @@ export function useLiveKitSessionController(
 
   useEffect(() => {
     if (session.connectionState !== ConnectionState.Connected) return;
-    if (
-      agent.state === "listening" ||
-      agent.state === "speaking" ||
-      agent.state === "thinking"
-    ) {
-      return;
-    }
+    if (isAgentReady) return;
 
     const timeoutId = window.setTimeout(() => {
       cleanupAfterError(
@@ -531,7 +531,7 @@ export function useLiveKitSessionController(
     }, AGENT_READY_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [agent.state, cleanupAfterError, session.connectionState]);
+  }, [cleanupAfterError, isAgentReady, session.connectionState]);
 
   useEffect(() => {
     if (session.connectionState !== ConnectionState.Connected) return;

@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 import { AgentSideBar } from "~/components/AgentSideBar";
+import { PortfolioCardGrid } from "~/components/PortfolioCard";
 import { SkeuomorphicClock } from "~/components/SkeuomorphicClock";
 import { TestingSession } from "~/app/testing/testing-session";
 import {
@@ -24,7 +25,6 @@ const DEFAULT_VOICE: VoiceOption = {
   description: "Softbank founder",
   name: "Masa Son",
 };
-const projects = ["Nell", "AGI", "Krea", "Skydio"];
 
 function createBrowserSafeId() {
   if (
@@ -191,19 +191,6 @@ function FooterWithClock() {
   );
 }
 
-function ProjectTile({ name }: { name: string }) {
-  return (
-    <a
-      className="group flex h-[389px] items-center justify-center bg-[#e92800] text-[#121318] transition hover:bg-[#f03309] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318] md:h-[327px]"
-      href="#"
-    >
-      <span className="font-body text-[10px] font-[700] leading-none">
-        {name}
-      </span>
-    </a>
-  );
-}
-
 function CaseStudies() {
   return (
     <>
@@ -211,22 +198,14 @@ function CaseStudies() {
         <h2 className="font-title text-[34px] font-[700] leading-[38px]">
           Case Studies
         </h2>
-        <div className="mt-[46px] grid grid-cols-2 gap-x-[37px] gap-y-[90px]">
-          {projects.map((project) => (
-            <ProjectTile key={project} name={project} />
-          ))}
-        </div>
+        <PortfolioCardGrid className="mt-[46px] max-w-[1497px] gap-y-[90px]" />
       </section>
 
       <section className="pb-[102px] pt-[27px] md:hidden">
         <h2 className="px-[20px] font-title text-[25px] font-[700] leading-[29px]">
           Case Studies
         </h2>
-        <div className="mt-[10px] grid gap-[14px] px-[20px]">
-          {projects.map((project) => (
-            <ProjectTile key={project} name={project} />
-          ))}
-        </div>
+        <PortfolioCardGrid className="mt-[10px] gap-y-[40px] px-[20px]" />
       </section>
     </>
   );

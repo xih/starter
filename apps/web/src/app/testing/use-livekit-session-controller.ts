@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  useAgent,
-  useSessionMessages,
-} from "@livekit/components-react";
+import { useAgent, useSessionMessages } from "@livekit/components-react";
 import type { useSession } from "@livekit/components-react";
 import {
   agentControlBarLayout,
@@ -403,11 +400,7 @@ export function useLiveKitSessionController(
     return () => {
       window.removeEventListener("pagehide", handlePageHide);
     };
-  }, [
-    cleanupLiveKitSession,
-    persistMobileAskResume,
-    session.connectionState,
-  ]);
+  }, [cleanupLiveKitSession, persistMobileAskResume, session.connectionState]);
 
   useEffect(() => {
     if (!persistMobileAskResume) return;
@@ -484,7 +477,12 @@ export function useLiveKitSessionController(
         cleanupAfterError(`Could not dispatch the portfolio agent: ${message}`);
         console.error("Testing LiveKit guest dispatch ensure failed", error);
       });
-  }, [agentMetadata, cleanupAfterError, session.connectionState, tokenEndpoint]);
+  }, [
+    agentMetadata,
+    cleanupAfterError,
+    session.connectionState,
+    tokenEndpoint,
+  ]);
 
   useEffect(() => {
     if (session.connectionState !== ConnectionState.Connected) return;

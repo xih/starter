@@ -1,7 +1,7 @@
 # LiveKit Guest Sessions
 
 The guest LiveKit flow lets unauthenticated visitors try the portfolio voice
-agent for up to 5 minutes. It is intentionally separate from the protected
+agent for up to 2 minutes. It is intentionally separate from the protected
 `/api/livekit/token` QA/admin route.
 
 ## Routes
@@ -23,7 +23,7 @@ Guest policy constants live in
 `apps/web/src/server/livekit/guest-session-config.ts`:
 
 ```ts
-LIVEKIT_GUEST_SESSION_SECONDS = 5 * 60;
+LIVEKIT_GUEST_SESSION_SECONDS = 2 * 60;
 LIVEKIT_GUEST_TOKEN_TTL_SECONDS = 45;
 LIVEKIT_GUEST_ACTIVE_TTL_SECONDS = LIVEKIT_GUEST_SESSION_SECONDS;
 LIVEKIT_GUEST_CLEANUP_ENABLED =
@@ -38,8 +38,9 @@ These are product policy values, not secrets. `LIVEKIT_GUEST_CLEANUP_ENABLED`
 is read from the environment so deployments can enable QStash cleanup without
 code changes. It controls whether QStash forcibly expires the room after
 `LIVEKIT_GUEST_SESSION_SECONDS`. The client also auto-disconnects after
-5 minutes, and LiveKit is configured to close empty rooms shortly after the
-last participant leaves.
+2 minutes, disconnects hidden tabs after a short grace period, and closes idle
+sessions that connect without conversation. LiveKit is configured to close
+empty rooms shortly after the last participant leaves.
 `LIVEKIT_GUEST_COOLDOWN_ENABLED` controls whether a browser/IP is limited to
 one completed guest trial per cooldown window. It is currently off for local
 QA, while the active-session lock still prevents parallel guest sessions from
@@ -83,19 +84,20 @@ protected QA/admin `/api/livekit/token` route, not by guest sessions.
 
 ## Agent Model Provider
 
-The portfolio worker defaults to LiveKit hosted inference:
+The portfolio worker pins the model provider to OpenAI in code:
 
 ```text
-LIVEKIT_AGENT_PROVIDER=livekit
-LIVEKIT_AGENT_STT_MODEL=deepgram/nova-3
-LIVEKIT_AGENT_LLM_MODEL=google/gemini-2.5-flash-lite
-LIVEKIT_AGENT_TTS_MODEL=cartesia/sonic-3.5
-LIVEKIT_AGENT_TTS_VOICE_ID
+AGENT_PROVIDER = "openai"
+OPENAI_API_KEY
+OPENAI_AGENT_STT_MODEL=whisper-1
+OPENAI_AGENT_LLM_MODEL=gpt-4o-mini
+OPENAI_AGENT_TTS_MODEL=tts-1
+OPENAI_AGENT_TTS_VOICE=alloy
 ```
 
-This keeps rooms, dispatch, realtime transport, and hosted model usage inside
-LiveKit. Set `LIVEKIT_AGENT_PROVIDER=openai` only when deliberately falling
-back to direct OpenAI models; that mode requires `OPENAI_API_KEY`.
+This keeps rooms, dispatch, and realtime transport on LiveKit while STT, LLM,
+and TTS bypass LiveKit Inference quotas. `LIVEKIT_AGENT_PROVIDER` is ignored so
+deployments cannot accidentally switch back to LiveKit Inference.
 
 ## Upstash Setup
 
@@ -127,7 +129,7 @@ For QStash:
    - `QSTASH_NEXT_SIGNING_KEY`
 5. Store all four in the matching Infisical environment.
 
-QStash calls the public expire route after 5 minutes. The route must be
+QStash calls the public expire route after 2 minutes. The route must be
 reachable from the internet, so full cleanup cannot be validated through a
 plain `localhost:3000` URL unless you expose it with a tunnel.
 
@@ -241,8 +243,9 @@ Guest happy path:
    participant plus an `agent-*` participant.
 5. Expected while `LIVEKIT_GUEST_CLEANUP_ENABLED = false`: the room remains
    connected until the user ends it.
-6. Expected after turning `LIVEKIT_GUEST_CLEANUP_ENABLED = true`: after 30
-   seconds, QStash calls expire and the room is deleted.
+6. Expected after turning `LIVEKIT_GUEST_CLEANUP_ENABLED = true`: after
+   `LIVEKIT_GUEST_SESSION_SECONDS`, QStash calls expire and the room is
+   deleted.
 
 Guest retry while active:
 

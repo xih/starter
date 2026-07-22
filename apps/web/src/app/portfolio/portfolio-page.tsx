@@ -1,5 +1,6 @@
 "use client";
 
+import { MeshGradient, PaperTexture } from "@paper-design/shaders-react";
 import { useEffect, useRef, useState } from "react";
 import { AgentControlBar, PortfolioFooter } from "@starter/design-system";
 import type { VoiceOption } from "@starter/design-system";
@@ -52,101 +53,43 @@ function createRoomName() {
   return `portfolio_agent_${createBrowserSafeId()}`;
 }
 
-function WaveGradientShader() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-
-    const context = canvas.getContext("2d");
-    if (!context) return undefined;
-
-    let frame = 0;
-    let animationFrame = 0;
-
-    const resize = () => {
-      const scale = Math.min(window.devicePixelRatio || 1, 2);
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = Math.max(1, Math.floor(rect.width * scale));
-      canvas.height = Math.max(1, Math.floor(rect.height * scale));
-      context.setTransform(scale, 0, 0, scale, 0, 0);
-    };
-
-    const render = () => {
-      const { width, height } = canvas.getBoundingClientRect();
-      const time = frame * 0.012;
-      const wave = Math.sin(time) * 0.08;
-      const gradient = context.createLinearGradient(
-        width * (0.02 + wave),
-        0,
-        width * (1.05 + wave),
-        height * 0.56,
-      );
-
-      gradient.addColorStop(0, "#1d9df1");
-      gradient.addColorStop(0.28, "#6f93ef");
-      gradient.addColorStop(0.52, "#d790d2");
-      gradient.addColorStop(0.72, "#9d9bec");
-      gradient.addColorStop(1, "#006079");
-
-      context.fillStyle = gradient;
-      context.fillRect(0, 0, width, height);
-
-      const bandY = height * (0.38 + Math.sin(time * 0.8) * 0.05);
-      const darkBand = context.createLinearGradient(
-        0,
-        bandY - 160,
-        width,
-        bandY + 220,
-      );
-      darkBand.addColorStop(0, "rgba(3, 94, 120, 0)");
-      darkBand.addColorStop(0.44, "rgba(2, 52, 62, 0.7)");
-      darkBand.addColorStop(0.72, "rgba(2, 76, 91, 0.95)");
-      darkBand.addColorStop(1, "rgba(2, 92, 110, 0)");
-
-      context.save();
-      context.translate(width / 2, bandY);
-      context.rotate(-0.12 + Math.sin(time * 0.6) * 0.04);
-      context.fillStyle = darkBand;
-      context.filter = "blur(34px)";
-      context.fillRect(-width * 0.8, -160, width * 1.6, 350);
-      context.restore();
-
-      const glow = context.createRadialGradient(
-        width * (0.78 + Math.sin(time * 0.7) * 0.08),
-        height * 0.08,
-        0,
-        width * 0.72,
-        height * 0.08,
-        width * 0.62,
-      );
-      glow.addColorStop(0, "rgba(255, 152, 181, 0.72)");
-      glow.addColorStop(0.38, "rgba(194, 154, 235, 0.44)");
-      glow.addColorStop(1, "rgba(255, 255, 255, 0)");
-      context.fillStyle = glow;
-      context.fillRect(0, 0, width, height);
-
-      frame += 1;
-      animationFrame = window.requestAnimationFrame(render);
-    };
-
-    resize();
-    render();
-    window.addEventListener("resize", resize);
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
+function PaperHeroShader() {
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 size-full"
-      data-testid="portfolio-gradient-shader"
-    />
+    <div
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      data-testid="portfolio-paper-shader"
+    >
+      <MeshGradient
+        className="absolute inset-0 size-full"
+        colors={["#0b9bf2", "#89a2f3", "#f19ab7", "#074b63", "#002f3d"]}
+        distortion={0.58}
+        fit="cover"
+        grainMixer={0.4}
+        grainOverlay={0.12}
+        height="100%"
+        scale={1.22}
+        speed={0.18}
+        swirl={0.28}
+        width="100%"
+      />
+      <PaperTexture
+        className="absolute inset-0 size-full opacity-[0.34] mix-blend-soft-light"
+        colorBack="#083b4d"
+        colorFront="#f7edf2"
+        contrast={0.62}
+        crumples={0.22}
+        fade={0.32}
+        fiber={0.48}
+        fiberSize={0.72}
+        fit="cover"
+        height="100%"
+        roughness={0.64}
+        scale={1.8}
+        speed={0}
+        width="100%"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(175deg,rgba(255,170,190,0.20)_0%,rgba(255,255,255,0.02)_28%,rgba(0,55,70,0.72)_53%,rgba(0,92,118,0.20)_100%)]" />
+    </div>
   );
 }
 
@@ -169,8 +112,8 @@ export function HeroSurface({ copyClassName }: { copyClassName: string }) {
       className="relative size-full overflow-hidden bg-[#075970]"
       data-testid="portfolio-hero"
     >
-      <WaveGradientShader />
-      <HeroCopy className={copyClassName} />
+      <PaperHeroShader />
+      <HeroCopy className={`z-10 ${copyClassName}`} />
     </div>
   );
 }
@@ -220,11 +163,11 @@ function PortfolioLauncher({
 }) {
   return (
     <>
-      <section className="hidden w-full md:block">
+      <section className="hidden w-full border-b border-[var(--color-border-opaque)] md:block">
         <div className="grid h-[928px] grid-cols-[minmax(0,1300px)_428px]">
           <HeroSurface copyClassName="absolute left-[116px] top-[339px]" />
           <AgentSideBar
-            className="h-[928px] border-0"
+            className="h-[928px]"
             isMicrophoneEnabled={false}
             messages={[]}
             onStart={onStart}
@@ -311,8 +254,8 @@ export function PortfolioPage() {
                   <HeroSurface copyClassName="absolute left-[116px] top-[339px]" />
                 </div>
               }
-              desktopSectionClassName="gap-0 md:grid-cols-[minmax(0,1300px)_428px]"
-              desktopSidebarClassName="h-[928px] border-0"
+              desktopSectionClassName="gap-0 border-b border-[var(--color-border-opaque)] md:grid-cols-[minmax(0,1300px)_428px]"
+              desktopSidebarClassName="h-[928px]"
               mobileHero={
                 <HeroSurface copyClassName="absolute left-[22px] top-[94px]" />
               }

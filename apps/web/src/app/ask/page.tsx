@@ -104,8 +104,8 @@ export default function AskPage() {
               <HeroSurface copyClassName="absolute left-[36px] top-[386px]" />
             </div>
           }
-          desktopSectionClassName="gap-0 md:grid-cols-[minmax(0,1300px)_428px]"
-          desktopSidebarClassName="h-[928px] border-0"
+          desktopSectionClassName="gap-0 border-b border-[var(--color-border-opaque)] md:grid-cols-[minmax(0,1300px)_428px]"
+          desktopSidebarClassName="h-[928px]"
           onSessionEnded={() => {
             setRoomName(createRoomName());
             router.replace("/");

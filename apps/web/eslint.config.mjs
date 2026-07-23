@@ -68,6 +68,25 @@ export default [
         },
       ],
       "@typescript-eslint/require-await": "off",
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "dialkit",
+              importNames: ["DialRoot"],
+              message:
+                "Use ~/components/DialKitRoot so DialKit stays disabled on production routes unless explicitly enabled.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/components/DialKitRoot.tsx"],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
 ];

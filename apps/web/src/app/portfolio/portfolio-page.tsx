@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AgentControlBar, PortfolioFooter } from "@starter/design-system";
+import {
+  AgentControlBar,
+  LiveChat,
+  PortfolioFooter,
+} from "@starter/design-system";
 import type { VoiceOption } from "@starter/design-system";
+import { type DialConfig, type ResolvedValues, useDialKit } from "dialkit";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
@@ -25,6 +30,70 @@ const DEFAULT_VOICE: VoiceOption = {
   description: "Softbank founder",
   name: "Masa Son",
 };
+type PortfolioLiveChatControls = DialConfig & {
+  fadeDurationMs: [number, number, number, number];
+  streamIntervalMs: [number, number, number, number];
+  visibleDurationMs: [number, number, number, number];
+};
+
+const DESKTOP_PORTFOLIO_LIVE_CHAT_CONTROLS = {
+  streamIntervalMs: [640, 120, 5000, 40],
+  visibleDurationMs: [3600, 400, 12000, 100],
+  fadeDurationMs: [600, 80, 5000, 40],
+} satisfies PortfolioLiveChatControls;
+const MOBILE_PORTFOLIO_LIVE_CHAT_CONTROLS = {
+  streamIntervalMs: [640, 120, 5000, 40],
+  visibleDurationMs: [2600, 400, 12000, 100],
+  fadeDurationMs: [560, 80, 5000, 40],
+} satisfies PortfolioLiveChatControls;
+
+type PortfolioLiveChatTiming = {
+  fadeDurationMs: number;
+  streamIntervalMs: number;
+  visibleDurationMs: number;
+};
+
+type PortfolioLiveChatTimings = {
+  desktop: PortfolioLiveChatTiming;
+  mobile: PortfolioLiveChatTiming;
+};
+const DEFAULT_PORTFOLIO_LIVE_CHAT_TIMINGS: PortfolioLiveChatTimings = {
+  desktop: {
+    fadeDurationMs: DESKTOP_PORTFOLIO_LIVE_CHAT_CONTROLS.fadeDurationMs[0],
+    streamIntervalMs: DESKTOP_PORTFOLIO_LIVE_CHAT_CONTROLS.streamIntervalMs[0],
+    visibleDurationMs:
+      DESKTOP_PORTFOLIO_LIVE_CHAT_CONTROLS.visibleDurationMs[0],
+  },
+  mobile: {
+    fadeDurationMs: MOBILE_PORTFOLIO_LIVE_CHAT_CONTROLS.fadeDurationMs[0],
+    streamIntervalMs: MOBILE_PORTFOLIO_LIVE_CHAT_CONTROLS.streamIntervalMs[0],
+    visibleDurationMs: MOBILE_PORTFOLIO_LIVE_CHAT_CONTROLS.visibleDurationMs[0],
+  },
+};
+const PORTFOLIO_LIVE_CHAT_SHORTCUTS = {
+  streamIntervalMs: { key: "c", mode: "coarse" },
+  visibleDurationMs: { key: "x", mode: "coarse" },
+  fadeDurationMs: { key: "z", mode: "coarse" },
+} as const;
+
+function usePortfolioLiveChatTiming({
+  controls,
+  name,
+  persistKey,
+}: {
+  controls: PortfolioLiveChatControls;
+  name: string;
+  persistKey: string;
+}): ResolvedValues<PortfolioLiveChatControls> {
+  return useDialKit(name, controls, {
+    persist: {
+      key: persistKey,
+      storage: "localStorage",
+      presets: true,
+    },
+    shortcuts: PORTFOLIO_LIVE_CHAT_SHORTCUTS,
+  });
+}
 
 function createBrowserSafeId() {
   if (
@@ -163,7 +232,36 @@ function HeroCopy({ className = "" }: { className?: string }) {
   );
 }
 
-export function HeroSurface({ copyClassName }: { copyClassName: string }) {
+function PortfolioLiveChat({ timing }: { timing: PortfolioLiveChatTimings }) {
+  return (
+    <>
+      <LiveChat
+        className="absolute bottom-[118px] left-[20px] right-[20px] z-10 h-[294px] w-auto max-w-none rounded-token-xxs md:hidden"
+        fadeDurationMs={timing.mobile.fadeDurationMs}
+        initialMessageCount={5}
+        maxVisibleMessages={5}
+        streamIntervalMs={timing.mobile.streamIntervalMs}
+        visibleDurationMs={timing.mobile.visibleDurationMs}
+      />
+      <LiveChat
+        className="absolute bottom-[9px] left-[26px] z-10 hidden h-[500px] w-[423px] max-w-none rounded-token-xxs md:flex"
+        fadeDurationMs={timing.desktop.fadeDurationMs}
+        initialMessageCount={8}
+        maxVisibleMessages={8}
+        streamIntervalMs={timing.desktop.streamIntervalMs}
+        visibleDurationMs={timing.desktop.visibleDurationMs}
+      />
+    </>
+  );
+}
+
+export function HeroSurface({
+  copyClassName,
+  liveChatTiming = DEFAULT_PORTFOLIO_LIVE_CHAT_TIMINGS,
+}: {
+  copyClassName: string;
+  liveChatTiming?: PortfolioLiveChatTimings;
+}) {
   return (
     <div
       className="relative size-full overflow-hidden bg-[#075970]"
@@ -171,6 +269,7 @@ export function HeroSurface({ copyClassName }: { copyClassName: string }) {
     >
       <WaveGradientShader />
       <HeroCopy className={copyClassName} />
+      <PortfolioLiveChat timing={liveChatTiming} />
     </div>
   );
 }
@@ -212,9 +311,11 @@ function CaseStudies() {
 }
 
 function PortfolioLauncher({
+  liveChatTiming,
   onMobileStart,
   onStart,
 }: {
+  liveChatTiming: PortfolioLiveChatTimings;
   onMobileStart: () => void;
   onStart: () => void;
 }) {
@@ -222,7 +323,10 @@ function PortfolioLauncher({
     <>
       <section className="hidden w-full md:block">
         <div className="grid h-[928px] grid-cols-[minmax(0,1300px)_428px]">
-          <HeroSurface copyClassName="absolute left-[116px] top-[339px]" />
+          <HeroSurface
+            copyClassName="absolute left-[116px] top-[339px]"
+            liveChatTiming={liveChatTiming}
+          />
           <AgentSideBar
             className="h-[928px] border-0"
             isMicrophoneEnabled={false}
@@ -235,7 +339,10 @@ function PortfolioLauncher({
       </section>
 
       <section className="relative h-[672px] w-full overflow-hidden md:hidden">
-        <HeroSurface copyClassName="absolute left-[22px] top-[94px]" />
+        <HeroSurface
+          copyClassName="absolute left-[22px] top-[94px]"
+          liveChatTiming={liveChatTiming}
+        />
         <div className="absolute bottom-[24px] left-[20px] right-[20px] z-10">
           <AgentControlBar
             className="w-full"
@@ -252,10 +359,24 @@ function PortfolioLauncher({
 export function PortfolioPage() {
   const router = useRouter();
   const askTransition = useAskPushTransition();
+  const desktopLiveChat = usePortfolioLiveChatTiming({
+    controls: DESKTOP_PORTFOLIO_LIVE_CHAT_CONTROLS,
+    name: "Portfolio live chat desktop",
+    persistKey: "portfolio-live-chat-desktop-v1",
+  });
+  const mobileLiveChat = usePortfolioLiveChatTiming({
+    controls: MOBILE_PORTFOLIO_LIVE_CHAT_CONTROLS,
+    name: "Portfolio live chat mobile",
+    persistKey: "portfolio-live-chat-mobile-v1",
+  });
   const [sessionStarted, setSessionStarted] = useState(false);
   const [isPushingMobile, setIsPushingMobile] = useState(false);
   const [roomName, setRoomName] = useState("portfolio_agent_pending");
   const mobileAskTimeoutRef = useRef<number | null>(null);
+  const liveChatTiming = {
+    desktop: desktopLiveChat,
+    mobile: mobileLiveChat,
+  };
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
@@ -308,13 +429,19 @@ export function PortfolioPage() {
               className="max-w-none gap-0 px-0 py-0 md:px-0 md:py-0"
               desktopHero={
                 <div className="h-[928px]">
-                  <HeroSurface copyClassName="absolute left-[116px] top-[339px]" />
+                  <HeroSurface
+                    copyClassName="absolute left-[116px] top-[339px]"
+                    liveChatTiming={liveChatTiming}
+                  />
                 </div>
               }
               desktopSectionClassName="gap-0 md:grid-cols-[minmax(0,1300px)_428px]"
               desktopSidebarClassName="h-[928px] border-0"
               mobileHero={
-                <HeroSurface copyClassName="absolute left-[22px] top-[94px]" />
+                <HeroSurface
+                  copyClassName="absolute left-[22px] top-[94px]"
+                  liveChatTiming={liveChatTiming}
+                />
               }
               onSessionEnded={() => {
                 setSessionStarted(false);
@@ -327,6 +454,7 @@ export function PortfolioPage() {
             />
           ) : (
             <PortfolioLauncher
+              liveChatTiming={liveChatTiming}
               onMobileStart={startMobileAsk}
               onStart={startSession}
             />

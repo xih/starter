@@ -234,14 +234,14 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.status).toBe(201);
     expect(payload.participant_token).toBe("mock.jwt");
     expect(payload.cleanup_enabled).toBe(false);
-    expect(payload.duration_seconds).toBe(300);
+    expect(payload.duration_seconds).toBe(120);
     expect(payload.signup_url).toBe("/api/auth/signin");
     expect(payload.room_name).toBe(`guest_${payload.session_id}`);
     expect(payload.room_name).not.toBe("attacker-room");
     expect(payload.agent_dispatch_names).toEqual(["dennis-portfolio-agent"]);
     expect(response.headers.get("set-cookie")).toContain("lk_guest_device=");
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
-    expect(response.headers.get("set-cookie")).toContain("Max-Age=300");
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=120");
     expect(response.headers.get("set-cookie")).toContain("SameSite=lax");
   });
 
@@ -402,7 +402,7 @@ describe("POST /api/livekit/guest-session", () => {
     expect(response.status).toBe(201);
     const publishCall = publishJSONMock.mock.calls[0]?.[0];
     expect(publishCall?.body?.session_id).toMatch(/^guest_session_/);
-    expect(publishCall?.delay).toBe(300);
+    expect(publishCall?.delay).toBe(120);
     expect(publishCall?.url).toBe(
       `${SITE_ORIGIN}/api/livekit/guest-session/expire`,
     );
@@ -814,7 +814,7 @@ describe("POST /api/livekit/guest-session", () => {
     expect(redisSetMock).toHaveBeenCalledWith(
       guestActiveKey(deviceHash, ipHash),
       expect.any(String),
-      { ex: 300, nx: true },
+      { ex: 120, nx: true },
     );
     expect(redisDelMock).not.toHaveBeenCalled();
   });

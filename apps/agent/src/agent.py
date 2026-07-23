@@ -61,7 +61,7 @@ BASE_REQUIRED_ENV_VARS = (
 
 AGENT_NAME = os.getenv("LIVEKIT_AGENT_NAME", "dennis-portfolio-agent")
 VALID_AGENT_PROVIDERS = ("openai", "livekit")
-AGENT_PROVIDER = os.getenv("LIVEKIT_AGENT_PROVIDER", "livekit").strip().lower()
+AGENT_PROVIDER = "openai"
 STT_MODEL = os.getenv("LIVEKIT_AGENT_STT_MODEL", "deepgram/nova-3")
 STT_LANGUAGE = os.getenv("LIVEKIT_AGENT_STT_LANGUAGE", "en")
 LLM_MODEL = os.getenv("LIVEKIT_AGENT_LLM_MODEL", "google/gemini-2.5-flash-lite")

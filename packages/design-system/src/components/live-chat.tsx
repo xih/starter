@@ -231,10 +231,10 @@ export function LiveChatMessageRow({
         />
       </div>
       <div className="gap-token-4 flex min-w-0 flex-1 flex-col justify-center py-[0.5px]">
-        <p className="font-body text-caption font-semibold text-[var(--color-text-inverse-primary)]">
+        <p className="font-body text-caption font-semibold text-white">
           {message.handle}
         </p>
-        <p className="font-body text-caption font-normal [word-break:break-word] text-[var(--color-text-inverse-primary)]">
+        <p className="font-body text-caption font-normal [word-break:break-word] text-white">
           {message.text}
         </p>
       </div>

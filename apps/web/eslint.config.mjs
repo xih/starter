@@ -68,6 +68,12 @@ export default [
         },
       ],
       "@typescript-eslint/require-await": "off",
+    },
+  },
+  {
+    files: ["src/app/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"],
+    ignores: ["src/components/DialKitRoot.tsx"],
+    rules: {
       "no-restricted-imports": [
         "error",
         {
@@ -81,12 +87,6 @@ export default [
           ],
         },
       ],
-    },
-  },
-  {
-    files: ["src/components/DialKitRoot.tsx"],
-    rules: {
-      "no-restricted-imports": "off",
     },
   },
 ];

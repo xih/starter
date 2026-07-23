@@ -377,7 +377,7 @@ export function PortfolioPage() {
 
   return (
     <>
-      <DialKitRoot mode="inline" theme="dark" />
+      <DialKitRoot className="hidden md:block" mode="inline" theme="dark" />
       <motion.main
         animate={{
           x: isPushingMobile ? `-${askTransition.offsetPercent}%` : "0%",

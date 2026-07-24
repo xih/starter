@@ -22,6 +22,9 @@ export const env = createEnv({
     OPENAI_API_KEY: z.string().optional(),
     PERSONA_ADMIN_SECRET: z.string().optional(),
     PERSONA_AGENT_READ_SECRET: z.string().optional(),
+    PERSONA_CARTESIA_VOICE_ID: z.string().optional(),
+    PERSONA_STEVE_JOBS_CARTESIA_VOICE_ID: z.string().optional(),
+    PERSONA_WIFE_E2E_CARTESIA_VOICE_ID: z.string().optional(),
     LIVEKIT_GUEST_RATE_LIMIT_SALT: z.string().optional(),
     QSTASH_CURRENT_SIGNING_KEY: z.string().optional(),
     QSTASH_NEXT_SIGNING_KEY: z.string().optional(),
@@ -66,6 +69,11 @@ export const env = createEnv({
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     PERSONA_ADMIN_SECRET: process.env.PERSONA_ADMIN_SECRET,
     PERSONA_AGENT_READ_SECRET: process.env.PERSONA_AGENT_READ_SECRET,
+    PERSONA_CARTESIA_VOICE_ID: process.env.PERSONA_CARTESIA_VOICE_ID,
+    PERSONA_STEVE_JOBS_CARTESIA_VOICE_ID:
+      process.env.PERSONA_STEVE_JOBS_CARTESIA_VOICE_ID,
+    PERSONA_WIFE_E2E_CARTESIA_VOICE_ID:
+      process.env.PERSONA_WIFE_E2E_CARTESIA_VOICE_ID,
     LIVEKIT_GUEST_RATE_LIMIT_SALT: process.env.LIVEKIT_GUEST_RATE_LIMIT_SALT,
     QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
     QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,

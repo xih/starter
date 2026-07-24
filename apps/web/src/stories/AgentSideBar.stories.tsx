@@ -355,6 +355,19 @@ export const AgentStreaming: Story = {
   render: (args) => <StatefulMockStory {...args} />,
 };
 
+export const PendingReply: Story = {
+  args: {
+    messages: scenarioMessages,
+    showThinkingMessage: true,
+    state: "agent-streaming",
+  },
+  render: (args) => (
+    <StorySurface>
+      <AgentSideBar {...args} />
+    </StorySurface>
+  ),
+};
+
 export const Idle: Story = {
   args: { state: "idle" },
   render: (args) => <StatefulMockStory {...args} />,

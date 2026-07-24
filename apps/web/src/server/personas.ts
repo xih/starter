@@ -96,6 +96,18 @@ export type PersonaTranscriptSource = {
   transcript_character_count: number;
 };
 
+function optionalEnv(name: string) {
+  const value = process.env[name]?.trim();
+  return value && value.length > 0 ? value : undefined;
+}
+
+function firstCsvEnvValue(name: string) {
+  return optionalEnv(name)
+    ?.split(",")
+    .map((value) => value.trim())
+    .find(Boolean);
+}
+
 const defaultPersonas: Persona[] = [
   {
     id: DEFAULT_PERSONA_ID,
@@ -113,6 +125,67 @@ const defaultPersonas: Persona[] = [
     ].join(" "),
     greeting:
       "Greet the user briefly and say you are ready for a quick voice test.",
+    safety_disclosure:
+      "You are an AI voice agent. Do not claim to be a real person.",
+    source_transcript_ids: [],
+    memory_enabled: true,
+    voice_consent_status: "not_required",
+    source_rights_status: "owned",
+  },
+  {
+    id: "wife-e2e",
+    display_name: "Wife E2E",
+    avatar_url: "/agent-sidebar/avatar-1.png",
+    description: "Warm reflective confidence-focused persona",
+    cartesia_voice_id:
+      optionalEnv("PERSONA_WIFE_E2E_CARTESIA_VOICE_ID") ??
+      firstCsvEnvValue("PERSONA_E2E_CARTESIA_VOICE_IDS"),
+    tts_model: "cartesia/sonic-3.5",
+    tts_language: "en",
+    system_prompt:
+      "You are Wife E2E, a warm, grounded conversational persona. Speak with calm confidence, intimacy, and short answers.",
+    greeting:
+      "Say hello warmly as Wife E2E and ask what they want to talk about.",
+    safety_disclosure:
+      "Stay in a consent-approved persona voice. Be warm, honest, grounded, and conversational.",
+    source_transcript_ids: [],
+    memory_enabled: true,
+    voice_consent_status: "approved",
+    source_rights_status: "authorized",
+  },
+  {
+    id: "steve-jobs",
+    display_name: "Steve Jobs",
+    avatar_url: "/design-system/steve-jobs-avatar.png",
+    description: "Focused product critique voice",
+    cartesia_voice_id: optionalEnv("PERSONA_STEVE_JOBS_CARTESIA_VOICE_ID"),
+    tts_model: "cartesia/sonic-3.5",
+    tts_language: "en",
+    system_prompt:
+      "You are a focused product critique voice for Dennis's portfolio QA. Be concise, opinionated, clear, and practical. Do not claim to be the real Steve Jobs.",
+    greeting:
+      "Greet the user briefly and say you are ready to critique the voice experience.",
+    safety_disclosure:
+      "You are an AI voice agent using a product-critique persona. Do not claim to be a real person.",
+    source_transcript_ids: [],
+    memory_enabled: true,
+    voice_consent_status: "not_required",
+    source_rights_status: "owned",
+  },
+  {
+    id: "cartesia-voice",
+    display_name: "Cartesia Voice",
+    avatar_url: "/agent-sidebar/avatar-2.png",
+    description: "Direct Cartesia Sonic voice",
+    cartesia_voice_id:
+      optionalEnv("PERSONA_CARTESIA_VOICE_ID") ??
+      optionalEnv("LIVEKIT_AGENT_TTS_VOICE_ID"),
+    tts_model: "cartesia/sonic-3.5",
+    tts_language: "en",
+    system_prompt:
+      "You are Dennis's portfolio QA voice using the configured Cartesia Sonic voice. Keep answers concise and useful.",
+    greeting:
+      "Greet the user briefly and say the Cartesia voice is ready for a quick test.",
     safety_disclosure:
       "You are an AI voice agent. Do not claim to be a real person.",
     source_transcript_ids: [],
@@ -144,6 +217,20 @@ const personaStore = new Map(
   defaultPersonas.map((persona) => [persona.id, persona]),
 );
 const transcriptStore = new Map<string, PersonaTranscriptSource[]>();
+
+export function mergePersonasWithDefaults(personas: Persona[]) {
+  const personasById = new Map(
+    personas.map((persona) => [persona.id, persona]),
+  );
+
+  for (const defaultPersona of defaultPersonas) {
+    if (!personasById.has(defaultPersona.id)) {
+      personasById.set(defaultPersona.id, defaultPersona);
+    }
+  }
+
+  return Array.from(personasById.values());
+}
 
 function redisFromEnv() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -339,7 +426,13 @@ export async function listPersonas() {
     return defaultPersonas;
   }
 
-  return stored;
+  const mergedPersonas = mergePersonasWithDefaults(stored);
+
+  if (mergedPersonas.length !== stored.length) {
+    await redis.set(personasKey(), mergedPersonas);
+  }
+
+  return mergedPersonas;
 }
 
 export async function listPersonaPickerItems(): Promise<PersonaPickerItem[]> {

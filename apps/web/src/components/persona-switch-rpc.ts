@@ -33,6 +33,15 @@ export type PersonaSwitchRpcParticipant = {
   performRpc: (call: PersonaSwitchRpcCall) => Promise<string>;
 };
 
+export function getPersonaSwitchRpcIdentity(agent: {
+  identity?: string;
+  internal?: {
+    workerParticipant?: { identity?: string } | null;
+  };
+}) {
+  return agent.internal?.workerParticipant?.identity ?? agent.identity;
+}
+
 export function createPersonaSwitchRpcPayload({
   memory = false,
   personaId,

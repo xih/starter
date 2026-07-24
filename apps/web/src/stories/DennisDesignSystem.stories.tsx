@@ -4,7 +4,6 @@ import {
   CircleAlert,
   CircleCheck,
   Mic,
-  Settings2,
 } from "lucide-react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ReactNode } from "react";
@@ -177,7 +176,6 @@ function AgentControlPreview({
         <span className="font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)] text-[var(--color-text-secondary)]">
           {state === "typing" ? "Bonjourno" : "How are you feeling today?"}
         </span>
-        <Settings2 className="ml-auto size-[20px] text-[var(--color-text-secondary)]" />
       </div>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-token-4">

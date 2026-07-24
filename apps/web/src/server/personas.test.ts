@@ -6,6 +6,7 @@ import {
   listPersonaPickerItems,
   LOCAL_EMBEDDING_DIMENSIONS,
   LOCAL_EMBEDDING_MODEL,
+  mergePersonasWithDefaults,
   createPromptDraftFromTranscript,
   createTranscriptEmbeddingChunks,
   personaSchema,
@@ -133,6 +134,36 @@ describe("personas", () => {
     expect(firstPersona).not.toHaveProperty("greeting");
     expect(firstPersona).not.toHaveProperty("cartesia_voice_id");
     expect(firstPersona).not.toHaveProperty("voice_consent_artifact_url");
+    expect(personas.map((persona) => persona.id)).toEqual(
+      expect.arrayContaining([
+        "cartesia-voice",
+        "portfolio-agent",
+        "steve-jobs",
+        "wife-e2e",
+      ]),
+    );
     expect(personas.map((persona) => persona.id)).toContain("wife");
+  });
+
+  it("merges built-in voices into older stored persona lists", () => {
+    const storedPersona = personaSchema.parse({
+      id: "portfolio-agent",
+      display_name: "Saved Portfolio Agent",
+      description: "Persisted copy",
+      system_prompt: "Use the saved prompt.",
+      greeting: "Use the saved greeting.",
+      safety_disclosure: "You are an AI voice agent.",
+      voice_consent_status: "not_required",
+      source_rights_status: "owned",
+    });
+    const personas = mergePersonasWithDefaults([storedPersona]);
+
+    expect(
+      personas.find((persona) => persona.id === "portfolio-agent")
+        ?.display_name,
+    ).toBe("Saved Portfolio Agent");
+    expect(personas.map((persona) => persona.id)).toEqual(
+      expect.arrayContaining(["cartesia-voice", "steve-jobs", "wife-e2e"]),
+    );
   });
 });

@@ -7,7 +7,6 @@ import {
   CircleAlert,
   Mic,
   MicOff,
-  Settings2,
   Square,
 } from "lucide-react";
 import { SourcesRail, type SourceData } from "@starter/design-system";
@@ -33,7 +32,7 @@ export type AgentSideBarState =
 
 export type AgentSideBarMessage = {
   id: string;
-  role: "agent" | "user";
+  role: "agent" | "system" | "user";
   text: string;
   isStreaming?: boolean;
 };
@@ -62,6 +61,7 @@ export type AgentSideBarProps = {
   onToggleMicrophone?: () => void | Promise<void>;
   personas?: AgentSideBarPersona[];
   selectedPersonaId?: string;
+  showThinkingMessage?: boolean;
   state?: AgentSideBarState;
   voiceName?: string;
 };
@@ -76,28 +76,28 @@ const hostAvatars = [
 
 const voiceOptions = [
   {
+    avatar_url: "/agent-sidebar/avatar-4.png",
+    description: "Warm, concise portfolio voice agent",
+    display_name: "Portfolio Agent",
+    id: "portfolio-agent",
+  },
+  {
     avatar_url: "/agent-sidebar/avatar-1.png",
-    description: "Warm, direct, reflective",
-    display_name: "Masa Son",
-    id: "masa-son",
+    description: "Warm reflective confidence-focused persona",
+    display_name: "Wife E2E",
+    id: "wife-e2e",
+  },
+  {
+    avatar_url: "/design-system/steve-jobs-avatar.png",
+    description: "Focused product critique voice",
+    display_name: "Steve Jobs",
+    id: "steve-jobs",
   },
   {
     avatar_url: "/agent-sidebar/avatar-2.png",
-    description: "Calm, precise, product-minded",
-    display_name: "Sam Altman",
-    id: "sam-altman",
-  },
-  {
-    avatar_url: "/agent-sidebar/avatar-3.png",
-    description: "Fast, energetic, technical",
-    display_name: "Elon Musk",
-    id: "elon-musk",
-  },
-  {
-    avatar_url: "/agent-sidebar/avatar-4.png",
-    description: "Neutral test voice",
-    display_name: "Portfolio Agent",
-    id: "portfolio-agent",
+    description: "Direct Cartesia Sonic voice",
+    display_name: "Cartesia Voice",
+    id: "cartesia-voice",
   },
 ] satisfies AgentSideBarPersona[];
 
@@ -472,7 +472,6 @@ function AgentPromptBar({
             placeholder={placeholder}
             value={inputValue}
           />
-          <Settings2 className="size-[20px] shrink-0 text-[var(--agent-sidebar-muted)]" />
         </div>
 
         <div className="flex items-start justify-between">
@@ -530,29 +529,42 @@ export function ChatMessage({
   sources?: SourceData[];
 }) {
   const isUser = message.role === "user";
+  const isSystem = message.role === "system";
 
   return (
     <div
       className={cn(
         "flex w-full flex-col",
-        isUser ? "items-end pb-token-16 pt-0" : "items-start pb-token-20",
+        isUser
+          ? "items-end pb-token-16 pt-0"
+          : isSystem
+            ? "items-center pb-token-16"
+            : "items-start pb-token-20",
       )}
       data-testid={
-        isUser ? "desktop-chat-message-user" : "desktop-chat-message-ai"
+        isUser
+          ? "desktop-chat-message-user"
+          : isSystem
+            ? "desktop-chat-message-system"
+            : "desktop-chat-message-ai"
       }
     >
       <div
         className={cn(
           "font-body text-[length:var(--font-font-size-subtext)] font-[var(--font-font-weight-regular)] tracking-normal",
           message.isStreaming && "ds-text-shimmer inline-block",
-          isUser
-            ? "max-w-[404px] rounded-[22px] bg-[var(--color-core-primary-a)] px-token-16 py-token-8 leading-[var(--font-line-height-lh-heading)] text-[var(--color-text-inverse-primary)]"
-            : "max-w-[477px] pb-token-4 leading-[var(--font-line-height-lh-title)] text-[var(--color-text-primary)]",
+          isSystem
+            ? "py-token-6 max-w-[477px] rounded-token-round bg-[var(--color-background-secondary)] px-token-12 text-center text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--agent-sidebar-muted)]"
+            : isUser
+              ? "max-w-[404px] rounded-[22px] bg-[var(--color-core-primary-a)] px-token-16 py-token-8 leading-[var(--font-line-height-lh-heading)] text-[var(--color-text-inverse-primary)]"
+              : "max-w-[477px] pb-token-4 leading-[var(--font-line-height-lh-title)] text-[var(--color-text-primary)]",
         )}
       >
         {message.text}
       </div>
-      {!isUser && sources.length > 0 ? <SourcesRail sources={sources} /> : null}
+      {!isUser && !isSystem && sources.length > 0 ? (
+        <SourcesRail sources={sources} />
+      ) : null}
     </div>
   );
 }
@@ -630,14 +642,14 @@ function LoadingState() {
   );
 }
 
-function SwitchingState({ voiceName }: { voiceName: string }) {
+function SwitchingState() {
   return (
     <div className="mb-token-16 rounded-token-m border border-[var(--agent-sidebar-border)] bg-[var(--color-background-secondary)] px-token-16 py-token-12">
-      <p className="font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-text)]">
-        Switching to {voiceName}
+      <p className="ds-text-shimmer font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-text)]">
+        Switching voices
       </p>
       <p className="mt-token-2 font-body text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--agent-sidebar-muted)]">
-        Reconnecting with the new voice and persona.
+        Preparing the new voice for the next response.
       </p>
     </div>
   );
@@ -660,18 +672,15 @@ export function AgentSideBar({
   onToggleMicrophone,
   personas,
   selectedPersonaId,
+  showThinkingMessage = false,
   state = "intro",
   voiceName = "Masa Son",
 }: AgentSideBarProps) {
   const showConversation = !["intro", "loading"].includes(state);
-  const selectedPersona =
-    personas?.find((voice) => voice.id === selectedPersonaId) ?? personas?.[0];
-  const selectedVoiceName =
-    selectedPersona?.display_name ?? voiceName ?? "Portfolio Agent";
   const resolvedMessages =
     state === "begin"
       ? []
-      : state === "agent-streaming"
+      : showThinkingMessage
         ? [
             ...messages,
             {
@@ -704,9 +713,7 @@ export function AgentSideBar({
           ) : (
             <>
               {state === "error" ? <ErrorToast message={errorMessage} /> : null}
-              {state === "switching" ? (
-                <SwitchingState voiceName={selectedVoiceName} />
-              ) : null}
+              {state === "switching" ? <SwitchingState /> : null}
               <ChatConversation
                 latestSearchSources={latestSearchSources}
                 messages={resolvedMessages}

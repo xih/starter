@@ -7,6 +7,7 @@ import { DesignSystemButton } from "./primitives/button";
 export type VoiceOption = {
   avatar?: string;
   description?: string;
+  id?: string;
   name: string;
 };
 
@@ -46,6 +47,7 @@ export type AgentControlBarProps = {
 
 export type ChatMessageData = {
   id: string;
+  isStreaming?: boolean;
   role: "system" | "user";
   text: string;
 };
@@ -412,7 +414,7 @@ export function ChatMessage({
       <div
         className={cn(
           "font-body text-[16px] leading-[26px] font-[400] text-[#1e1f24]",
-          pending && "ds-text-shimmer",
+          (pending || message.isStreaming) && "ds-text-shimmer",
           isUser &&
             "max-w-[343px] rounded-[22px] bg-[#050505] px-[16px] py-[10px] text-white md:max-w-[404px]",
         )}

@@ -6,27 +6,22 @@ import {
   useSession,
 } from "@livekit/components-react";
 import {
-  AgentControlBar as DesignAgentControlBar,
   AskMobileExperience,
-  ChatMessageWithSources,
-  ChatMessage as DesignChatMessage,
   type ChatMessageData,
   type VoiceOption,
 } from "@starter/design-system";
 import { ConnectionState, TokenSource } from "livekit-client";
-import {
-  CircleAlert,
-  Loader2,
-  Mic,
-  Play,
-  Square,
-  Wifi,
-  WifiOff,
-} from "lucide-react";
-import { useCallback, useMemo, type ReactNode } from "react";
+import { Loader2, Mic, Play, Square, Wifi, WifiOff } from "lucide-react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 
-import { AgentSideBar } from "~/components/AgentSideBar";
-import { usePersonaSwitchRpc } from "~/components/persona-switch-rpc";
+import {
+  AgentSideBar,
+  type AgentSideBarMessage,
+} from "~/components/AgentSideBar";
+import {
+  getPersonaSwitchRpcIdentity,
+  usePersonaSwitchRpc,
+} from "~/components/persona-switch-rpc";
 import {
   fallbackPersonaVoiceOptions,
   type PersonaVoiceOption,
@@ -35,6 +30,7 @@ import { OrbShader } from "~/components/OrbShader";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { ToolCallStatusPanel } from "../livekit-agent/tool-call-status";
+import { MobilePortfolioVoiceSession } from "./mobile-portfolio-voice-session";
 import {
   useLiveKitSessionController,
   type LiveKitSessionController,
@@ -54,6 +50,7 @@ function personaToVoice(persona: PersonaVoiceOption | undefined): VoiceOption {
   return {
     avatar: persona.avatar_url,
     description: persona.description,
+    id: persona.id,
     name: persona.display_name,
   };
 }
@@ -95,7 +92,7 @@ export function TestingSession({
   onSelectPersona,
   persistMobileAskResume = false,
   personas = fallbackPersonaVoiceOptions,
-  selectedPersonaId = "portfolio-agent",
+  selectedPersonaId,
   showMobileHeader = true,
   showMobileBackButton = true,
   onSessionEnded,
@@ -103,13 +100,24 @@ export function TestingSession({
   showDebugPanel = true,
   tokenEndpoint,
 }: TestingSessionProps) {
+  const [uncontrolledSelectedPersonaId, setUncontrolledSelectedPersonaId] =
+    useState("portfolio-agent");
+  const resolvedSelectedPersonaId =
+    selectedPersonaId ?? uncontrolledSelectedPersonaId;
+  const selectPersonaId = useCallback(
+    (personaId: string) => {
+      setUncontrolledSelectedPersonaId(personaId);
+      onSelectPersona?.(personaId);
+    },
+    [onSelectPersona],
+  );
   const agentMetadata = useMemo(
     () => ({
-      persona_id: selectedPersonaId,
+      persona_id: resolvedSelectedPersonaId,
       session_id: roomName,
       user_id: "testing-user",
     }),
-    [roomName, selectedPersonaId],
+    [roomName, resolvedSelectedPersonaId],
   );
   const tokenSource = useMemo(
     () => TokenSource.endpoint(tokenEndpoint),
@@ -136,12 +144,12 @@ export function TestingSession({
         mobileLayout={mobileLayout}
         onMobileBack={onMobileBack}
         onMobileConversationChange={onMobileConversationChange}
-        onSelectPersona={onSelectPersona}
+        onSelectPersona={selectPersonaId}
         onSessionEnded={onSessionEnded}
         persistMobileAskResume={persistMobileAskResume}
         personas={personas}
         roomName={roomName}
-        selectedPersonaId={selectedPersonaId}
+        selectedPersonaId={resolvedSelectedPersonaId}
         session={session}
         showDebugPanel={showDebugPanel}
         showMobileBackButton={showMobileBackButton}
@@ -194,12 +202,14 @@ function TestingSessionLayout({
     persistMobileAskResume: persistMobileAskResume ?? false,
     tokenEndpoint,
   });
+  const resolvedPersonas = personas ?? fallbackPersonaVoiceOptions;
   const selectedPersona =
-    personas?.find((persona) => persona.id === selectedPersonaId) ??
-    personas?.[0];
+    resolvedPersonas.find((persona) => persona.id === selectedPersonaId) ??
+    resolvedPersonas[0];
   const selectedVoice = personaToVoice(selectedPersona);
+  const voiceOptions = resolvedPersonas.map(personaToVoice);
   const switchPersonaTts = usePersonaSwitchRpc({
-    agentIdentity: controller.agent.identity,
+    agentIdentity: getPersonaSwitchRpcIdentity(controller.agent),
     localParticipant: session.room.localParticipant,
     roomName,
     userId: agentMetadata.user_id,
@@ -210,7 +220,9 @@ function TestingSessionLayout({
 
       onSelectPersona?.(personaId);
 
-      if (!controller.isConnected) return;
+      if (!controller.isConnected) {
+        return;
+      }
 
       void switchPersonaTts({ personaId }).catch((error) => {
         console.error("Testing persona TTS switch failed", error);
@@ -222,6 +234,14 @@ function TestingSessionLayout({
       selectedPersonaId,
       switchPersonaTts,
     ],
+  );
+  const selectVoice = useCallback(
+    (voice: VoiceOption) => {
+      if (voice.id) {
+        selectPersona(voice.id);
+      }
+    },
+    [selectPersona],
   );
 
   return (
@@ -258,25 +278,32 @@ function TestingSessionLayout({
 
         {mobileLayout === "ask" ? (
           <AskMobileSessionShell
+            chatMessages={controller.chatMessages}
             controller={controller}
             onBack={onMobileBack}
+            onSelectVoice={selectVoice}
             showBackButton={showMobileBackButton ?? true}
             showHeader={showMobileHeader ?? true}
             voice={selectedVoice}
+            voiceOptions={voiceOptions}
           />
         ) : (
           <PortfolioMobileSessionShell
+            chatMessages={controller.chatMessages}
             controller={controller}
             mobileHero={mobileHero}
+            onSelectVoice={selectVoice}
             voice={selectedVoice}
+            voiceOptions={voiceOptions}
           />
         )}
 
         <DesktopAgentSidebar
           className={desktopSidebarClassName}
           controller={controller}
+          messages={controller.messages}
           onSelectPersona={selectPersona}
-          personas={personas}
+          personas={resolvedPersonas}
           selectedPersonaId={selectedPersonaId}
           voiceName={selectedVoice.name}
         />
@@ -406,16 +433,22 @@ function TestingDebugPanel({
 }
 
 function AskMobileSessionShell({
+  chatMessages,
   controller,
   onBack,
   showBackButton,
   showHeader,
+  voiceOptions,
+  onSelectVoice,
   voice,
 }: {
+  chatMessages: ChatMessageData[];
   controller: LiveKitSessionController;
   onBack?: () => void;
+  onSelectVoice: (voice: VoiceOption) => void;
   showBackButton: boolean;
   showHeader: boolean;
+  voiceOptions: VoiceOption[];
   voice: VoiceOption;
 }) {
   return (
@@ -427,7 +460,7 @@ function AskMobileSessionShell({
       inputValue={controller.inputValue}
       isMicrophoneEnabled={controller.isMicrophoneEnabled}
       latestSearchSources={controller.completedSources}
-      messages={controller.chatMessages}
+      messages={chatMessages}
       onBack={onBack}
       onChangeInput={controller.setInputValue}
       onEnd={controller.endSession}
@@ -435,6 +468,7 @@ function AskMobileSessionShell({
       onSend={controller.sendMessage}
       onStopResponse={controller.endSession}
       onToggleMicrophone={controller.toggleMicrophone}
+      onSelectVoice={onSelectVoice}
       pending={controller.showPendingReply}
       renderOrb={
         controller.hasStartupError ? null : (
@@ -451,29 +485,44 @@ function AskMobileSessionShell({
       showBackButton={showBackButton}
       showHeader={showHeader}
       voice={voice}
+      voiceOptions={voiceOptions}
     />
   );
 }
 
 function PortfolioMobileSessionShell({
+  chatMessages,
   controller,
   mobileHero,
+  onSelectVoice,
+  voiceOptions,
   voice,
 }: {
+  chatMessages: ChatMessageData[];
   controller: LiveKitSessionController;
   mobileHero?: ReactNode;
+  onSelectVoice: (voice: VoiceOption) => void;
+  voiceOptions: VoiceOption[];
   voice: VoiceOption;
 }) {
   return (
-    <div className="relative min-h-svh overflow-hidden md:hidden">
-      {mobileHero ? (
-        <div className="absolute inset-0 z-0 overflow-hidden">{mobileHero}</div>
-      ) : null}
-      <MobileTranscript
-        messages={controller.chatMessages}
-        pending={controller.showPendingReply}
-      />
-      {controller.hasStartupError ? null : (
+    <MobilePortfolioVoiceSession
+      chatMessages={chatMessages}
+      controlState={controller.mobileControlState}
+      errorMessage={controller.errorMessage}
+      hasStartupError={controller.hasStartupError}
+      inputValue={controller.inputValue}
+      isMicrophoneEnabled={controller.isMicrophoneEnabled}
+      mobileHero={mobileHero}
+      onChangeInput={controller.setInputValue}
+      onEnd={controller.endSession}
+      onRetry={controller.startSession}
+      onSelectVoice={onSelectVoice}
+      onSend={controller.sendMessage}
+      onStopResponse={controller.endSession}
+      onToggleMicrophone={controller.toggleMicrophone}
+      pending={controller.showPendingReply}
+      renderOrb={
         <OrbShader
           className="absolute bottom-[calc(var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap))] left-1/2 -translate-x-1/2"
           data-testid="mobile-agent-orb"
@@ -484,38 +533,17 @@ function PortfolioMobileSessionShell({
               : "loading"
           }
         />
-      )}
-      <div
-        className="absolute bottom-0 left-[20px] right-[20px] z-20 flex flex-col gap-[8px]"
-        data-testid="mobile-agent-control-stack"
-      >
-        {controller.hasStartupError ? (
-          <MobileStartupError
-            errorMessage={controller.errorMessage}
-            onEnd={controller.endSession}
-            onRetry={controller.startSession}
-          />
-        ) : null}
-        <DesignAgentControlBar
-          className="w-full"
-          inputValue={controller.inputValue}
-          isMicrophoneEnabled={controller.isMicrophoneEnabled}
-          onChangeInput={controller.setInputValue}
-          onEnd={controller.endSession}
-          onSend={controller.sendMessage}
-          onStopResponse={controller.endSession}
-          onToggleMicrophone={controller.toggleMicrophone}
-          state={controller.mobileControlState}
-          voice={voice}
-        />
-      </div>
-    </div>
+      }
+      voice={voice}
+      voiceOptions={voiceOptions}
+    />
   );
 }
 
 function DesktopAgentSidebar({
   className,
   controller,
+  messages,
   onSelectPersona,
   personas,
   selectedPersonaId,
@@ -523,6 +551,7 @@ function DesktopAgentSidebar({
 }: {
   className?: string;
   controller: LiveKitSessionController;
+  messages: AgentSideBarMessage[];
   onSelectPersona?: (personaId: string) => void;
   personas?: PersonaVoiceOption[];
   selectedPersonaId?: string;
@@ -537,7 +566,7 @@ function DesktopAgentSidebar({
         isMicrophoneEnabled={controller.isMicrophoneEnabled}
         isSending={controller.isSending}
         latestSearchSources={controller.completedSources}
-        messages={controller.messages}
+        messages={messages}
         onChangeInput={controller.setInputValue}
         onEnd={controller.endSession}
         onSend={controller.sendMessage}
@@ -547,87 +576,10 @@ function DesktopAgentSidebar({
         onToggleMicrophone={controller.toggleMicrophone}
         personas={personas}
         selectedPersonaId={selectedPersonaId}
+        showThinkingMessage={controller.showDesktopThinking}
         state={controller.state}
         voiceName={voiceName}
       />
-    </div>
-  );
-}
-
-function MobileTranscript({
-  messages,
-  pending,
-}: {
-  messages: ChatMessageData[];
-  pending: boolean;
-}) {
-  const transcriptMessages = pending
-    ? [
-        ...messages,
-        { id: "agent-thinking", role: "system" as const, text: "Thinking" },
-      ]
-    : messages;
-
-  return (
-    <div className="absolute bottom-[calc(var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap))] left-0 right-0 top-[96px] z-10 overflow-hidden">
-      <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex min-h-full flex-col gap-[28px]">
-          {transcriptMessages.map((message) => (
-            <ChatMessageWithSources key={message.id} message={message}>
-              <DesignChatMessage
-                message={message}
-                pending={message.id === "agent-thinking"}
-              />
-            </ChatMessageWithSources>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MobileStartupError({
-  errorMessage,
-  onEnd,
-  onRetry,
-}: {
-  errorMessage: string;
-  onEnd: () => void;
-  onRetry: () => void;
-}) {
-  return (
-    <div
-      className="flex w-full flex-col gap-[12px] rounded-[18px] border border-[#F3B2B6] bg-white px-[16px] py-[14px] shadow-[0_18px_40px_rgba(18,19,24,0.08)]"
-      data-testid="mobile-agent-error"
-      role="alert"
-    >
-      <div className="flex items-start gap-[10px]">
-        <CircleAlert className="mt-[1px] size-[18px] shrink-0 text-[#C6002B]" />
-        <div className="min-w-0">
-          <p className="text-[15px] font-[700] leading-[20px] text-[#1e1f24]">
-            Voice could not start
-          </p>
-          <p className="mt-[4px] text-[13px] leading-[18px] text-[#595a5d]">
-            {errorMessage}
-          </p>
-        </div>
-      </div>
-      <div className="flex gap-[8px] pl-[28px]">
-        <button
-          className="h-[36px] rounded-[12px] bg-[#050505] px-[16px] text-[14px] font-[700] leading-[18px] text-white"
-          onClick={onRetry}
-          type="button"
-        >
-          Try Again
-        </button>
-        <button
-          className="h-[36px] rounded-[12px] border border-[#dcdcdc] bg-white px-[16px] text-[14px] font-[700] leading-[18px] text-[#1e1f24]"
-          onClick={onEnd}
-          type="button"
-        >
-          End Chat
-        </button>
-      </div>
     </div>
   );
 }

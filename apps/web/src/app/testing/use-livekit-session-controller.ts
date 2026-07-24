@@ -644,6 +644,7 @@ export function useLiveKitSessionController(
     room: session.room,
     sendMessage,
     setInputValue,
+    showDesktopThinking: showPendingReply && messages.at(-1)?.role !== "agent",
     showPendingReply,
     startSession,
     state,

@@ -25,6 +25,18 @@ export const fallbackPersonaVoiceOptions: PersonaVoiceOption[] = [
     display_name: "Wife E2E",
     id: "wife-e2e",
   },
+  {
+    avatar_url: "/design-system/steve-jobs-avatar.png",
+    description: "Focused product critique voice",
+    display_name: "Steve Jobs",
+    id: "steve-jobs",
+  },
+  {
+    avatar_url: "/agent-sidebar/avatar-2.png",
+    description: "Direct Cartesia Sonic voice",
+    display_name: "Cartesia Voice",
+    id: "cartesia-voice",
+  },
 ];
 
 export function PersonaVoiceSwitcher({

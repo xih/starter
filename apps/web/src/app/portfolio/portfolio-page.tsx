@@ -1,6 +1,6 @@
 "use client";
 
-import { MeshGradient, PaperTexture } from "@paper-design/shaders-react";
+import { MeshGradient } from "@paper-design/shaders-react";
 import { useEffect, useRef, useState } from "react";
 import {
   AgentControlBar,
@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 import { AgentSideBar } from "~/components/AgentSideBar";
+import { DialKitRoot } from "~/components/DialKitRoot";
 import { PortfolioCardGrid } from "~/components/PortfolioCard";
 import { SkeuomorphicClock } from "~/components/SkeuomorphicClock";
 import { TestingSession } from "~/app/testing/testing-session";
@@ -96,6 +97,16 @@ function usePortfolioLiveChatTiming({
   });
 }
 
+const HERO_MESH_GRADIENT_COLORS = [
+  "#bcecf6",
+  "#00aaff",
+  "#00f7ff",
+  "#ffd447",
+] as const;
+const HERO_MESH_GRADIENT_CONTROLS = {
+  speed: [0.22, 0, 2, 0.01],
+} satisfies DialConfig;
+
 function createBrowserSafeId() {
   if (
     typeof crypto !== "undefined" &&
@@ -122,7 +133,7 @@ function createRoomName() {
   return `portfolio_agent_${createBrowserSafeId()}`;
 }
 
-function PaperHeroShader() {
+function PaperHeroShader({ speed }: { speed: number }) {
   return (
     <div
       className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -130,34 +141,21 @@ function PaperHeroShader() {
     >
       <MeshGradient
         className="absolute inset-0 size-full"
-        colors={["#0b9bf2", "#89a2f3", "#f19ab7", "#074b63", "#002f3d"]}
-        distortion={0.58}
+        colors={[...HERO_MESH_GRADIENT_COLORS]}
+        distortion={0.8}
         fit="cover"
-        grainMixer={0.4}
-        grainOverlay={0.12}
+        grainMixer={0}
+        grainOverlay={0}
         height="100%"
-        scale={1.22}
-        speed={0.18}
-        swirl={0.28}
+        offsetX={0}
+        offsetY={0}
+        rotation={0}
+        scale={1}
+        speed={speed}
+        swirl={0.35}
         width="100%"
       />
-      <PaperTexture
-        className="absolute inset-0 size-full opacity-[0.34] mix-blend-soft-light"
-        colorBack="#083b4d"
-        colorFront="#f7edf2"
-        contrast={0.62}
-        crumples={0.22}
-        fade={0.32}
-        fiber={0.48}
-        fiberSize={0.72}
-        fit="cover"
-        height="100%"
-        roughness={0.64}
-        scale={1.8}
-        speed={0}
-        width="100%"
-      />
-      <div className="absolute inset-0 bg-[linear-gradient(175deg,rgba(255,170,190,0.20)_0%,rgba(255,255,255,0.02)_28%,rgba(0,55,70,0.72)_53%,rgba(0,92,118,0.20)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(175deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_28%,rgba(0,98,126,0.44)_58%,rgba(0,60,78,0.12)_100%)]" />
     </div>
   );
 }
@@ -201,16 +199,18 @@ function PortfolioLiveChat({ timing }: { timing: PortfolioLiveChatTimings }) {
 export function HeroSurface({
   copyClassName,
   liveChatTiming = DEFAULT_PORTFOLIO_LIVE_CHAT_TIMINGS,
+  shaderSpeed,
 }: {
   copyClassName: string;
   liveChatTiming?: PortfolioLiveChatTimings;
+  shaderSpeed: number;
 }) {
   return (
     <div
       className="relative size-full overflow-hidden bg-[#075970]"
       data-testid="portfolio-hero"
     >
-      <PaperHeroShader />
+      <PaperHeroShader speed={shaderSpeed} />
       <HeroCopy className={`z-10 ${copyClassName}`} />
       <PortfolioLiveChat timing={liveChatTiming} />
     </div>
@@ -255,10 +255,12 @@ function CaseStudies() {
 
 function PortfolioLauncher({
   liveChatTiming,
+  shaderSpeed,
   onMobileStart,
   onStart,
 }: {
   liveChatTiming: PortfolioLiveChatTimings;
+  shaderSpeed: number;
   onMobileStart: () => void;
   onStart: () => void;
 }) {
@@ -269,6 +271,7 @@ function PortfolioLauncher({
           <HeroSurface
             copyClassName="absolute left-[116px] top-[339px]"
             liveChatTiming={liveChatTiming}
+            shaderSpeed={shaderSpeed}
           />
           <AgentSideBar
             className="h-[928px]"
@@ -285,6 +288,7 @@ function PortfolioLauncher({
         <HeroSurface
           copyClassName="absolute left-[22px] top-[94px]"
           liveChatTiming={liveChatTiming}
+          shaderSpeed={shaderSpeed}
         />
         <div className="absolute bottom-[24px] left-[20px] right-[20px] z-10">
           <AgentControlBar
@@ -301,6 +305,21 @@ function PortfolioLauncher({
 
 export function PortfolioPage() {
   const router = useRouter();
+  const heroMeshGradient = useDialKit(
+    "Portfolio mesh gradient",
+    HERO_MESH_GRADIENT_CONTROLS,
+    {
+      id: "portfolio-hero-mesh-gradient",
+      persist: {
+        key: "portfolio-hero-mesh-gradient",
+        storage: "localStorage",
+        presets: true,
+      },
+      shortcuts: {
+        speed: { key: "m", mode: "fine" },
+      },
+    },
+  );
   const askTransition = useAskPushTransition();
   const desktopLiveChat = usePortfolioLiveChatTiming({
     controls: DESKTOP_PORTFOLIO_LIVE_CHAT_CONTROLS,
@@ -358,6 +377,7 @@ export function PortfolioPage() {
 
   return (
     <>
+      <DialKitRoot className="hidden md:block" mode="inline" theme="dark" />
       <motion.main
         animate={{
           x: isPushingMobile ? `-${askTransition.offsetPercent}%` : "0%",
@@ -375,6 +395,7 @@ export function PortfolioPage() {
                   <HeroSurface
                     copyClassName="absolute left-[116px] top-[339px]"
                     liveChatTiming={liveChatTiming}
+                    shaderSpeed={heroMeshGradient.speed}
                   />
                 </div>
               }
@@ -384,6 +405,7 @@ export function PortfolioPage() {
                 <HeroSurface
                   copyClassName="absolute left-[22px] top-[94px]"
                   liveChatTiming={liveChatTiming}
+                  shaderSpeed={heroMeshGradient.speed}
                 />
               }
               onSessionEnded={() => {
@@ -398,6 +420,7 @@ export function PortfolioPage() {
           ) : (
             <PortfolioLauncher
               liveChatTiming={liveChatTiming}
+              shaderSpeed={heroMeshGradient.speed}
               onMobileStart={startMobileAsk}
               onStart={startSession}
             />

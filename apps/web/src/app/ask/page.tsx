@@ -101,7 +101,10 @@ export default function AskPage() {
           className="max-w-none gap-0 px-0 py-0 md:px-0 md:py-0"
           desktopHero={
             <div className="h-[928px]">
-              <HeroSurface copyClassName="absolute left-[36px] top-[386px]" />
+              <HeroSurface
+                copyClassName="absolute left-[36px] top-[386px]"
+                shaderSpeed={0.22}
+              />
             </div>
           }
           desktopSectionClassName="gap-0 border-b border-[var(--color-border-opaque)] md:grid-cols-[minmax(0,1300px)_428px]"

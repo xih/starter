@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSuperHoverRef } from "super-hover/react";
 import {
   AudioWaveform,
   Bot,
@@ -78,6 +79,14 @@ const sidebarItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const navigationHoverRef = useSuperHoverRef({
+    sweptHitTest: true,
+    sweptHitTestMargin: 80,
+  });
+  const footerHoverRef = useSuperHoverRef({
+    sweptHitTest: true,
+    sweptHitTestMargin: 80,
+  });
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -100,7 +109,7 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent ref={navigationHoverRef}>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -119,6 +128,7 @@ export function AppSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
+                      data-super-hover
                     >
                       <Link href={item.href}>
                         <Icon className="h-4 w-4" />
@@ -133,10 +143,13 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3">
+      <SidebarFooter
+        ref={footerHoverRef}
+        className="border-t border-sidebar-border p-3"
+      >
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Design System">
+            <SidebarMenuButton asChild tooltip="Design System" data-super-hover>
               <Link href="/library">
                 <Palette className="h-4 w-4" />
                 <span>Design System</span>

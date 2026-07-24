@@ -489,7 +489,7 @@ const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-active={isActive}
         className={cn(
-          "peer/menu-button flex h-9 w-full items-center gap-3 overflow-hidden rounded-md px-2 text-left text-sm font-medium outline-none ring-sidebar-ring transition-[width,height,padding,background,color] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-sm [&>svg]:size-4 [&>svg]:shrink-0",
+          "peer/menu-button flex h-9 w-full items-center gap-3 overflow-hidden rounded-md px-2 text-left text-sm font-medium outline-none ring-sidebar-ring transition-[width,height,padding,background,color] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[super-hover-active]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[super-hover-active]:text-sidebar-accent-foreground data-[active=true]:shadow-sm [&>svg]:size-4 [&>svg]:shrink-0",
           "group-data-[collapsible=icon]:!h-9 group-data-[collapsible=icon]:!w-9 group-data-[collapsible=icon]:!p-2",
           className,
         )}

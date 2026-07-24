@@ -207,7 +207,7 @@ export function HeroSurface({
 }) {
   return (
     <div
-      className="relative size-full overflow-hidden bg-[#bcecf6]"
+      className="relative size-full overflow-hidden bg-[#075970]"
       data-testid="portfolio-hero"
     >
       <PaperHeroShader speed={shaderSpeed} />

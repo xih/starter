@@ -86,7 +86,9 @@ export function DialKitRoot({
 
     const handleResize = () => {
       setInlinePosition((currentPosition) =>
-        clampInlinePosition(currentPosition),
+        draggable
+          ? clampInlinePosition(currentPosition)
+          : clampInlinePosition(getDefaultInlinePosition()),
       );
     };
 
@@ -95,7 +97,7 @@ export function DialKitRoot({
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [mode]);
+  }, [draggable, mode]);
 
   if (!mounted || !isDialKitEnabled()) {
     return null;

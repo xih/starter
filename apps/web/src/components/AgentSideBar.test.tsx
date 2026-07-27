@@ -110,4 +110,13 @@ describe("AgentSideBar", () => {
     fireEvent.click(microphoneButton);
     expect(onToggleMicrophone).not.toHaveBeenCalled();
   });
+
+  it("keeps desktop conversation scrolling on the sidebar surface", () => {
+    render(<AgentSideBar messages={messages} state="idle" />);
+
+    const scrollContainer = screen.getByTestId("desktop-chat-scroll-container");
+
+    expect(scrollContainer).toHaveClass("absolute", "inset-0");
+    expect(scrollContainer).toHaveClass("overflow-y-auto", "pb-[158px]");
+  });
 });

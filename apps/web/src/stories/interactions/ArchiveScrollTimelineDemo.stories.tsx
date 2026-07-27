@@ -11,7 +11,6 @@ const meta = {
   parameters: { layout: "fullscreen" },
   args: {
     pattern: archiveTimelinePattern,
-    showDialKit: false,
   },
 } satisfies Meta<typeof ArchiveScrollTimelineDemo>;
 
@@ -22,7 +21,6 @@ export const Default: Story = {};
 
 export const HoverVisibleRail: Story = {
   args: {
-    forcedHover: true,
     forcedProgress: 0.45,
   },
 };

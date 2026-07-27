@@ -63,6 +63,7 @@ export function DialKitRoot({
     x: number;
     y: number;
   } | null>(null);
+  const didDragPanelRef = useRef(false);
   const [mounted, setMounted] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [panelPosition, setPanelPosition] = useState({ x: 16, y: 16 });
@@ -81,6 +82,10 @@ export function DialKitRoot({
 
       const nextX = dragStart.x + event.clientX - dragStart.pointerX;
       const nextY = dragStart.y + event.clientY - dragStart.pointerY;
+      didDragPanelRef.current =
+        didDragPanelRef.current ||
+        Math.abs(event.clientX - dragStart.pointerX) > 4 ||
+        Math.abs(event.clientY - dragStart.pointerY) > 4;
       setPanelPosition(clampPanelPosition({ x: nextX, y: nextY }, minimized));
     }
 
@@ -108,6 +113,22 @@ export function DialKitRoot({
       clampPanelPosition(currentPosition, minimized),
     );
   }, [minimized, mounted]);
+
+  useEffect(() => {
+    if (!mounted || mode !== "inline") {
+      return;
+    }
+
+    function handleResize() {
+      setPanelPosition((currentPosition) =>
+        clampPanelPosition(currentPosition, minimized),
+      );
+    }
+
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, [minimized, mode, mounted]);
 
   if (!mounted || !isDialKitEnabled()) {
     return null;
@@ -144,6 +165,7 @@ export function DialKitRoot({
       <div
         className="flex h-10 cursor-grab touch-none items-center justify-between border-b border-white/10 px-3 active:cursor-grabbing"
         onPointerDown={(event) => {
+          didDragPanelRef.current = false;
           dragStartRef.current = {
             pointerX: event.clientX,
             pointerY: event.clientY,
@@ -174,7 +196,14 @@ export function DialKitRoot({
         <button
           aria-label="Expand DialKit"
           className="absolute inset-0"
-          onClick={() => setMinimized(false)}
+          onClick={() => {
+            if (didDragPanelRef.current) {
+              didDragPanelRef.current = false;
+              return;
+            }
+
+            setMinimized(false);
+          }}
           type="button"
         />
       ) : (

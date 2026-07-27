@@ -1,6 +1,5 @@
 "use client";
 
-import { DialKitRoot } from "~/components/DialKitRoot";
 import { type DialConfig, useDialKit } from "dialkit";
 import type { ReactNode } from "react";
 
@@ -10,7 +9,6 @@ import type { TimelineTimingDefaults } from "./types";
 const TIMELINE_DEFAULTS = archiveTimelinePattern.timingDefaults;
 
 const TIMELINE_CONTROLS = {
-  hoverRevealDuration: [TIMELINE_DEFAULTS.hoverRevealDuration, 0.1, 1.2, 0.01],
   minimapScale: [TIMELINE_DEFAULTS.minimapScale, 0.28, 0.72, 0.01],
   railSpringStiffness: [TIMELINE_DEFAULTS.railSpringStiffness, 10, 240, 1],
   railSpringDamping: [TIMELINE_DEFAULTS.railSpringDamping, 5, 60, 1],
@@ -54,12 +52,10 @@ const TIMELINE_CONTROLS = {
 
 type TimelinePhysicsControlsProps = {
   children: (controls: TimelineTimingDefaults) => ReactNode;
-  showPanel?: boolean;
 };
 
 export function TimelinePhysicsControls({
   children,
-  showPanel = true,
 }: TimelinePhysicsControlsProps) {
   const controls = useDialKit("Archive Scroll Timeline", TIMELINE_CONTROLS, {
     persist: {
@@ -68,7 +64,6 @@ export function TimelinePhysicsControls({
       presets: true,
     },
     shortcuts: {
-      hoverRevealDuration: { key: "h", mode: "fine" },
       minimapScale: { key: "m", mode: "fine" },
       travelDurationMs: { key: "d", mode: "coarse" },
       travelStartDelayMs: { key: "s", mode: "coarse" },
@@ -78,10 +73,5 @@ export function TimelinePhysicsControls({
     },
   }) as TimelineTimingDefaults;
 
-  return (
-    <>
-      {children(controls)}
-      {showPanel ? <DialKitRoot /> : null}
-    </>
-  );
+  return <>{children(controls)}</>;
 }

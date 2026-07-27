@@ -6,12 +6,12 @@ export const archiveTimelinePattern = {
   sourceName: "Steve Jobs Archive Book",
   sourceUrl: "https://book.stevejobsarchive.com/",
   category: "Reading navigation",
-  tags: ["scroll", "timeline", "hover rail", "page zoom", "dialkit"],
+  tags: ["scroll", "timeline", "persistent rail", "page zoom", "dialkit"],
   status: "prototype",
   summary:
     "A right-edge reading-depth rail compresses a long editorial page into labeled sections, then uses a zoomed-out travel state to make jumps feel spatial instead of abrupt.",
   interactionNotes: [
-    "The table of contents lives in a fixed right rail and reveals on pointer hover near the page edge.",
+    "The table of contents lives in a fixed right rail that stays visible as a constant reading-depth affordance.",
     "A filled blue rail tracks the furthest/current reading depth while the unread portion remains pale gray.",
     "Selecting a label moves through a zoom-out, travel, and zoom-in sequence so the page feels like a physical surface.",
     "Reduced-motion users bypass the choreography and land directly at the selected section.",
@@ -79,7 +79,6 @@ export const archiveTimelinePattern = {
     },
   ],
   timingDefaults: {
-    hoverRevealDuration: 0.45,
     minimapScale: 0.42,
     railSpringStiffness: 85,
     railSpringDamping: 25,

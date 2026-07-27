@@ -25,14 +25,14 @@ import type {
 } from "./types";
 
 const SAME_REGION_PULSE_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
+const REFERENCE_SPRING_STIFFNESS = 100;
+const REFERENCE_SPRING_DAMPING = 20;
 
 type ArchiveScrollTimelineDemoProps = {
-  forcedHover?: boolean;
   forcedPhase?: TimelinePhase;
   forcedProgress?: number;
   pattern: InteractionPattern;
   reducedMotionOverride?: boolean;
-  showDialKit?: boolean;
 };
 
 function usePrefersReducedMotion(override?: boolean) {
@@ -74,19 +74,16 @@ function getActiveSection(
 }
 
 export function ArchiveScrollTimelineDemo({
-  forcedHover,
   forcedPhase,
   forcedProgress,
   pattern,
   reducedMotionOverride,
-  showDialKit = true,
 }: ArchiveScrollTimelineDemoProps) {
   return (
-    <TimelinePhysicsControls showPanel={showDialKit}>
+    <TimelinePhysicsControls>
       {(controls) => (
         <ArchiveScrollTimelineExperience
           controls={controls}
-          forcedHover={forcedHover}
           forcedPhase={forcedPhase}
           forcedProgress={forcedProgress}
           pattern={pattern}
@@ -99,7 +96,6 @@ export function ArchiveScrollTimelineDemo({
 
 function ArchiveScrollTimelineExperience({
   controls,
-  forcedHover,
   forcedPhase,
   forcedProgress,
   pattern,
@@ -107,14 +103,12 @@ function ArchiveScrollTimelineExperience({
 }: ArchiveScrollTimelineDemoProps & { controls: TimelineTimingDefaults }) {
   const articleRef = useRef<HTMLElement>(null);
   const readerRef = useRef<HTMLDivElement>(null);
-  const shellRef = useRef<HTMLElement>(null);
   const phaseTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const travelAnimationRef = useRef<number | null>(null);
   const programmaticTravelRef = useRef(false);
   const timelineScrubbingRef = useRef(false);
   const [progress, setProgress] = useState(forcedProgress ?? 0);
   const [phase, setPhase] = useState<TimelinePhase>(forcedPhase ?? "idle");
-  const [hovering, setHovering] = useState(false);
   const [localFullscreen, setLocalFullscreen] = useState(false);
   const [sameRegionPulse, setSameRegionPulse] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState(
@@ -160,6 +154,55 @@ function ArchiveScrollTimelineExperience({
 
   function easeOutByPower(value: number, power: number) {
     return 1 - Math.pow(1 - value, power);
+  }
+
+  function getSpringAdjustedDuration(
+    baseDurationMs: number,
+    stiffness: number,
+    damping: number,
+  ) {
+    const stiffnessFactor = Math.sqrt(
+      REFERENCE_SPRING_STIFFNESS / Math.max(1, stiffness),
+    );
+    const dampingFactor = Math.max(5, damping) / REFERENCE_SPRING_DAMPING;
+    const durationFactor = Math.min(
+      1.6,
+      Math.max(0.55, stiffnessFactor * dampingFactor),
+    );
+
+    return Math.round(baseDurationMs * durationFactor);
+  }
+
+  function getZoomDuration() {
+    return getSpringAdjustedDuration(
+      controls.zoomDurationMs,
+      controls.zoomSpringStiffness,
+      controls.zoomSpringDamping,
+    );
+  }
+
+  function getTravelDuration() {
+    return getSpringAdjustedDuration(
+      controls.travelDurationMs,
+      controls.travelSpringStiffness,
+      controls.travelSpringDamping,
+    );
+  }
+
+  function getRailIndicatorDuration() {
+    return getSpringAdjustedDuration(
+      controls.zoomDurationMs,
+      controls.railSpringStiffness,
+      controls.railSpringDamping,
+    );
+  }
+
+  function getLabelTransitionDuration() {
+    return getSpringAdjustedDuration(
+      300,
+      controls.pressSpringStiffness,
+      controls.pressSpringDamping,
+    );
   }
 
   function updateViewportOrigin(nextScrollTop?: number) {
@@ -347,7 +390,7 @@ function ArchiveScrollTimelineExperience({
     phaseTimeouts.current = [
       setTimeout(() => {
         setPhase("idle");
-      }, 720),
+      }, getZoomDuration()),
     ];
   }
 
@@ -414,7 +457,7 @@ function ArchiveScrollTimelineExperience({
         setPhase("traveling");
         programmaticTravelRef.current = true;
         animateReaderScroll({
-          duration: controls.travelDurationMs,
+          duration: getTravelDuration(),
           targetScrollTop,
           onComplete: () => {
             programmaticTravelRef.current = false;
@@ -425,7 +468,7 @@ function ArchiveScrollTimelineExperience({
             phaseTimeouts.current.push(
               setTimeout(() => {
                 setPhase("idle");
-              }, controls.zoomDurationMs),
+              }, getZoomDuration()),
             );
           },
         });
@@ -447,17 +490,6 @@ function ArchiveScrollTimelineExperience({
     setLocalFullscreen((current) => !current);
   }
 
-  function updateEdgeHover(clientX: number) {
-    const shell = shellRef.current;
-
-    if (!shell || forcedHover !== undefined) {
-      return;
-    }
-
-    const bounds = shell.getBoundingClientRect();
-    setHovering(clientX >= bounds.right - 280 && clientX <= bounds.right + 8);
-  }
-
   return (
     <section
       className={cn(
@@ -470,18 +502,9 @@ function ArchiveScrollTimelineExperience({
           backgroundColor:
             displayPhase === "idle" ? undefined : controls.sideGray,
           "--timeline-blue": controls.indicatorBlue,
-          "--timeline-hover-duration": `${controls.hoverRevealDuration}s`,
           "--timeline-scale": controls.minimapScale,
         } as CSSProperties
       }
-      onMouseMove={(event) => updateEdgeHover(event.clientX)}
-      onPointerMove={(event) => updateEdgeHover(event.clientX)}
-      onPointerLeave={() => {
-        if (forcedHover === undefined) {
-          setHovering(false);
-        }
-      }}
-      ref={shellRef}
     >
       <div className="absolute left-5 top-5 z-30 rounded-md border border-neutral-200 bg-white/90 px-3 py-2 text-xs font-medium text-neutral-500 backdrop-blur">
         {displayPhase === "idle" ? activeSection.title : displayPhase}
@@ -504,9 +527,10 @@ function ArchiveScrollTimelineExperience({
         animateIndicator={displayPhase === "zoomingIn"}
         forceVisible
         indicatorBlue={controls.indicatorBlue}
-        indicatorTransitionDurationMs={controls.zoomDurationMs}
+        indicatorTransitionDurationMs={getRailIndicatorDuration()}
         labelActiveScale={controls.labelActiveScale}
         labelPressedScale={controls.labelPressedScale}
+        labelTransitionDurationMs={getLabelTransitionDuration()}
         onScrubEnd={endTimelineScrub}
         onScrubMove={moveTimelineScrub}
         onScrubStart={startTimelineScrub}
@@ -539,7 +563,7 @@ function ArchiveScrollTimelineExperience({
                 : undefined,
             transitionDuration: sameRegionPulse
               ? `${getSameRegionPulseDuration()}ms`
-              : `${controls.zoomDurationMs}ms`,
+              : `${getZoomDuration()}ms`,
             transitionTimingFunction: sameRegionPulse
               ? SAME_REGION_PULSE_EASING
               : "cubic-bezier(0.2, 0, 0, 1)",

@@ -8,7 +8,6 @@ const meta = {
   parameters: { layout: "centered" },
   args: {
     children: () => null,
-    showPanel: false,
   },
 } satisfies Meta<typeof TimelinePhysicsControls>;
 
@@ -22,10 +21,6 @@ export const Summary: Story = {
         <div className="w-[420px] rounded-md border border-neutral-200 bg-white p-5 text-neutral-950">
           <h2 className="text-lg font-semibold">Archive Scroll Timeline</h2>
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <dt className="text-neutral-500">Hover reveal</dt>
-              <dd>{controls.hoverRevealDuration}s</dd>
-            </div>
             <div>
               <dt className="text-neutral-500">Minimap scale</dt>
               <dd>{controls.minimapScale}</dd>

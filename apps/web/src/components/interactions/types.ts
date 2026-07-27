@@ -11,7 +11,6 @@ export type InteractionSection = {
 };
 
 export type TimelineTimingDefaults = {
-  hoverRevealDuration: number;
   minimapScale: number;
   railSpringStiffness: number;
   railSpringDamping: number;

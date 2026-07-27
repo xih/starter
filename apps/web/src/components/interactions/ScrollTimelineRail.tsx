@@ -18,6 +18,7 @@ type ScrollTimelineRailProps = {
   indicatorTransitionDurationMs?: number;
   labelActiveScale: number;
   labelPressedScale: number;
+  labelTransitionDurationMs?: number;
   onScrubEnd?: (progress: number) => void;
   onScrubMove?: (progress: number) => void;
   onScrubStart?: (progress: number) => void;
@@ -36,6 +37,7 @@ export function ScrollTimelineRail({
   indicatorTransitionDurationMs = 520,
   labelActiveScale,
   labelPressedScale,
+  labelTransitionDurationMs = 300,
   onScrubEnd,
   onScrubMove,
   onScrubStart,
@@ -127,14 +129,19 @@ export function ScrollTimelineRail({
       resetSuppressionAfterClickTick();
     }
 
+    function handlePointerCancel() {
+      scrubbingRef.current = false;
+      hasDraggedRef.current = false;
+    }
+
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
-    window.addEventListener("pointercancel", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerCancel);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
-      window.removeEventListener("pointercancel", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerCancel);
     };
   }, [
     getProgressFromClientY,
@@ -239,6 +246,7 @@ export function ScrollTimelineRail({
                   style={{
                     color: isRead ? indicatorBlue : undefined,
                     transform: `scale(${scale})`,
+                    transitionDuration: `${labelTransitionDurationMs}ms`,
                   }}
                 >
                   {section.label}

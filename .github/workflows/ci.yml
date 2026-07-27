@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -69,6 +71,7 @@ jobs:
         run: |
           corepack pnpm lint:ast
           corepack pnpm lint:design-system
+          corepack pnpm lint:frontend-tokens -- --base=${{ github.event.pull_request.base.sha || github.event.before }} --head=${{ github.sha }}
 
   typecheck:
     name: Typecheck
@@ -141,3 +144,51 @@ jobs:
 
       - name: Build
         run: corepack pnpm build
+
+  visual-tests:
+    name: Storybook Visual Tests
+    runs-on: ubuntu-latest
+    env:
+      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable Corepack
+        run: |
+          npm install --global corepack@latest
+          corepack enable
+          corepack prepare pnpm@10.10.0 --activate
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Build Storybook
+        run: corepack pnpm build-storybook
+
+      - name: Run Storybook tests
+        run: corepack pnpm test-storybook
+
+      - name: Run Chromatic
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          storybookBuildDir: apps/web/storybook-static
+          onlyChanged: true
+          externals: |
+            packages/tokens/src/**
+            packages/tokens/dist/**
+            packages/design-system/src/**
+          exitZeroOnChanges: false
+
+      - name: Skip Chromatic
+        if: env.CHROMATIC_PROJECT_TOKEN == ''
+        run: echo "CHROMATIC_PROJECT_TOKEN is not configured; skipped Chromatic upload."

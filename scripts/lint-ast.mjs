@@ -55,6 +55,10 @@ if (!rootPackage.scripts?.["lint:design-system"]) {
   fail("root package.json must define lint:design-system.");
 }
 
+if (!rootPackage.scripts?.["lint:frontend-tokens"]) {
+  fail("root package.json must define lint:frontend-tokens.");
+}
+
 if (!rootPackage.scripts?.["lint:styles"]) {
   fail("root package.json must define lint:styles.");
 }
@@ -64,7 +68,9 @@ if (!rootPackage.scripts?.["lint:ast"]) {
 }
 
 if (webPackage.scripts?.lint?.includes("next lint")) {
-  fail("apps/web package.json lint script must not use deprecated `next lint`.");
+  fail(
+    "apps/web package.json lint script must not use deprecated `next lint`.",
+  );
 }
 
 if (failures.length > 0) {

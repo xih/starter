@@ -220,10 +220,10 @@ function PortfolioHeader({ className = "" }: { className?: string }) {
 function HeroCopy({ className = "" }: { className?: string }) {
   return (
     <div className={className}>
-      <h1 className="w-[294px] max-w-[calc(100vw-44px)] font-title text-[36px] font-[400] leading-[40px] text-white md:w-[530px] md:max-w-[530px]">
+      <h1 className="w-full max-w-[294px] font-title text-[36px] font-[400] leading-[40px] text-white md:max-w-[530px]">
         Dennis is a product designer based in SF
       </h1>
-      <p className="mt-[12px] w-[294px] max-w-[calc(100vw-44px)] font-body text-[16px] font-[400] leading-[19.2px] text-white md:w-[536px] md:max-w-[536px] md:text-[24px] md:leading-[40px]">
+      <p className="mt-[12px] w-full max-w-[294px] font-body text-[16px] font-[400] leading-[19.2px] text-white md:max-w-[536px] md:text-[24px] md:leading-[40px]">
         Previously at Nell, AGI, Krea, and Skydio.
       </p>
     </div>
@@ -329,7 +329,7 @@ function PortfolioLauncher({
       <section className="hidden w-full border-b border-[var(--color-border-opaque)] md:block">
         <div className="grid h-[928px] grid-cols-[minmax(0,1300px)_428px]">
           <HeroSurface
-            copyClassName="absolute left-[36px] top-[322px]"
+            copyClassName="absolute left-[36px] right-[36px] top-[322px]"
             liveChatTiming={liveChatTiming}
             shaderSpeed={shaderSpeed}
           />
@@ -346,7 +346,7 @@ function PortfolioLauncher({
 
       <section className="relative h-[672px] w-full overflow-hidden md:hidden">
         <HeroSurface
-          copyClassName="absolute left-[22px] top-[168px]"
+          copyClassName="absolute left-[22px] right-[22px] top-[168px]"
           liveChatTiming={liveChatTiming}
           shaderSpeed={shaderSpeed}
         />
@@ -460,7 +460,7 @@ export function PortfolioPage() {
               desktopHero={
                 <div className="h-[928px]">
                   <HeroSurface
-                    copyClassName="absolute left-[36px] top-[322px]"
+                    copyClassName="absolute left-[36px] right-[36px] top-[322px]"
                     liveChatTiming={liveChatTiming}
                     shaderSpeed={heroMeshGradient.speed}
                   />
@@ -470,7 +470,7 @@ export function PortfolioPage() {
               desktopSidebarClassName="h-[928px]"
               mobileHero={
                 <HeroSurface
-                  copyClassName="absolute left-[22px] top-[168px]"
+                  copyClassName="absolute left-[22px] right-[22px] top-[168px]"
                   liveChatTiming={liveChatTiming}
                   shaderSpeed={heroMeshGradient.speed}
                 />

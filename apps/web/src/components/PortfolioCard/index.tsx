@@ -80,9 +80,9 @@ export function PortfolioCard({
 
       <div className="grid gap-[8px] font-body text-[14px] font-[400] leading-[18px] text-[#121318]">
         <div className="flex flex-wrap items-center gap-x-[8px] gap-y-[4px]">
-          <span className="text-[#9a9a9a]">{year}</span>
+          <span className="text-[#595a5d]">{year}</span>
           <span>{company}</span>
-          <span className="text-[#9a9a9a]">{role}</span>
+          <span className="text-[#595a5d]">{role}</span>
         </div>
 
         <p>{description}</p>

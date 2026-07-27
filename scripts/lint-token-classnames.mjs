@@ -98,7 +98,7 @@ const tokenCss = await readFile(tokenCssPath, "utf8");
 const tokenClassMaps = {
   spacing: readCssTokenMap(tokenCss, "--spacing-", "token-"),
   radius: readCssTokenMap(tokenCss, "--radius-", "token-"),
-  fontSize: readCssTokenMap(tokenCss, "--font-font-size-", ""),
+  fontSize: readCssTokenEntries(tokenCss, "--font-font-size-"),
   lineHeight: readCssTokenMap(tokenCss, "--font-line-height-", ""),
   fontWeight: readCssTokenMap(tokenCss, "--font-font-weight-", ""),
 };
@@ -149,6 +149,18 @@ if (failures.length > 0 && shouldFix) {
 
 function readCssTokenMap(source, variablePrefix, classPrefix) {
   const map = new Map();
+  const entries = readCssTokenEntries(source, variablePrefix);
+
+  for (const [value, tokens] of entries) {
+    if (tokens.length !== 1) continue;
+    map.set(value, `${classPrefix}${toTailwindTokenKey(tokens[0])}`);
+  }
+
+  return map;
+}
+
+function readCssTokenEntries(source, variablePrefix) {
+  const entries = new Map();
   const pattern = new RegExp(
     `${escapeRegExp(variablePrefix)}([\\w-]+):\\s*([^;]+);`,
     "g",
@@ -156,10 +168,12 @@ function readCssTokenMap(source, variablePrefix, classPrefix) {
 
   for (const [, key, rawValue] of source.matchAll(pattern)) {
     const value = rawValue.trim();
-    map.set(value, `${classPrefix}${toTailwindTokenKey(key)}`);
+    const tokens = entries.get(value) ?? [];
+    tokens.push(key);
+    entries.set(value, tokens);
   }
 
-  return map;
+  return entries;
 }
 
 function toTailwindTokenKey(key) {
@@ -193,8 +207,10 @@ function getTokenClassReplacement(classToken) {
   }
 
   if (prefix === "text") {
-    const tokenClass = tokenClassMaps.fontSize.get(value);
-    return tokenClass ? `${variantPrefix}text-${tokenClass}` : null;
+    const tokens = tokenClassMaps.fontSize.get(value);
+    if (!tokens || tokens.length !== 1) return null;
+
+    return `${variantPrefix}text-[length:var(--font-font-size-${tokens[0]})]`;
   }
 
   if (prefix === "leading") {

@@ -71,4 +71,22 @@ describe("AgentSideBar", () => {
 
     expect(screen.queryByText("Wife E2E")).not.toBeInTheDocument();
   });
+
+  it("does not append Thinking during agent streaming unless a reply is pending", () => {
+    const { rerender } = render(
+      <AgentSideBar messages={messages} state="agent-streaming" />,
+    );
+
+    expect(screen.queryByText("Thinking")).not.toBeInTheDocument();
+
+    rerender(
+      <AgentSideBar
+        messages={messages}
+        showThinkingMessage
+        state="agent-streaming"
+      />,
+    );
+
+    expect(screen.getByText("Thinking")).toBeVisible();
+  });
 });

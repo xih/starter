@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createPersonaSwitchRpcCall,
   createPersonaSwitchRpcPayload,
+  getPersonaSwitchRpcIdentity,
   PERSONA_TTS_SWITCH_RPC_METHOD,
 } from "./persona-switch-rpc";
 
@@ -51,5 +52,22 @@ describe("persona switch RPC helpers", () => {
       }),
       responseTimeout: 8_000,
     });
+  });
+
+  it("targets the worker participant when LiveKit exposes a split agent participant", () => {
+    expect(
+      getPersonaSwitchRpcIdentity({
+        identity: "agent-public",
+        internal: {
+          workerParticipant: { identity: "agent-worker" },
+        },
+      }),
+    ).toBe("agent-worker");
+  });
+
+  it("falls back to the public agent identity when no worker participant exists", () => {
+    expect(getPersonaSwitchRpcIdentity({ identity: "agent-public" })).toBe(
+      "agent-public",
+    );
   });
 });

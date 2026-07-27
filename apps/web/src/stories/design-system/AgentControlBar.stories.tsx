@@ -1,5 +1,34 @@
-import { AgentControlBar, agentControlBarLayout } from "@starter/design-system";
+import {
+  AgentControlBar,
+  agentControlBarLayout,
+  VoiceParameterPanel,
+} from "@starter/design-system";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useState } from "react";
+
+const storybookVoices = [
+  {
+    avatar: "/agent-sidebar/avatar-4.png",
+    description: "Warm, concise portfolio voice agent",
+    name: "Portfolio Agent",
+  },
+  {
+    avatar: "/agent-sidebar/avatar-1.png",
+    description: "Warm reflective confidence-focused persona",
+    name: "Wife E2E",
+  },
+  {
+    avatar: "/design-system/steve-jobs-avatar.png",
+    description: "Focused product critique voice",
+    name: "Steve Jobs",
+  },
+  {
+    avatar: "/agent-sidebar/avatar-2.png",
+    description: "Direct Cartesia Sonic voice",
+    name: "Cartesia Voice",
+  },
+];
+const defaultStorybookVoice = storybookVoices[0]!;
 
 const meta = {
   title: "Design System/Agent Control Bar",
@@ -66,4 +95,38 @@ export const MobileLayoutTokens: Story = {
       </dl>
     </div>
   ),
+};
+
+function PromptVoiceInteractionStory() {
+  const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(true);
+  const [selectedVoiceName, setSelectedVoiceName] = useState(
+    defaultStorybookVoice.name,
+  );
+  const selectedVoice = storybookVoices.find(
+    (voice) => voice.name === selectedVoiceName,
+  );
+
+  return (
+    <div className="flex w-[375px] flex-col items-end gap-[8px]">
+      {isVoicePanelOpen ? (
+        <VoiceParameterPanel
+          onSelectVoice={(voice) => {
+            setSelectedVoiceName(voice.name);
+            setIsVoicePanelOpen(false);
+          }}
+          selectedVoiceName={selectedVoiceName}
+          voices={storybookVoices}
+        />
+      ) : null}
+      <AgentControlBar
+        onOpenVoicePanel={() => setIsVoicePanelOpen((open) => !open)}
+        state="default"
+        voice={selectedVoice}
+      />
+    </div>
+  );
+}
+
+export const PromptVoiceInteraction: Story = {
+  render: () => <PromptVoiceInteractionStory />,
 };

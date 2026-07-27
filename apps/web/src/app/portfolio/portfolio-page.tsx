@@ -7,9 +7,10 @@ import {
   LiveChat,
   PortfolioFooter,
 } from "@starter/design-system";
-import type { VoiceOption } from "@starter/design-system";
+import type { LiveChatMessage, VoiceOption } from "@starter/design-system";
 import { type DialConfig, type ResolvedValues, useDialKit } from "dialkit";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { AgentSideBar } from "~/components/AgentSideBar";
@@ -106,6 +107,38 @@ const HERO_MESH_GRADIENT_COLORS = [
 const HERO_MESH_GRADIENT_CONTROLS = {
   speed: [0.22, 0, 2, 0.01],
 } satisfies DialConfig;
+const MOBILE_LIVE_CHAT_MESSAGES: LiveChatMessage[] = [
+  {
+    avatarUrl: "https://unavatar.io/twitter/jina",
+    handle: "@jina",
+    id: "mobile-live-chat-jina",
+    text: "motion timing is product voice",
+  },
+  {
+    avatarUrl: "https://unavatar.io/twitter/brad_frost",
+    handle: "@brad_frost",
+    id: "mobile-live-chat-brad-frost",
+    text: "the avatar stack feels alive",
+  },
+  {
+    avatarUrl: "https://unavatar.io/twitter/lukeW",
+    handle: "@lukeW",
+    id: "mobile-live-chat-lukew",
+    text: "fast enough to feel live",
+  },
+  {
+    avatarUrl: "https://unavatar.io/twitter/rsms",
+    handle: "@rsms",
+    id: "mobile-live-chat-rsms",
+    text: "caption type is the game",
+  },
+  {
+    avatarUrl: "https://unavatar.io/twitter/maggieappleton",
+    handle: "@maggie",
+    id: "mobile-live-chat-maggie",
+    text: "ambient, readable, warm",
+  },
+];
 
 function createBrowserSafeId() {
   if (
@@ -160,13 +193,37 @@ function PaperHeroShader({ speed }: { speed: number }) {
   );
 }
 
+function PortfolioHeader({ className = "" }: { className?: string }) {
+  return (
+    <nav
+      aria-label="Portfolio navigation"
+      className={`absolute left-0 top-[2px] z-20 flex h-[44px] w-full items-center px-[20px] py-[12px] font-body text-[16px] font-[400] leading-[19.2px] text-white ${className}`}
+    >
+      <div className="flex w-full items-center justify-between">
+        <Link
+          className="whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+          href="/"
+        >
+          DX
+        </Link>
+        <Link
+          className="whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+          href="/about"
+        >
+          About
+        </Link>
+      </div>
+    </nav>
+  );
+}
+
 function HeroCopy({ className = "" }: { className?: string }) {
   return (
     <div className={className}>
-      <h1 className="max-w-[340px] font-title text-[42px] font-[700] leading-[44px] text-white md:max-w-[294px] md:text-[32px] md:leading-[34px]">
+      <h1 className="w-full max-w-[294px] font-title text-[36px] font-[400] leading-[40px] text-white md:max-w-[530px]">
         Dennis is a product designer based in SF
       </h1>
-      <p className="mt-[16px] font-body text-[16px] font-[700] leading-[21px] text-white md:mt-[8px] md:text-[11px] md:leading-[14px]">
+      <p className="mt-[12px] w-full max-w-[294px] font-body text-[16px] font-[400] leading-[19.2px] text-white md:max-w-[536px] md:text-[24px] md:leading-[40px]">
         Previously at Nell, AGI, Krea, and Skydio.
       </p>
     </div>
@@ -177,18 +234,20 @@ function PortfolioLiveChat({ timing }: { timing: PortfolioLiveChatTimings }) {
   return (
     <>
       <LiveChat
-        className="absolute bottom-[118px] left-[20px] right-[20px] z-10 h-[294px] w-auto max-w-none rounded-token-xxs md:hidden"
+        className="absolute bottom-[104px] left-[22px] right-[21px] z-10 h-[228px] w-auto max-w-none rounded-token-xxs md:hidden"
         fadeDurationMs={timing.mobile.fadeDurationMs}
-        initialMessageCount={5}
-        maxVisibleMessages={5}
+        initialMessageCount={4}
+        maxVisibleMessages={4}
+        messages={MOBILE_LIVE_CHAT_MESSAGES}
+        reserveFadingMessages={false}
         streamIntervalMs={timing.mobile.streamIntervalMs}
         visibleDurationMs={timing.mobile.visibleDurationMs}
       />
       <LiveChat
-        className="absolute bottom-[9px] left-[26px] z-10 hidden h-[500px] w-[423px] max-w-none rounded-token-xxs md:flex"
+        className="absolute bottom-[9px] left-[36px] z-10 hidden h-[280px] w-[423px] max-w-none rounded-token-xxs md:flex"
         fadeDurationMs={timing.desktop.fadeDurationMs}
-        initialMessageCount={8}
-        maxVisibleMessages={8}
+        initialMessageCount={5}
+        maxVisibleMessages={5}
         streamIntervalMs={timing.desktop.streamIntervalMs}
         visibleDurationMs={timing.desktop.visibleDurationMs}
       />
@@ -211,6 +270,7 @@ export function HeroSurface({
       data-testid="portfolio-hero"
     >
       <PaperHeroShader speed={shaderSpeed} />
+      <PortfolioHeader />
       <HeroCopy className={`z-10 ${copyClassName}`} />
       <PortfolioLiveChat timing={liveChatTiming} />
     </div>
@@ -238,14 +298,14 @@ function CaseStudies() {
     <>
       <section className="hidden px-[116px] pb-[243px] pt-[69px] md:block">
         <h2 className="font-title text-[34px] font-[700] leading-[38px]">
-          Case Studies
+          Past Work
         </h2>
         <PortfolioCardGrid className="mt-[46px] max-w-[1497px] gap-y-[90px]" />
       </section>
 
       <section className="pb-[102px] pt-[27px] md:hidden">
         <h2 className="px-[20px] font-title text-[25px] font-[700] leading-[29px]">
-          Case Studies
+          Past Work
         </h2>
         <PortfolioCardGrid className="mt-[10px] gap-y-[40px] px-[20px]" />
       </section>
@@ -269,7 +329,7 @@ function PortfolioLauncher({
       <section className="hidden w-full border-b border-[var(--color-border-opaque)] md:block">
         <div className="grid h-[928px] grid-cols-[minmax(0,1300px)_428px]">
           <HeroSurface
-            copyClassName="absolute left-[116px] top-[339px]"
+            copyClassName="absolute left-[36px] right-[36px] top-[322px]"
             liveChatTiming={liveChatTiming}
             shaderSpeed={shaderSpeed}
           />
@@ -286,7 +346,7 @@ function PortfolioLauncher({
 
       <section className="relative h-[672px] w-full overflow-hidden md:hidden">
         <HeroSurface
-          copyClassName="absolute left-[22px] top-[94px]"
+          copyClassName="absolute left-[22px] right-[22px] top-[168px]"
           liveChatTiming={liveChatTiming}
           shaderSpeed={shaderSpeed}
         />
@@ -377,6 +437,13 @@ export function PortfolioPage() {
 
   return (
     <>
+      <style>{`
+        @media (max-width: 767px) {
+          .dialkit-panel {
+            display: none !important;
+          }
+        }
+      `}</style>
       <DialKitRoot className="hidden md:block" mode="inline" theme="dark" />
       <motion.main
         animate={{
@@ -393,7 +460,7 @@ export function PortfolioPage() {
               desktopHero={
                 <div className="h-[928px]">
                   <HeroSurface
-                    copyClassName="absolute left-[116px] top-[339px]"
+                    copyClassName="absolute left-[36px] right-[36px] top-[322px]"
                     liveChatTiming={liveChatTiming}
                     shaderSpeed={heroMeshGradient.speed}
                   />
@@ -403,7 +470,7 @@ export function PortfolioPage() {
               desktopSidebarClassName="h-[928px]"
               mobileHero={
                 <HeroSurface
-                  copyClassName="absolute left-[22px] top-[94px]"
+                  copyClassName="absolute left-[22px] right-[22px] top-[168px]"
                   liveChatTiming={liveChatTiming}
                   shaderSpeed={heroMeshGradient.speed}
                 />

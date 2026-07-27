@@ -78,11 +78,11 @@ export function PortfolioCard({
     <article className={cn("grid w-full gap-[13px]", className)}>
       <PortfolioCardArtwork artwork={artwork} label={artworkLabel} />
 
-      <div className="grid gap-token-8 font-body text-body font-bold text-text-primary">
-        <div className="flex flex-wrap items-center gap-x-token-8 gap-y-token-4">
-          <span className="text-text-secondary">{year}</span>
+      <div className="grid gap-[8px] font-body text-[14px] font-[400] leading-[18px] text-[#121318]">
+        <div className="flex flex-wrap items-center gap-x-[8px] gap-y-[4px]">
+          <span className="text-[#595a5d]">{year}</span>
           <span>{company}</span>
-          <span className="text-text-secondary">{role}</span>
+          <span className="text-[#595a5d]">{role}</span>
         </div>
 
         <p>{description}</p>
@@ -91,7 +91,7 @@ export function PortfolioCard({
           <div className="flex flex-wrap items-center gap-x-token-12 gap-y-token-4 pt-token-4">
             {links.map((link) => (
               <a
-                className="inline-flex items-center gap-1 text-text-primary underline-offset-4 transition-colors hover:text-text-secondary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="inline-flex items-center gap-1 text-[#121318] underline-offset-4 transition-colors hover:text-[#68696d] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:ring-offset-2"
                 href={link.href}
                 key={`${link.label}-${link.href}`}
               >
@@ -140,7 +140,7 @@ function PortfolioCardArtwork({
   return (
     <div
       aria-label={label}
-      className="relative aspect-[730/327] w-full overflow-hidden rounded-token-xs bg-[#b20000]"
+      className="relative aspect-[332/327] w-full overflow-hidden rounded-token-xs bg-[#b20000] md:aspect-[730/327]"
       role="img"
     >
       {artwork === "nell" ? <NellArtwork /> : null}

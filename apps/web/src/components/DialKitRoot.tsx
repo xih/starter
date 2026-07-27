@@ -15,11 +15,39 @@ type DialKitRootProps = {
   theme?: DialTheme;
 };
 
+const EXPANDED_PANEL_SIZE = { height: 388, width: 280 };
+const MINIMIZED_PANEL_SIZE = { height: 40, width: 56 };
+const PANEL_EDGE_INSET = 8;
+
 function isDialKitEnabled() {
   return (
     process.env.NODE_ENV !== "production" ||
     process.env.NEXT_PUBLIC_DIALKIT_ENABLED === "true"
   );
+}
+
+function clampPanelPosition(
+  nextPosition: { x: number; y: number },
+  minimized: boolean,
+) {
+  const panelSize = minimized ? MINIMIZED_PANEL_SIZE : EXPANDED_PANEL_SIZE;
+
+  return {
+    x: Math.max(
+      PANEL_EDGE_INSET,
+      Math.min(
+        window.innerWidth - panelSize.width - PANEL_EDGE_INSET,
+        nextPosition.x,
+      ),
+    ),
+    y: Math.max(
+      PANEL_EDGE_INSET,
+      Math.min(
+        window.innerHeight - panelSize.height - PANEL_EDGE_INSET,
+        nextPosition.y,
+      ),
+    ),
+  };
 }
 
 export function DialKitRoot({
@@ -53,10 +81,7 @@ export function DialKitRoot({
 
       const nextX = dragStart.x + event.clientX - dragStart.pointerX;
       const nextY = dragStart.y + event.clientY - dragStart.pointerY;
-      setPanelPosition({
-        x: Math.max(8, Math.min(window.innerWidth - 72, nextX)),
-        y: Math.max(8, Math.min(window.innerHeight - 40, nextY)),
-      });
+      setPanelPosition(clampPanelPosition({ x: nextX, y: nextY }, minimized));
     }
 
     function handlePointerUp() {
@@ -72,7 +97,17 @@ export function DialKitRoot({
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
     };
-  }, []);
+  }, [minimized]);
+
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+
+    setPanelPosition((currentPosition) =>
+      clampPanelPosition(currentPosition, minimized),
+    );
+  }, [minimized, mounted]);
 
   if (!mounted || !isDialKitEnabled()) {
     return null;
@@ -96,10 +131,14 @@ export function DialKitRoot({
         className,
       )}
       style={{
-        height: minimized ? 40 : 388,
+        height: minimized
+          ? MINIMIZED_PANEL_SIZE.height
+          : EXPANDED_PANEL_SIZE.height,
         left: panelPosition.x,
         top: panelPosition.y,
-        width: minimized ? 56 : 280,
+        width: minimized
+          ? MINIMIZED_PANEL_SIZE.width
+          : EXPANDED_PANEL_SIZE.width,
       }}
     >
       <div

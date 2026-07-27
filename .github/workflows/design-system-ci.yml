@@ -3,6 +3,13 @@ name: Design System CI
 on:
   pull_request:
 
+concurrency:
+  group: design-system-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   design-system:
     runs-on: ubuntu-latest
@@ -15,6 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+          cache: pnpm
 
       - name: Enable Corepack
         run: |
@@ -22,28 +30,13 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.10.0 --activate
 
-      - run: corepack pnpm install --frozen-lockfile
+      - run: make ci-install
 
-      - name: Build tokens
-        run: corepack pnpm tokens:build
-
-      - name: Check token drift
-        run: git diff --exit-code packages/tokens/dist
-
-      - name: ESLint design-system rules
-        run: corepack pnpm lint:design-system
-
-      - name: Stylelint token rules
-        run: corepack pnpm lint:styles
-
-      - name: AST structural checks
-        run: corepack pnpm lint:ast
+      - name: Design-system checks
+        run: make design-check
 
       - name: Typecheck
-        run: corepack pnpm typecheck
-
-      - name: Build Storybook
-        run: corepack pnpm build-storybook
+        run: make ci-typecheck
 
       - name: Install Playwright browsers
         run: corepack pnpm --filter @starter/web exec playwright install chromium

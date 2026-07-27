@@ -234,15 +234,15 @@ export function VoiceParameterPanel({
         className,
       )}
     >
-      <h2 className="text-[14px] leading-[20px] font-[700]">Voice</h2>
-      <div className="grid grid-cols-2 gap-[12px]">
+      <h2 className="shrink-0 text-[14px] leading-[20px] font-[700]">Voice</h2>
+      <div className="min-h-0 flex-1 space-y-[8px] overflow-y-auto pr-[4px] [scrollbar-width:thin]">
         {voices.map((option) => {
           const selected = option.name === selectedVoiceName;
 
           return (
             <button
               className={cn(
-                "flex h-[112px] flex-col items-start justify-end rounded-[12px] border p-[12px] text-left transition-colors",
+                "flex min-h-[60px] w-full shrink-0 items-center gap-[10px] rounded-[12px] border px-[10px] py-[8px] text-left transition-colors",
                 selected
                   ? "border-[#dcdcdc] bg-[#e8e8e8]"
                   : "border-[#e5e5e5] bg-white",
@@ -254,13 +254,15 @@ export function VoiceParameterPanel({
               <VoiceAvatar
                 avatar={option.avatar}
                 name={option.name}
-                size={48}
+                size={40}
               />
-              <span className="mt-[8px] text-[16px] leading-[18px] font-[700]">
-                {option.name}
-              </span>
-              <span className="text-[14px] leading-[18px] text-[#595a5d]">
-                {option.description}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[16px] leading-[18px] font-[700]">
+                  {option.name}
+                </span>
+                <span className="block truncate text-[14px] leading-[18px] text-[#595a5d]">
+                  {option.description}
+                </span>
               </span>
             </button>
           );

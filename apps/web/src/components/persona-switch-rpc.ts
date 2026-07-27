@@ -108,7 +108,9 @@ export function usePersonaSwitchRpc({
   return useCallback(
     (request: PersonaSwitchRequest) => {
       if (!agentIdentity) {
-        throw new Error("The agent is not ready for persona switching yet.");
+        return Promise.reject(
+          new Error("The agent is not ready for persona switching yet."),
+        );
       }
 
       // Follow-up addendum: keep this caller shape compatible with a future

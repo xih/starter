@@ -53,7 +53,7 @@ export type ChatMessageData = {
 };
 
 export const agentControlBarLayout = {
-  mobileConnectingOrbSize: 162,
+  mobileConnectingOrbSize: 66,
   mobileOrbSize: 66,
 } as const;
 
@@ -338,10 +338,10 @@ export function AgentControlBar({
       )}
       data-state={state}
     >
-      <div className="flex h-[28px] items-center gap-[8px]">
+      <div className="flex h-[28px] items-center gap-[8px] overflow-hidden">
         <input
           aria-label="Message"
-          className="font-body min-w-0 flex-1 bg-transparent text-[14px] leading-[20px] font-[400] text-[#595a5d] outline-none placeholder:text-[#595a5d]"
+          className="font-body w-[114.285714%] min-w-0 flex-none origin-left scale-[0.875] bg-transparent text-[16px] leading-[22.857143px] font-[400] text-[#595a5d] outline-none placeholder:text-[#595a5d]"
           onChange={(event) => onChangeInput?.(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {

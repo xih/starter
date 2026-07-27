@@ -110,7 +110,7 @@ export function AskMobileExperience({
       ) : null}
       {showConversation ? (
         <div
-          className="absolute top-[112px] right-[20px] bottom-[230px] left-[20px] overflow-y-auto pb-[28px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="absolute top-[112px] right-[20px] bottom-0 left-[20px] overflow-y-auto pb-[calc(var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           data-testid="mobile-chat-transcript"
           ref={transcriptRef}
         >
@@ -141,7 +141,7 @@ export function AskMobileExperience({
           {renderOrb}
         </div>
       ) : null}
-      <div className="absolute right-[20px] bottom-[20px] left-[20px] z-10 flex flex-col gap-[8px]">
+      <div className="absolute right-[20px] bottom-[calc(20px_+_env(safe-area-inset-bottom))] left-[20px] z-10 flex flex-col gap-[8px]">
         {isVoicePanelOpen ? (
           <VoiceParameterPanel
             className="w-full"

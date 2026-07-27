@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { cn } from "../utils";
 import { VoiceAvatar } from "./voice";
@@ -19,15 +26,47 @@ type ActiveLiveChatMessage = LiveChatMessage & {
 };
 
 export type LiveChatProps = {
+  autoScrollOnNewMessage?: boolean;
   className?: string;
   fadeDurationMs?: number;
   height?: number | string;
   initialMessageCount?: number;
+  isLayoutAnimated?: boolean;
   isPaused?: boolean;
+  isScrollable?: boolean;
+  maxRetainedMessages?: number;
   maxVisibleMessages?: number;
   messages?: LiveChatMessage[];
+  preserveExitingMessages?: boolean;
+  retainHistory?: boolean;
   streamIntervalMs?: number;
+  tone?: "light" | "dark";
+  verticalAlign?: "start" | "end";
   visibleDurationMs?: number;
+};
+
+type LiveChatModuleStreamProps = Pick<
+  LiveChatProps,
+  | "autoScrollOnNewMessage"
+  | "fadeDurationMs"
+  | "initialMessageCount"
+  | "isPaused"
+  | "maxRetainedMessages"
+  | "maxVisibleMessages"
+  | "messages"
+  | "streamIntervalMs"
+  | "tone"
+  | "visibleDurationMs"
+>;
+
+export type LiveChatModuleProps = LiveChatModuleStreamProps & {
+  chatClassName?: string;
+  className?: string;
+  defaultMinimized?: boolean;
+  height?: number | string;
+  isMinimized?: boolean;
+  label?: string;
+  onMinimizedChange?: (isMinimized: boolean) => void;
 };
 
 const avatarUrl = (handle: string) => `https://unavatar.io/twitter/${handle}`;
@@ -195,23 +234,30 @@ export function LiveChatMessageRow({
   blur = 0,
   opacity = 1,
   fadeDurationMs = 900,
+  isLayoutAnimated = true,
+  tone = "light",
 }: {
   blur?: number;
   className?: string;
   fadeDurationMs?: number;
+  isLayoutAnimated?: boolean;
   message: LiveChatMessage;
   opacity?: number;
+  tone?: "light" | "dark";
 }) {
   return (
     <motion.article
       aria-label={`${message.handle}: ${message.text}`}
       className={cn(
-        "gap-token-8 px-token-8 py-token-4 flex w-full items-start",
-        "rounded-token-xxs hover:bg-[rgba(243,243,243,0.2)]",
+        "gap-token-8 px-token-8 py-token-4 flex w-full shrink-0 items-start",
+        "rounded-token-xxs transition-colors",
+        tone === "dark"
+          ? "hover:bg-[var(--color-background-hovered)]"
+          : "hover:bg-[rgba(243,243,243,0.2)]",
         className,
       )}
       initial={false}
-      layout="position"
+      layout={isLayoutAnimated ? "position" : false}
       animate={{
         filter: `blur(${blur}px)`,
         opacity,
@@ -231,10 +277,20 @@ export function LiveChatMessageRow({
         />
       </div>
       <div className="gap-token-4 flex min-w-0 flex-1 flex-col justify-center py-[0.5px]">
-        <p className="font-body text-caption font-semibold text-white">
+        <p
+          className={cn(
+            "font-body text-caption font-semibold",
+            tone === "dark" ? "text-[#8f8f8f]" : "text-white",
+          )}
+        >
           {message.handle}
         </p>
-        <p className="font-body text-caption font-normal [word-break:break-word] text-white">
+        <p
+          className={cn(
+            "font-body text-caption font-normal [word-break:break-word]",
+            tone === "dark" ? "text-[#121318]" : "text-white",
+          )}
+        >
           {message.text}
         </p>
       </div>
@@ -243,14 +299,22 @@ export function LiveChatMessageRow({
 }
 
 export function LiveChat({
+  autoScrollOnNewMessage = true,
   className,
   fadeDurationMs = 900,
   height,
   initialMessageCount = 4,
+  isLayoutAnimated = true,
   isPaused = false,
+  isScrollable = false,
+  maxRetainedMessages,
   maxVisibleMessages = 4,
   messages = DESIGN_TWITTER_LIVE_CHAT_MESSAGES,
+  preserveExitingMessages = true,
+  retainHistory = false,
   streamIntervalMs = 1200,
+  tone = "light",
+  verticalAlign = "end",
   visibleDurationMs = 3600,
 }: LiveChatProps) {
   const resolvedMessages = messages.length
@@ -258,9 +322,15 @@ export function LiveChat({
     : DESIGN_TWITTER_LIVE_CHAT_MESSAGES;
   const resolvedMaxVisibleMessages = Math.max(1, maxVisibleMessages);
   const messageLifetimeMs = visibleDurationMs + fadeDurationMs;
-  const activeMessageLimit =
-    resolvedMaxVisibleMessages +
-    Math.max(1, Math.ceil(fadeDurationMs / Math.max(80, streamIntervalMs)));
+  const activeMessageLimit = retainHistory
+    ? Math.max(1, maxRetainedMessages ?? resolvedMessages.length)
+    : resolvedMaxVisibleMessages +
+      (preserveExitingMessages
+        ? Math.max(
+            1,
+            Math.ceil(fadeDurationMs / Math.max(80, streamIntervalMs)),
+          )
+        : 0);
   const seededMessages = useMemo(() => {
     const count = Math.min(
       initialMessageCount,
@@ -280,6 +350,7 @@ export function LiveChat({
     });
   }, [
     initialMessageCount,
+    maxRetainedMessages,
     resolvedMaxVisibleMessages,
     resolvedMessages,
     streamIntervalMs,
@@ -287,7 +358,19 @@ export function LiveChat({
   const [activeMessages, setActiveMessages] =
     useState<ActiveLiveChatMessage[]>(seededMessages);
   const messageIndexRef = useRef(seededMessages.length);
+  const scrollRef = useRef<HTMLElement>(null);
   const [now, setNow] = useState(() => Date.now());
+  const shouldAutoScrollRef = useRef(true);
+  const trimMessages = useCallback(
+    (currentMessages: ActiveLiveChatMessage[], timestamp: number) =>
+      (retainHistory
+        ? currentMessages
+        : currentMessages.filter(
+            (message) => timestamp - message.enteredAt < messageLifetimeMs,
+          )
+      ).slice(-activeMessageLimit),
+    [activeMessageLimit, messageLifetimeMs, retainHistory],
+  );
 
   useEffect(() => {
     setActiveMessages(seededMessages);
@@ -304,16 +387,12 @@ export function LiveChat({
 
       setNow(timestamp);
       setActiveMessages((currentMessages) =>
-        currentMessages
-          .filter(
-            (message) => timestamp - message.enteredAt < messageLifetimeMs,
-          )
-          .slice(-activeMessageLimit),
+        trimMessages(currentMessages, timestamp),
       );
     }, 120);
 
     return () => window.clearInterval(tick);
-  }, [activeMessageLimit, isPaused, messageLifetimeMs]);
+  }, [isPaused, trimMessages]);
 
   useEffect(() => {
     if (isPaused) {
@@ -327,18 +406,17 @@ export function LiveChat({
         const nextMessage = getMessageAt(resolvedMessages, nextIndex);
 
         setActiveMessages((currentMessages) => {
-          const keptMessages = currentMessages.filter(
-            (message) => timestamp - message.enteredAt < messageLifetimeMs,
+          return trimMessages(
+            [
+              ...currentMessages,
+              {
+                ...nextMessage,
+                enteredAt: timestamp,
+                streamId: `${nextMessage.id}-${timestamp}`,
+              },
+            ],
+            timestamp,
           );
-
-          return [
-            ...keptMessages,
-            {
-              ...nextMessage,
-              enteredAt: timestamp,
-              streamId: `${nextMessage.id}-${timestamp}`,
-            },
-          ].slice(-activeMessageLimit);
         });
         messageIndexRef.current = nextIndex + 1;
         setNow(timestamp);
@@ -347,30 +425,77 @@ export function LiveChat({
     );
 
     return () => window.clearInterval(interval);
-  }, [
-    fadeDurationMs,
-    activeMessageLimit,
-    isPaused,
-    messageLifetimeMs,
-    resolvedMessages,
-    streamIntervalMs,
-  ]);
+  }, [isPaused, resolvedMessages, streamIntervalMs, trimMessages]);
+
+  useLayoutEffect(() => {
+    const scrollElement = scrollRef.current;
+
+    if (!scrollElement || !isScrollable || !autoScrollOnNewMessage) {
+      return;
+    }
+
+    if (!shouldAutoScrollRef.current) {
+      return;
+    }
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      scrollElement.scrollTop =
+        scrollElement.scrollHeight - scrollElement.clientHeight;
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [activeMessages.length, autoScrollOnNewMessage, isScrollable]);
+
+  const handleScroll = () => {
+    const scrollElement = scrollRef.current;
+
+    if (!scrollElement) {
+      return;
+    }
+
+    const distanceFromBottom =
+      scrollElement.scrollHeight -
+      scrollElement.scrollTop -
+      scrollElement.clientHeight;
+
+    shouldAutoScrollRef.current = distanceFromBottom < 24;
+  };
 
   return (
     <section
       aria-label="Live chat"
       className={cn(
-        "flex w-full max-w-[423px] flex-col justify-end overflow-hidden",
+        "w-full max-w-[423px]",
+        isScrollable
+          ? [
+              "block overflow-x-hidden overflow-y-auto overscroll-contain pr-[6px]",
+              "[scrollbar-color:#8f8f8f_transparent] [scrollbar-gutter:stable]",
+              "[scrollbar-width:thin] [&::-webkit-scrollbar]:w-[6px]",
+              "[&::-webkit-scrollbar-track]:bg-transparent",
+              "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#8f8f8f]",
+            ]
+          : cn(
+              "flex flex-col overflow-hidden",
+              verticalAlign === "start" ? "justify-start" : "justify-end",
+            ),
         className,
       )}
+      onScroll={isScrollable ? handleScroll : undefined}
+      ref={scrollRef}
       role="log"
       style={height === undefined ? undefined : { height }}
     >
-      <div className="gap-token-2 flex w-full flex-col justify-end">
+      <div
+        className={cn(
+          "gap-token-2 flex w-full flex-col",
+          isScrollable && "min-h-full",
+          verticalAlign === "start" ? "justify-start" : "justify-end",
+        )}
+      >
         {activeMessages.map((message) => {
           const age = now - message.enteredAt;
           const fadeProgress =
-            age <= visibleDurationMs
+            retainHistory || age <= visibleDurationMs
               ? 0
               : Math.min(1, (age - visibleDurationMs) / fadeDurationMs);
 
@@ -378,13 +503,107 @@ export function LiveChat({
             <LiveChatMessageRow
               blur={fadeProgress * 4}
               fadeDurationMs={fadeDurationMs}
+              isLayoutAnimated={isLayoutAnimated}
               key={message.streamId}
               message={message}
               opacity={1 - fadeProgress}
+              tone={tone}
             />
           );
         })}
       </div>
     </section>
+  );
+}
+
+export function LiveChatModule({
+  autoScrollOnNewMessage,
+  chatClassName,
+  className,
+  defaultMinimized = false,
+  fadeDurationMs,
+  height = 337,
+  initialMessageCount,
+  isMinimized,
+  isPaused,
+  maxRetainedMessages,
+  label = "Live Chat",
+  maxVisibleMessages,
+  messages,
+  onMinimizedChange,
+  streamIntervalMs,
+  tone = "dark",
+  visibleDurationMs,
+}: LiveChatModuleProps) {
+  const [internalMinimized, setInternalMinimized] = useState(defaultMinimized);
+  const resolvedMinimized = isMinimized ?? internalMinimized;
+
+  const toggleMinimized = () => {
+    const nextMinimized = !resolvedMinimized;
+    setInternalMinimized(nextMinimized);
+    onMinimizedChange?.(nextMinimized);
+  };
+
+  return (
+    <motion.aside
+      aria-label={label}
+      className={cn(
+        "flex w-[371px] max-w-full flex-col items-start gap-[10px] overflow-hidden rounded-[16px] bg-white p-[10px] text-[#121318]",
+        "shadow-[0_16px_40px_-8px_rgba(15,23,42,0.14),0_4px_8px_-2px_rgba(15,23,42,0.12)]",
+        className,
+      )}
+      data-state={resolvedMinimized ? "minimized" : "maximized"}
+      initial={false}
+      layout
+      transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
+    >
+      <button
+        aria-expanded={!resolvedMinimized}
+        className="font-body flex h-[20px] w-full touch-manipulation items-center gap-[10px] text-left text-[16px] leading-[20px] text-[#121318]"
+        onClick={toggleMinimized}
+        type="button"
+      >
+        <span className="min-w-0 flex-1">{label}</span>
+        <span
+          aria-hidden
+          className={cn(
+            "h-[2px] w-[21px] shrink-0 bg-[#0b0b12] transition-transform duration-200",
+            resolvedMinimized ? "rotate-90" : "rotate-0",
+          )}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {resolvedMinimized ? null : (
+          <motion.div
+            animate={{ height: "auto", opacity: 1 }}
+            className="w-full overflow-hidden"
+            exit={{ height: 0, opacity: 0 }}
+            initial={{ height: 0, opacity: 0 }}
+            key="live-chat-body"
+            transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
+          >
+            <LiveChat
+              autoScrollOnNewMessage={autoScrollOnNewMessage}
+              className={cn("max-w-none", chatClassName)}
+              fadeDurationMs={fadeDurationMs}
+              height={height}
+              initialMessageCount={initialMessageCount}
+              isLayoutAnimated={false}
+              isPaused={isPaused}
+              isScrollable
+              maxRetainedMessages={maxRetainedMessages}
+              maxVisibleMessages={maxVisibleMessages}
+              messages={messages}
+              preserveExitingMessages={false}
+              retainHistory
+              streamIntervalMs={streamIntervalMs}
+              tone={tone}
+              verticalAlign="end"
+              visibleDurationMs={visibleDurationMs}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.aside>
   );
 }

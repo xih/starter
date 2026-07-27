@@ -16,11 +16,13 @@ describe("MobilePortfolioVoiceSession", () => {
         chatMessages={[{ id: "user-1", role: "user", text: "hello" }]}
         controlState="default"
         onSelectVoice={vi.fn()}
+        renderOrb={<div className="z-20" data-testid="mobile-agent-orb" />}
         voice={voice}
         voiceOptions={[voice]}
       />,
     );
 
+    expect(screen.getByTestId("mobile-agent-orb")).toHaveClass("z-20");
     expect(screen.getByTestId("mobile-agent-control-stack")).toHaveClass(
       "bottom-[env(safe-area-inset-bottom)]",
     );

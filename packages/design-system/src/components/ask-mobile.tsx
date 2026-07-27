@@ -110,7 +110,7 @@ export function AskMobileExperience({
       ) : null}
       {showConversation ? (
         <div
-          className="absolute top-[112px] right-[20px] bottom-0 left-[20px] overflow-y-auto pb-[calc(var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="absolute top-[112px] right-[20px] bottom-0 left-[20px] overflow-y-auto pb-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           data-testid="mobile-chat-transcript"
           ref={transcriptRef}
         >
@@ -135,7 +135,7 @@ export function AskMobileExperience({
       ) : null}
       {renderOrb ? (
         <div
-          className="absolute bottom-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap))] left-1/2 z-10 -translate-x-1/2"
+          className="absolute bottom-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_env(safe-area-inset-bottom))] left-1/2 z-10 -translate-x-1/2"
           data-testid="mobile-agent-orb"
         >
           {renderOrb}

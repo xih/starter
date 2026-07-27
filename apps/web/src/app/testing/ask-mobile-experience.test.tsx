@@ -56,6 +56,20 @@ describe("AskMobileExperience", () => {
     expect(screen.getByText("Thinking")).toBeInTheDocument();
     expect(screen.getByTestId("mobile-chat-transcript")).toHaveClass(
       "bottom-0",
+      "pb-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))]",
+    );
+  });
+
+  it("moves the ask orb with the safe-area-adjusted controls", () => {
+    render(
+      <AskMobileExperience
+        messages={[{ id: "user-1", role: "user", text: "hello" }]}
+        renderOrb={<div />}
+      />,
+    );
+
+    expect(screen.getByTestId("mobile-agent-orb")).toHaveClass(
+      "bottom-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_env(safe-area-inset-bottom))]",
     );
   });
 

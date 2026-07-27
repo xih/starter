@@ -33,10 +33,10 @@ jobs:
           corepack prepare pnpm@10.10.0 --activate
 
       - name: Install dependencies
-        run: corepack pnpm install --frozen-lockfile
+        run: make ci-install
 
       - name: Check formatting
-        run: corepack pnpm format:check
+        run: make ci-format
 
   lint:
     name: Lint
@@ -57,18 +57,10 @@ jobs:
           corepack prepare pnpm@10.10.0 --activate
 
       - name: Install dependencies
-        run: corepack pnpm install --frozen-lockfile
+        run: make ci-install
 
-      - name: Run ESLint
-        run: corepack pnpm lint
-
-      - name: Run stylelint
-        run: corepack pnpm lint:styles
-
-      - name: Run project lint rules
-        run: |
-          corepack pnpm lint:ast
-          corepack pnpm lint:design-system
+      - name: Run lint checks
+        run: make ci-lint
 
   typecheck:
     name: Typecheck
@@ -89,10 +81,10 @@ jobs:
           corepack prepare pnpm@10.10.0 --activate
 
       - name: Install dependencies
-        run: corepack pnpm install --frozen-lockfile
+        run: make ci-install
 
       - name: Run typecheck
-        run: corepack pnpm typecheck
+        run: make ci-typecheck
 
   test:
     name: Test
@@ -113,10 +105,10 @@ jobs:
           corepack prepare pnpm@10.10.0 --activate
 
       - name: Install dependencies
-        run: corepack pnpm install --frozen-lockfile
+        run: make ci-install
 
       - name: Run tests
-        run: corepack pnpm test
+        run: make ci-test
 
   build:
     name: Build
@@ -137,7 +129,7 @@ jobs:
           corepack prepare pnpm@10.10.0 --activate
 
       - name: Install dependencies
-        run: corepack pnpm install --frozen-lockfile
+        run: make ci-install
 
       - name: Build
-        run: corepack pnpm build
+        run: make ci-build

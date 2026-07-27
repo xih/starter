@@ -1,9 +1,11 @@
 import {
   DESIGN_TWITTER_LIVE_CHAT_MESSAGES,
   LiveChat,
+  LiveChatModule,
 } from "@starter/design-system";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { type DialConfig, DialRoot, useDialKit } from "dialkit";
+import { useState } from "react";
 
 const LIVE_CHAT_CONTROLS = {
   variant: {
@@ -22,6 +24,7 @@ const LIVE_CHAT_CONTROLS = {
   previewHeight: [520, 92, 720, 4],
   maxVisibleMessages: [7, 1, 12, 1],
   initialMessageCount: [7, 0, 12, 1],
+  startsMinimized: false,
   isPaused: false,
 } satisfies DialConfig;
 
@@ -75,6 +78,53 @@ function LiveChatTuner() {
   );
 }
 
+function LiveChatModuleTuner() {
+  const controls = useDialKit("Live Chat Module", LIVE_CHAT_CONTROLS, {
+    persist: {
+      key: "live-chat-module-storybook",
+      storage: "localStorage",
+      presets: true,
+    },
+    shortcuts: {
+      streamIntervalMs: { key: "s", mode: "coarse" },
+      desktopVisibleDurationMs: { key: "v", mode: "coarse" },
+      desktopFadeDurationMs: { key: "f", mode: "coarse" },
+      maxVisibleMessages: { key: "m", mode: "coarse" },
+    },
+  });
+  const isMobile = controls.variant === "mobile";
+  const visibleDurationMs = isMobile
+    ? controls.mobileVisibleDurationMs
+    : controls.desktopVisibleDurationMs;
+  const fadeDurationMs = isMobile
+    ? controls.mobileFadeDurationMs
+    : controls.desktopFadeDurationMs;
+  const [isMinimized, setIsMinimized] = useState<boolean>(
+    controls.startsMinimized,
+  );
+
+  return (
+    <div className="relative flex min-h-[620px] w-full items-center justify-center bg-white p-token-32 font-body">
+      <aside className="fixed right-token-16 top-token-16 z-50 h-[348px] w-[280px] overflow-hidden">
+        <DialRoot defaultOpen mode="inline" theme="dark" productionEnabled />
+      </aside>
+      <LiveChatModule
+        className={isMobile ? "w-[362px]" : "w-[371px]"}
+        fadeDurationMs={fadeDurationMs}
+        height={337}
+        initialMessageCount={controls.initialMessageCount}
+        isMinimized={isMinimized}
+        isPaused={controls.isPaused}
+        maxVisibleMessages={controls.maxVisibleMessages}
+        messages={DESIGN_TWITTER_LIVE_CHAT_MESSAGES}
+        onMinimizedChange={setIsMinimized}
+        streamIntervalMs={controls.streamIntervalMs}
+        visibleDurationMs={visibleDurationMs}
+      />
+    </div>
+  );
+}
+
 const meta = {
   title: "Design System/Live Chat",
   component: LiveChat,
@@ -98,6 +148,39 @@ type Story = StoryObj<typeof meta>;
 
 export const DialKitTuning: Story = {
   render: () => <LiveChatTuner />,
+};
+
+export const ModuleInteractions: Story = {
+  render: () => <LiveChatModuleTuner />,
+};
+
+export const ModuleMaximized: Story = {
+  render: () => (
+    <LiveChatModule
+      fadeDurationMs={600}
+      height={337}
+      initialMessageCount={4}
+      maxVisibleMessages={4}
+      messages={DESIGN_TWITTER_LIVE_CHAT_MESSAGES}
+      streamIntervalMs={640}
+      visibleDurationMs={3600}
+    />
+  ),
+};
+
+export const ModuleMinimized: Story = {
+  render: () => (
+    <LiveChatModule
+      defaultMinimized
+      fadeDurationMs={600}
+      height={337}
+      initialMessageCount={4}
+      maxVisibleMessages={4}
+      messages={DESIGN_TWITTER_LIVE_CHAT_MESSAGES}
+      streamIntervalMs={640}
+      visibleDurationMs={3600}
+    />
+  ),
 };
 
 export const Desktop: Story = {

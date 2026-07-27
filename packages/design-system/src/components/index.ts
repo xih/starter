@@ -53,7 +53,9 @@ export { PortfolioFooter, type PortfolioFooterProps } from "./portfolio-footer";
 export {
   DESIGN_TWITTER_LIVE_CHAT_MESSAGES,
   LiveChat,
+  LiveChatModule,
   LiveChatMessageRow,
   type LiveChatMessage,
+  type LiveChatModuleProps,
   type LiveChatProps,
 } from "./live-chat";

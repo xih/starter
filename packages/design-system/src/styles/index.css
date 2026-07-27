@@ -14,7 +14,7 @@
   --ds-agent-mobile-orb-gap: var(--spacing-16);
   --ds-agent-mobile-transcript-gap: var(--spacing-24);
   --ds-agent-mobile-orb-size: 66px;
-  --ds-agent-mobile-orb-connecting-size: 162px;
+  --ds-agent-mobile-orb-connecting-size: 66px;
 }
 
 @keyframes ds-text-shimmer {

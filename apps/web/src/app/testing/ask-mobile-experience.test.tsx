@@ -1,4 +1,7 @@
-import { AskMobileExperience } from "@starter/design-system";
+import {
+  agentControlBarLayout,
+  AskMobileExperience,
+} from "@starter/design-system";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -29,6 +32,10 @@ describe("AskMobileExperience", () => {
       target: { value: "hello there" },
     });
     expect(onChangeInput).toHaveBeenCalledWith("hello there");
+    expect(screen.getByLabelText("Message")).toHaveClass(
+      "text-[16px]",
+      "scale-[0.875]",
+    );
 
     fireEvent.click(screen.getByLabelText("Send message"));
     expect(onSend).toHaveBeenCalledWith("hello");
@@ -47,5 +54,27 @@ describe("AskMobileExperience", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText("hello")).toBeInTheDocument();
     expect(screen.getByText("Thinking")).toBeInTheDocument();
+    expect(screen.getByTestId("mobile-chat-transcript")).toHaveClass(
+      "bottom-0",
+      "pb-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))]",
+    );
+  });
+
+  it("moves the ask orb with the safe-area-adjusted controls", () => {
+    render(
+      <AskMobileExperience
+        messages={[{ id: "user-1", role: "user", text: "hello" }]}
+        renderOrb={<div />}
+      />,
+    );
+
+    expect(screen.getByTestId("mobile-agent-orb")).toHaveClass(
+      "bottom-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_env(safe-area-inset-bottom))]",
+    );
+  });
+
+  it("keeps the mobile orb size stable across connection states", () => {
+    expect(agentControlBarLayout.mobileConnectingOrbSize).toBe(66);
+    expect(agentControlBarLayout.mobileOrbSize).toBe(66);
   });
 });

@@ -63,7 +63,7 @@ export function MobilePortfolioVoiceSession({
       <MobileTranscript messages={chatMessages} pending={pending} />
       {hasStartupError ? null : renderOrb}
       <div
-        className="absolute bottom-0 left-[20px] right-[20px] z-20 flex flex-col gap-[8px]"
+        className="absolute bottom-[env(safe-area-inset-bottom)] left-[20px] right-[20px] z-20 flex flex-col gap-[8px]"
         data-testid="mobile-agent-control-stack"
       >
         {hasStartupError ? (
@@ -117,9 +117,12 @@ function MobileTranscript({
     : messages;
 
   return (
-    <div className="absolute bottom-[calc(var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap))] left-0 right-0 top-[96px] z-10 overflow-hidden">
+    <div
+      className="absolute bottom-0 left-0 right-0 top-[96px] z-10 overflow-hidden"
+      data-testid="mobile-portfolio-transcript"
+    >
       <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex min-h-full flex-col gap-[28px]">
+        <div className="flex min-h-full flex-col gap-[28px] pb-[calc(var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))]">
           {transcriptMessages.map((message) => (
             <ChatMessageWithSources key={message.id} message={message}>
               <DesignChatMessage

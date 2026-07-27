@@ -10,7 +10,7 @@
     "dev:local": "corepack pnpm --filter @starter/web dev:local",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx,json,css}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx,json,css}\" --cache",
-    "lint": "corepack pnpm --filter @starter/web lint",
+    "lint": "corepack pnpm lint:ast && corepack pnpm --filter @starter/web lint",
     "lint:ast": "node scripts/lint-ast.mjs",
     "lint:design-system": "node scripts/lint-design-system.mjs",
     "lint:fix": "corepack pnpm --filter @starter/web lint:fix",

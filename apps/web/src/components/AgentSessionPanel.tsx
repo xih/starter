@@ -396,7 +396,7 @@ function DesktopPanel({
 
   return (
     <section
-      className="relative flex h-[924px] w-[440px] flex-col items-start overflow-hidden border-l border-[rgba(13,13,13,0.05)] bg-white pl-px"
+      className="relative flex h-[924px] w-[440px] flex-col items-start overflow-hidden border-l border-[rgba(13,13,13,0.05)] bg-white pl-px text-[#121318]"
       data-livekit-state={state}
       data-panel-variant="desktop"
     >
@@ -516,7 +516,7 @@ function MobileCard({
 
   return (
     <div
-      className="relative h-[874px] w-[402px] overflow-hidden bg-white"
+      className="relative h-[874px] w-[402px] overflow-hidden bg-white text-[#121318]"
       data-livekit-state={state}
       data-panel-variant="mobile"
     >

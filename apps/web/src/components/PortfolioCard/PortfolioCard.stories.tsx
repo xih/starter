@@ -28,7 +28,7 @@ export const DesktopGrid: Story = {
     layout: "fullscreen",
   },
   render: () => (
-    <main className="min-h-screen bg-white px-token-24 py-token-48 text-text-primary md:px-[116px] md:py-token-64">
+    <main className="min-h-screen bg-white px-token-24 py-token-48 text-[#121318] md:px-[116px] md:py-token-64">
       <section className="grid gap-token-24">
         <h2 className="font-title text-title text-text-primary">
           Case Studies
@@ -46,7 +46,7 @@ export const MobileStack: Story = {
     },
   },
   render: () => (
-    <main className="w-[390px] max-w-full bg-white px-token-16 py-token-32 text-text-primary">
+    <main className="w-[390px] max-w-full bg-white px-token-16 py-token-32 text-[#121318]">
       <section className="grid gap-token-20">
         <h2 className="font-title text-title text-text-primary">
           Case Studies

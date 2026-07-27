@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { cn } from "../utils";
 import { VoiceAvatar } from "./voice";
@@ -26,6 +26,7 @@ export type LiveChatProps = {
   isPaused?: boolean;
   maxVisibleMessages?: number;
   messages?: LiveChatMessage[];
+  reserveFadingMessages?: boolean;
   streamIntervalMs?: number;
   visibleDurationMs?: number;
 };
@@ -189,19 +190,21 @@ const getMessageAt = (
   ] ??
   FALLBACK_LIVE_CHAT_MESSAGE;
 
-export function LiveChatMessageRow({
-  className,
-  message,
-  blur = 0,
-  opacity = 1,
-  fadeDurationMs = 900,
-}: {
+type LiveChatMessageRowProps = {
   blur?: number;
   className?: string;
   fadeDurationMs?: number;
   message: LiveChatMessage;
   opacity?: number;
-}) {
+};
+
+export const LiveChatMessageRow = forwardRef<
+  HTMLElement,
+  LiveChatMessageRowProps
+>(function LiveChatMessageRow(
+  { className, message, blur = 0, opacity = 1, fadeDurationMs = 900 },
+  ref,
+) {
   return (
     <motion.article
       aria-label={`${message.handle}: ${message.text}`}
@@ -210,6 +213,7 @@ export function LiveChatMessageRow({
         "rounded-token-xxs hover:bg-[rgba(243,243,243,0.2)]",
         className,
       )}
+      ref={ref}
       initial={false}
       layout="position"
       animate={{
@@ -220,6 +224,10 @@ export function LiveChatMessageRow({
         filter: { duration: fadeDurationMs / 1000, ease: "easeOut" },
         layout: { duration: 0.28, ease: [0.2, 0, 0, 1] },
         opacity: { duration: fadeDurationMs / 1000, ease: "easeOut" },
+      }}
+      exit={{
+        filter: "blur(4px)",
+        opacity: 0,
       }}
     >
       <div className="pt-token-4 flex w-[32px] shrink-0 items-start">
@@ -240,7 +248,9 @@ export function LiveChatMessageRow({
       </div>
     </motion.article>
   );
-}
+});
+
+LiveChatMessageRow.displayName = "LiveChatMessageRow";
 
 export function LiveChat({
   className,
@@ -250,6 +260,7 @@ export function LiveChat({
   isPaused = false,
   maxVisibleMessages = 4,
   messages = DESIGN_TWITTER_LIVE_CHAT_MESSAGES,
+  reserveFadingMessages = true,
   streamIntervalMs = 1200,
   visibleDurationMs = 3600,
 }: LiveChatProps) {
@@ -260,7 +271,9 @@ export function LiveChat({
   const messageLifetimeMs = visibleDurationMs + fadeDurationMs;
   const activeMessageLimit =
     resolvedMaxVisibleMessages +
-    Math.max(1, Math.ceil(fadeDurationMs / Math.max(80, streamIntervalMs)));
+    (reserveFadingMessages
+      ? Math.max(1, Math.ceil(fadeDurationMs / Math.max(80, streamIntervalMs)))
+      : 0);
   const seededMessages = useMemo(() => {
     const count = Math.min(
       initialMessageCount,
@@ -352,6 +365,7 @@ export function LiveChat({
     activeMessageLimit,
     isPaused,
     messageLifetimeMs,
+    reserveFadingMessages,
     resolvedMessages,
     streamIntervalMs,
   ]);
@@ -367,23 +381,25 @@ export function LiveChat({
       style={height === undefined ? undefined : { height }}
     >
       <div className="gap-token-2 flex w-full flex-col justify-end">
-        {activeMessages.map((message) => {
-          const age = now - message.enteredAt;
-          const fadeProgress =
-            age <= visibleDurationMs
-              ? 0
-              : Math.min(1, (age - visibleDurationMs) / fadeDurationMs);
+        <AnimatePresence initial={false} mode="popLayout">
+          {activeMessages.map((message) => {
+            const age = now - message.enteredAt;
+            const fadeProgress =
+              age <= visibleDurationMs
+                ? 0
+                : Math.min(1, (age - visibleDurationMs) / fadeDurationMs);
 
-          return (
-            <LiveChatMessageRow
-              blur={fadeProgress * 4}
-              fadeDurationMs={fadeDurationMs}
-              key={message.streamId}
-              message={message}
-              opacity={1 - fadeProgress}
-            />
-          );
-        })}
+            return (
+              <LiveChatMessageRow
+                blur={fadeProgress * 4}
+                fadeDurationMs={fadeDurationMs}
+                key={message.streamId}
+                message={message}
+                opacity={1 - fadeProgress}
+              />
+            );
+          })}
+        </AnimatePresence>
       </div>
     </section>
   );

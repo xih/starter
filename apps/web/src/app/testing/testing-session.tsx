@@ -12,7 +12,14 @@ import {
 } from "@starter/design-system";
 import { ConnectionState, TokenSource } from "livekit-client";
 import { Loader2, Mic, Play, Square, Wifi, WifiOff } from "lucide-react";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import {
   AgentSideBar,
@@ -208,32 +215,49 @@ function TestingSessionLayout({
     resolvedPersonas[0];
   const selectedVoice = personaToVoice(selectedPersona);
   const voiceOptions = resolvedPersonas.map(personaToVoice);
+  const agentIdentity = getPersonaSwitchRpcIdentity(controller.agent);
   const switchPersonaTts = usePersonaSwitchRpc({
-    agentIdentity: getPersonaSwitchRpcIdentity(controller.agent),
+    agentIdentity,
     localParticipant: session.room.localParticipant,
     roomName,
     userId: agentMetadata.user_id,
   });
+  const pendingPersonaIdRef = useRef<string | null>(null);
+  const canSwitchPersona = controller.isConnected && Boolean(agentIdentity);
+  const applyPersonaSwitch = useCallback(
+    (personaId: string) => {
+      void switchPersonaTts({ personaId }).catch((error) => {
+        console.error("Testing persona TTS switch failed", error);
+      });
+    },
+    [switchPersonaTts],
+  );
+
+  useEffect(() => {
+    const pendingPersonaId = pendingPersonaIdRef.current;
+
+    if (!pendingPersonaId || !canSwitchPersona) {
+      return;
+    }
+
+    pendingPersonaIdRef.current = null;
+    applyPersonaSwitch(pendingPersonaId);
+  }, [applyPersonaSwitch, canSwitchPersona]);
+
   const selectPersona = useCallback(
     (personaId: string) => {
       if (personaId === selectedPersonaId) return;
 
       onSelectPersona?.(personaId);
 
-      if (!controller.isConnected) {
+      if (!canSwitchPersona) {
+        pendingPersonaIdRef.current = personaId;
         return;
       }
 
-      void switchPersonaTts({ personaId }).catch((error) => {
-        console.error("Testing persona TTS switch failed", error);
-      });
+      applyPersonaSwitch(personaId);
     },
-    [
-      controller.isConnected,
-      onSelectPersona,
-      selectedPersonaId,
-      switchPersonaTts,
-    ],
+    [applyPersonaSwitch, canSwitchPersona, onSelectPersona, selectedPersonaId],
   );
   const selectVoice = useCallback(
     (voice: VoiceOption) => {

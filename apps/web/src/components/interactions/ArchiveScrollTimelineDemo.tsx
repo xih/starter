@@ -123,7 +123,6 @@ function ArchiveScrollTimelineExperience({
   const reducedMotion = usePrefersReducedMotion(reducedMotionOverride);
   const displayPhase = forcedPhase ?? phase;
   const displayProgress = forcedProgress ?? progress;
-  const displayHover = forcedHover ?? hovering;
   const displayFullscreen = localFullscreen;
   const activeSection = useMemo(
     () => getActiveSection(pattern.sections, displayProgress),
@@ -502,7 +501,7 @@ function ArchiveScrollTimelineExperience({
 
       <ScrollTimelineRail
         activeSectionId={selectedSectionId ?? activeSection.id}
-        forceVisible={displayHover || displayPhase !== "idle"}
+        forceVisible
         indicatorBlue={controls.indicatorBlue}
         labelActiveScale={controls.labelActiveScale}
         labelPressedScale={controls.labelPressedScale}

@@ -14,6 +14,7 @@
     "lint:ast": "node scripts/lint-ast.mjs",
     "lint:classnames": "node scripts/lint-token-classnames.mjs",
     "lint:classnames:fix": "node scripts/lint-token-classnames.mjs --fix",
+    "lint:classnames:test": "node --test scripts/lint-token-classnames.test.mjs",
     "lint:design-system": "node scripts/lint-design-system.mjs",
     "lint:fix": "corepack pnpm --filter @starter/web lint:fix",
     "lint:styles": "stylelint \"apps/web/src/**/*.css\" \"packages/tokens/dist/css/**/*.css\" && node scripts/lint-style-tokens.mjs",
@@ -33,8 +34,6 @@
     "chromatic": "^17.6.0",
     "concurrently": "^10.0.3",
     "http-server": "^14.1.1",
-    "husky": "^9.1.7",
-    "lint-staged": "^17.2.0",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "stylelint": "^17.13.0",
@@ -46,13 +45,6 @@
   },
   "engines": {
     "node": ">=22.12.0"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,jsx,mdx}": [
-      "node scripts/lint-token-classnames.mjs --fix",
-      "prettier --write"
-    ],
-    "*.{js,json,css,md}": "prettier --write"
   },
   "packageManager": "pnpm@10.10.0"
 }

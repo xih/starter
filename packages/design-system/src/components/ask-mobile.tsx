@@ -110,7 +110,7 @@ export function AskMobileExperience({
       ) : null}
       {showConversation ? (
         <div
-          className="absolute top-[112px] right-token-20 bottom-0 left-token-20 overflow-y-auto pb-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="right-token-20 left-token-20 absolute bottom-0 top-[112px] overflow-y-auto pb-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           data-testid="mobile-chat-transcript"
           ref={transcriptRef}
         >
@@ -141,7 +141,7 @@ export function AskMobileExperience({
           {renderOrb}
         </div>
       ) : null}
-      <div className="absolute right-token-20 bottom-[calc(20px_+_env(safe-area-inset-bottom))] left-token-20 z-10 flex flex-col gap-token-8">
+      <div className="right-token-20 left-token-20 gap-token-8 absolute bottom-[calc(20px_+_env(safe-area-inset-bottom))] z-10 flex flex-col">
         {isVoicePanelOpen ? (
           <VoiceParameterPanel
             className="w-full"

@@ -277,7 +277,7 @@ function StatusText({
   return (
     <span
       className={cn(
-        "relative inline-flex h-[18px] shrink-0 items-center whitespace-nowrap font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-medium)] leading-[var(--font-line-height-lh-body)] text-[var(--color-text-inverse)]",
+        "relative inline-flex h-[18px] shrink-0 items-center whitespace-nowrap font-body text-[length:var(--font-font-size-body)] font-medium leading-lhBody text-[var(--color-text-inverse)]",
         className,
       )}
     >

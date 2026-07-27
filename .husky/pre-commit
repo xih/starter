@@ -1,2 +1,0 @@
-corepack pnpm exec lint-staged
-corepack pnpm lint:classnames

@@ -487,7 +487,7 @@ export function LiveChat({
         "w-full max-w-[423px]",
         isScrollable
           ? [
-              "block overflow-x-hidden overflow-y-auto overscroll-contain pr-[6px]",
+              "block overflow-y-auto overflow-x-hidden overscroll-contain pr-[6px]",
               "[scrollbar-color:#8f8f8f_transparent] [scrollbar-gutter:stable]",
               "[scrollbar-width:thin] [&::-webkit-scrollbar]:w-[6px]",
               "[&::-webkit-scrollbar-track]:bg-transparent",
@@ -569,7 +569,7 @@ export function LiveChatModule({
     <motion.aside
       aria-label={label}
       className={cn(
-        "flex w-[371px] max-w-full flex-col items-start gap-[10px] overflow-hidden rounded-[16px] bg-white p-[10px] text-[#121318]",
+        "rounded-token-m flex w-[371px] max-w-full flex-col items-start gap-[10px] overflow-hidden bg-white p-[10px] text-[#121318]",
         "shadow-[0_16px_40px_-8px_rgba(15,23,42,0.14),0_4px_8px_-2px_rgba(15,23,42,0.12)]",
         className,
       )}
@@ -580,7 +580,7 @@ export function LiveChatModule({
     >
       <button
         aria-expanded={!resolvedMinimized}
-        className="font-body flex h-[20px] w-full touch-manipulation items-center gap-[10px] text-left text-[16px] leading-[20px] text-[#121318]"
+        className="font-body h-token-20 flex w-full touch-manipulation items-center gap-[10px] text-left text-[16px] leading-[20px] text-[#121318]"
         onClick={toggleMinimized}
         type="button"
       >
@@ -588,7 +588,7 @@ export function LiveChatModule({
         <span
           aria-hidden
           className={cn(
-            "h-[2px] w-[21px] shrink-0 bg-[#0b0b12] transition-transform duration-200",
+            "h-token-2 w-[21px] shrink-0 bg-[#0b0b12] transition-transform duration-200",
             resolvedMinimized ? "rotate-90" : "rotate-0",
           )}
         />

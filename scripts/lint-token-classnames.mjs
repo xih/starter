@@ -1,11 +1,15 @@
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import ts from "typescript";
+
+import { tokens } from "../packages/tokens/dist/tailwind/tokens.mjs";
 
 const rootPath = path.resolve(new URL("..", import.meta.url).pathname);
-const tokenCssPath = path.join(
+const tokenValuesPath = path.join(
   rootPath,
-  "packages/tokens/dist/css/variables.css",
+  "packages/tokens/dist/json/light.json",
 );
+const tailwindConfigPath = path.join(rootPath, "apps/web/tailwind.config.ts");
 const defaultTargets = [
   path.join(rootPath, "apps/web/src"),
   path.join(rootPath, "packages/design-system/src"),
@@ -14,8 +18,8 @@ const args = process.argv.slice(2);
 const shouldFix = args.includes("--fix");
 const explicitFiles = args.filter((arg) => arg !== "--fix");
 const sourceExtensions = new Set([".ts", ".tsx", ".jsx", ".mdx"]);
-
-const spacingPrefixes = new Set([
+const classHelperNames = new Set(["cn", "clsx", "cva", "twMerge"]);
+const spacingUtilityPrefixes = new Set([
   "basis",
   "bottom",
   "end",
@@ -75,8 +79,7 @@ const spacingPrefixes = new Set([
   "top",
   "w",
 ]);
-
-const radiusPrefixes = new Set([
+const radiusUtilityPrefixes = new Set([
   "rounded",
   "rounded-b",
   "rounded-bl",
@@ -94,37 +97,24 @@ const radiusPrefixes = new Set([
   "rounded-tr",
 ]);
 
-const tokenCss = await readFile(tokenCssPath, "utf8");
-const tokenClassMaps = {
-  spacing: readCssTokenMap(tokenCss, "--spacing-", "token-"),
-  radius: readCssTokenMap(tokenCss, "--radius-", "token-"),
-  fontSize: readCssTokenEntries(tokenCss, "--font-font-size-"),
-  lineHeight: readCssTokenMap(tokenCss, "--font-line-height-", ""),
-  fontWeight: readCssTokenMap(tokenCss, "--font-font-weight-", ""),
-};
+const tokenValues = buildTokenValueMap(
+  JSON.parse(await readFile(tokenValuesPath, "utf8")),
+);
+const configuredFontSizeUtilities = readConfiguredFontSizeUtilities(
+  await readFile(tailwindConfigPath, "utf8"),
+);
+const configuredTokenClasses = buildConfiguredTokenClasses();
 const files = await resolveTargetFiles(explicitFiles);
 const failures = [];
 
 for (const file of files) {
   const source = await readFile(file, "utf8");
-  const replacements = [];
+  const replacements = collectClassTokenReplacements(file, source);
 
-  for (const tokenMatch of source.matchAll(
-    /(?<![\w/.-])(?<token>-?[\w:[\]()>+&.-]+-\[[^\]\s"'`]+\])/g,
-  )) {
-    const classToken = tokenMatch.groups.token;
-    const replacement = getTokenClassReplacement(classToken);
-
-    if (!replacement || replacement === classToken) continue;
-
-    const start = tokenMatch.index;
-    const end = start + classToken.length;
-    const line = source.slice(0, start).split("\n").length;
-
+  for (const replacement of replacements) {
     failures.push(
-      `${path.relative(rootPath, file)}:${line}: use \`${replacement}\` instead of \`${classToken}\``,
+      `${path.relative(rootPath, file)}:${replacement.line}: use \`${replacement.replacement}\` instead of \`${replacement.classToken}\``,
     );
-    replacements.push({ start, end, replacement });
   }
 
   if (shouldFix && replacements.length > 0) {
@@ -147,37 +137,107 @@ if (failures.length > 0 && shouldFix) {
   console.log("Token className lint passed.");
 }
 
-function readCssTokenMap(source, variablePrefix, classPrefix) {
-  const map = new Map();
-  const entries = readCssTokenEntries(source, variablePrefix);
-
-  for (const [value, tokens] of entries) {
-    if (tokens.length !== 1) continue;
-    map.set(value, `${classPrefix}${toTailwindTokenKey(tokens[0])}`);
-  }
-
-  return map;
-}
-
-function readCssTokenEntries(source, variablePrefix) {
-  const entries = new Map();
-  const pattern = new RegExp(
-    `${escapeRegExp(variablePrefix)}([\\w-]+):\\s*([^;]+);`,
-    "g",
+function collectClassTokenReplacements(file, source) {
+  const sourceFile = ts.createSourceFile(
+    file,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    getScriptKind(file),
   );
+  const replacements = [];
 
-  for (const [, key, rawValue] of source.matchAll(pattern)) {
-    const value = rawValue.trim();
-    const tokens = entries.get(value) ?? [];
-    tokens.push(key);
-    entries.set(value, tokens);
-  }
+  const inspectClassNode = (node) => {
+    if (isStringLike(node)) {
+      inspectClassString(
+        source,
+        node.text,
+        getStringContentStart(node),
+        replacements,
+      );
+      return;
+    }
 
-  return entries;
+    if (ts.isTemplateExpression(node)) {
+      inspectTemplateExpression(source, node, replacements);
+      ts.forEachChild(node, inspectClassNode);
+      return;
+    }
+
+    ts.forEachChild(node, inspectClassNode);
+  };
+
+  const inspectJsxClassInitializer = (initializer) => {
+    if (!initializer) return;
+
+    if (ts.isStringLiteral(initializer)) {
+      inspectClassNode(initializer);
+      return;
+    }
+
+    if (ts.isJsxExpression(initializer) && initializer.expression) {
+      inspectClassNode(initializer.expression);
+    }
+  };
+
+  const visit = (node) => {
+    if (ts.isJsxAttribute(node) && isClassAttributeName(node.name.text)) {
+      inspectJsxClassInitializer(node.initializer);
+      return;
+    }
+
+    if (ts.isCallExpression(node) && isClassHelperCall(node.expression)) {
+      for (const argument of node.arguments) {
+        inspectClassNode(argument);
+      }
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return replacements;
 }
 
-function toTailwindTokenKey(key) {
-  return key.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+function inspectClassString(source, classString, contentStart, replacements) {
+  for (const match of classString.matchAll(
+    /[\w!:[\]()>+&./-]+-\[[^\]\s"'`]+\]/g,
+  )) {
+    const classToken = match[0];
+    const replacement = getTokenClassReplacement(classToken);
+
+    if (!replacement || replacement === classToken) continue;
+
+    const start = contentStart + match.index;
+    const end = start + classToken.length;
+    const line = source.slice(0, start).split("\n").length;
+
+    replacements.push({ start, end, line, classToken, replacement });
+  }
+}
+
+function inspectTemplateExpression(source, node, replacements) {
+  inspectTemplateLiteralChunk(source, node.head, replacements);
+
+  for (const span of node.templateSpans) {
+    inspectTemplateLiteralChunk(source, span.literal, replacements);
+  }
+}
+
+function inspectTemplateLiteralChunk(source, node, replacements) {
+  const raw = node.getText();
+  const text = node.text;
+  const rawTextIndex = raw.indexOf(text);
+
+  if (rawTextIndex === -1) return;
+
+  inspectClassString(
+    source,
+    text,
+    node.getStart() + rawTextIndex,
+    replacements,
+  );
 }
 
 function getTokenClassReplacement(classToken) {
@@ -185,45 +245,202 @@ function getTokenClassReplacement(classToken) {
   const utility = parts.at(-1);
   const variantPrefix =
     parts.length > 1 ? `${parts.slice(0, -1).join(":")}:` : "";
-  const negativePrefix = utility.startsWith("-") ? "-" : "";
-  const unsignedUtility = negativePrefix ? utility.slice(1) : utility;
+  const importantPrefix = utility.startsWith("!") ? "!" : "";
+  const utilityWithoutImportant = importantPrefix ? utility.slice(1) : utility;
+  const negativePrefix = utilityWithoutImportant.startsWith("-") ? "-" : "";
+  const unsignedUtility = negativePrefix
+    ? utilityWithoutImportant.slice(1)
+    : utilityWithoutImportant;
   const arbitrary = unsignedUtility.match(/^(.+)-\[(.+)\]$/);
 
   if (!arbitrary) return null;
 
   const [, prefix, rawValue] = arbitrary;
-  const value = rawValue.trim();
+  const value = normalizeArbitraryValue(rawValue);
+  const tokenClass = getConfiguredClassForValue(prefix, value);
 
-  if (spacingPrefixes.has(prefix)) {
-    const tokenClass = tokenClassMaps.spacing.get(value);
-    return tokenClass
-      ? `${variantPrefix}${negativePrefix}${prefix}-${tokenClass}`
-      : null;
+  if (!tokenClass) return null;
+
+  return `${variantPrefix}${importantPrefix}${negativePrefix}${prefix}-${tokenClass}`;
+}
+
+function getConfiguredClassForValue(prefix, value) {
+  if (spacingUtilityPrefixes.has(prefix)) {
+    return getUniqueTokenClass(configuredTokenClasses.spacing, value);
   }
 
-  if (radiusPrefixes.has(prefix)) {
-    const tokenClass = tokenClassMaps.radius.get(value);
-    return tokenClass ? `${variantPrefix}${prefix}-${tokenClass}` : null;
-  }
-
-  if (prefix === "text") {
-    const tokens = tokenClassMaps.fontSize.get(value);
-    if (!tokens || tokens.length !== 1) return null;
-
-    return `${variantPrefix}text-[length:var(--font-font-size-${tokens[0]})]`;
+  if (radiusUtilityPrefixes.has(prefix)) {
+    return getUniqueTokenClass(configuredTokenClasses.radius, value);
   }
 
   if (prefix === "leading") {
-    const tokenClass = tokenClassMaps.lineHeight.get(value);
-    return tokenClass ? `${variantPrefix}leading-${tokenClass}` : null;
+    return getUniqueTokenClass(configuredTokenClasses.lineHeight, value);
   }
 
   if (prefix === "font") {
-    const tokenClass = tokenClassMaps.fontWeight.get(value);
-    return tokenClass ? `${variantPrefix}font-${tokenClass}` : null;
+    return getUniqueTokenClass(configuredTokenClasses.fontWeight, value);
+  }
+
+  if (prefix === "text") {
+    return getUniqueTokenClass(configuredTokenClasses.fontSize, value);
   }
 
   return null;
+}
+
+function getUniqueTokenClass(map, value) {
+  const candidates = map.get(value);
+
+  if (!candidates || candidates.length !== 1) return null;
+
+  return candidates[0];
+}
+
+function buildConfiguredTokenClasses() {
+  return {
+    spacing: buildTokenClassMap(tokens.spacing, (key) => `token-${key}`),
+    radius: buildTokenClassMap(tokens.borderRadius, (key) => `token-${key}`),
+    fontSize: buildFontSizeClassMap(),
+    fontWeight: buildTokenClassMap(tokens.fontWeight, (key) => key),
+    lineHeight: buildTokenClassMap(tokens.lineHeight, (key) => key),
+  };
+}
+
+function buildFontSizeClassMap() {
+  const map = new Map();
+
+  for (const [key, variable] of Object.entries(tokens.fontSize)) {
+    if (!isPropertyEquivalentFontSizeClass(key)) continue;
+
+    addClassValue(map, key, tokenValueCandidates(variable));
+  }
+
+  return map;
+}
+
+function isPropertyEquivalentFontSizeClass(key) {
+  const utility = configuredFontSizeUtilities.get(key);
+
+  return Boolean(utility && !utility.hasExtraProperties);
+}
+
+function readConfiguredFontSizeUtilities(source) {
+  const sourceFile = ts.createSourceFile(
+    tailwindConfigPath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const utilities = new Map();
+
+  const visit = (node) => {
+    if (
+      ts.isPropertyAssignment(node) &&
+      getPropertyName(node.name) === "fontSize" &&
+      ts.isObjectLiteralExpression(node.initializer)
+    ) {
+      for (const property of node.initializer.properties) {
+        if (!ts.isPropertyAssignment(property)) continue;
+
+        const utilityName = getPropertyName(property.name);
+        if (!utilityName) continue;
+
+        utilities.set(utilityName, {
+          hasExtraProperties: hasFontSizeExtraProperties(property.initializer),
+        });
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return utilities;
+}
+
+function hasFontSizeExtraProperties(initializer) {
+  if (!ts.isArrayLiteralExpression(initializer)) return false;
+
+  const options = initializer.elements[1];
+  return Boolean(
+    options &&
+    ts.isObjectLiteralExpression(options) &&
+    options.properties.length > 0,
+  );
+}
+
+function getPropertyName(name) {
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name)) {
+    return name.text;
+  }
+
+  return null;
+}
+
+function buildTokenClassMap(tokenGroup, classNameForKey) {
+  const map = new Map();
+
+  for (const [key, variable] of Object.entries(tokenGroup)) {
+    addClassValue(map, classNameForKey(key), tokenValueCandidates(variable));
+  }
+
+  return map;
+}
+
+function addClassValue(map, className, values) {
+  for (const value of values) {
+    const normalized = normalizeArbitraryValue(value);
+    const candidates = map.get(normalized) ?? [];
+
+    if (!candidates.includes(className)) {
+      candidates.push(className);
+    }
+
+    map.set(normalized, candidates);
+  }
+}
+
+function tokenValueCandidates(variable) {
+  const variableName = variable.match(/^var\(--([^)]+)\)$/)?.[1];
+  const values = [variable];
+  const resolved = variableName ? tokenValues.get(variableName) : null;
+
+  if (resolved) {
+    values.push(resolved);
+  }
+
+  return values;
+}
+
+function buildTokenValueMap(sourceTokens) {
+  const map = new Map();
+
+  for (const token of sourceTokens) {
+    map.set(token.name, normalizeTokenValue(token));
+  }
+
+  return map;
+}
+
+function normalizeTokenValue(token) {
+  if (typeof token.value !== "number") {
+    return String(token.value).trim();
+  }
+
+  if (token.name.startsWith("font-font-weight-")) {
+    return String(token.value);
+  }
+
+  return `${roundTokenNumber(token.value)}px`;
+}
+
+function roundTokenNumber(value) {
+  return Number.isInteger(value) ? value : Number(value.toFixed(4));
+}
+
+function normalizeArbitraryValue(value) {
+  return value.replace(/_/g, " ").trim();
 }
 
 function splitOutsideBrackets(value, separator) {
@@ -267,7 +484,7 @@ async function resolveTargetFiles(targets) {
         resolved.push(fullPath);
       }
     } catch {
-      // lint-staged can pass deleted files; ignore anything no longer on disk.
+      // Ignore explicit file paths that no longer exist.
     }
   }
 
@@ -302,6 +519,37 @@ function applyReplacements(source, replacements) {
   return updated;
 }
 
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function getScriptKind(file) {
+  switch (path.extname(file)) {
+    case ".tsx":
+      return ts.ScriptKind.TSX;
+    case ".jsx":
+      return ts.ScriptKind.JSX;
+    default:
+      return ts.ScriptKind.TS;
+  }
+}
+
+function isStringLike(node) {
+  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
+}
+
+function getStringContentStart(node) {
+  return node.getStart() + 1;
+}
+
+function isClassAttributeName(name) {
+  return name === "className" || name === "class";
+}
+
+function isClassHelperCall(expression) {
+  if (ts.isIdentifier(expression)) {
+    return classHelperNames.has(expression.text);
+  }
+
+  if (ts.isPropertyAccessExpression(expression)) {
+    return classHelperNames.has(expression.name.text);
+  }
+
+  return false;
 }

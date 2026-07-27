@@ -230,7 +230,7 @@ export const LiveChatMessageRow = forwardRef<
         opacity: 0,
       }}
     >
-      <div className="pt-token-4 flex w-[32px] shrink-0 items-start">
+      <div className="pt-token-4 w-token-32 flex shrink-0 items-start">
         <VoiceAvatar
           avatar={message.avatarUrl}
           className="bg-[var(--color-background-secondary)]"
@@ -242,7 +242,7 @@ export const LiveChatMessageRow = forwardRef<
         <p className="font-body text-caption font-semibold text-white">
           {message.handle}
         </p>
-        <p className="font-body text-caption font-normal [word-break:break-word] text-white">
+        <p className="font-body text-caption font-normal text-white [word-break:break-word]">
           {message.text}
         </p>
       </div>

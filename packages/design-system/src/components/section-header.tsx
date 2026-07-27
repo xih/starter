@@ -23,9 +23,9 @@ export function SectionHeader({
   title,
 }: SectionHeaderProps) {
   const rightAction: ReactNode = showSortOrder ? (
-    <span className="inline-flex items-center gap-[4px]">
+    <span className="gap-token-4 inline-flex items-center">
       <span>Newest first</span>
-      <ArrowUpDown className="size-[20px]" strokeWidth={2} />
+      <ArrowUpDown className="size-token-20" strokeWidth={2} />
     </span>
   ) : actionLabel ? (
     actionLabel
@@ -42,21 +42,21 @@ export function SectionHeader({
       {showBackButton ? (
         <button
           aria-label="Go back"
-          className="flex size-[24px] items-center justify-center text-[#121318] focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:outline-none"
+          className="size-token-24 flex items-center justify-center text-[#121318] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318]"
           onClick={onBack}
           type="button"
         >
-          <ArrowLeft className="size-[24px]" strokeWidth={2} />
+          <ArrowLeft className="size-token-24" strokeWidth={2} />
         </button>
       ) : null}
-      <div className="flex w-full flex-col items-start gap-[8px]">
-        <div className="flex min-h-[32px] w-full items-center justify-between gap-[3px]">
-          <h1 className="font-title min-w-0 flex-1 text-[28px] leading-[31.1px] font-[400] tracking-normal break-words">
+      <div className="gap-token-8 flex w-full flex-col items-start">
+        <div className="min-h-token-32 flex w-full items-center justify-between gap-[3px]">
+          <h1 className="font-title text-title leading-lhTitle font-regular min-w-0 flex-1 break-words tracking-normal">
             {title}
           </h1>
           {rightAction ? (
             <button
-              className="font-body inline-flex h-[20px] shrink-0 items-center justify-end text-[16px] leading-[19.2px] font-[400] tracking-normal text-[#121318] focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:outline-none"
+              className="font-body h-token-20 text-cta leading-lhSubtext font-regular inline-flex shrink-0 items-center justify-end tracking-normal text-[#121318] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318]"
               type="button"
             >
               {rightAction}
@@ -64,7 +64,7 @@ export function SectionHeader({
           ) : null}
         </div>
         {subtext ? (
-          <p className="font-body line-clamp-2 text-[16px] leading-[19.2px] font-[400] tracking-normal text-[#4a4a4a]">
+          <p className="font-body text-cta leading-lhSubtext font-regular line-clamp-2 tracking-normal text-[#4a4a4a]">
             {subtext}
           </p>
         ) : null}

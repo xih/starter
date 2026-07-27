@@ -25,7 +25,7 @@ export function Toast({
   return (
     <div
       className={cn(
-        "font-body flex h-[42px] w-[316px] items-center gap-[12px] rounded-[7px] px-[16px] text-[14px] leading-[20px] font-[400]",
+        "font-body gap-token-12 px-token-16 font-regular flex h-[42px] w-[316px] items-center rounded-[7px] text-[14px] leading-[20px]",
         toastClass[state],
         className,
       )}
@@ -33,7 +33,7 @@ export function Toast({
       role={state === "error" ? "alert" : "status"}
       {...props}
     >
-      <Bookmark className="size-[16px] fill-current" />
+      <Bookmark className="size-token-16 fill-current" />
       <span>{children}</span>
     </div>
   );

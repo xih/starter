@@ -197,7 +197,7 @@ function PortfolioHeader({ className = "" }: { className?: string }) {
   return (
     <nav
       aria-label="Portfolio navigation"
-      className={`absolute left-0 top-[2px] z-20 flex h-[44px] w-full items-center px-[20px] py-[12px] font-body text-[16px] font-[400] leading-[19.2px] text-white ${className}`}
+      className={`absolute left-0 top-token-2 z-20 flex h-[44px] w-full items-center px-token-20 py-token-12 font-body text-cta font-regular leading-lhSubtext text-white ${className}`}
     >
       <div className="flex w-full items-center justify-between">
         <Link
@@ -220,10 +220,10 @@ function PortfolioHeader({ className = "" }: { className?: string }) {
 function HeroCopy({ className = "" }: { className?: string }) {
   return (
     <div className={className}>
-      <h1 className="w-full max-w-[294px] font-title text-[36px] font-[400] leading-[40px] text-white md:max-w-[530px]">
+      <h1 className="w-full max-w-[294px] font-title text-[36px] font-regular leading-[40px] text-white md:max-w-[530px]">
         Dennis is a product designer based in SF
       </h1>
-      <p className="mt-[12px] w-full max-w-[294px] font-body text-[16px] font-[400] leading-[19.2px] text-white md:max-w-[536px] md:text-[24px] md:leading-[40px]">
+      <p className="mt-token-12 w-full max-w-[294px] font-body text-cta font-regular leading-lhSubtext text-white md:max-w-[536px] md:text-[24px] md:leading-[40px]">
         Previously at Nell, AGI, Krea, and Skydio.
       </p>
     </div>
@@ -304,10 +304,10 @@ function CaseStudies() {
       </section>
 
       <section className="pb-[102px] pt-[27px] md:hidden">
-        <h2 className="px-[20px] font-title text-[25px] font-[700] leading-[29px]">
+        <h2 className="px-token-20 font-title text-[25px] font-[700] leading-[29px]">
           Past Work
         </h2>
-        <PortfolioCardGrid className="mt-[10px] gap-y-[40px] px-[20px]" />
+        <PortfolioCardGrid className="mt-[10px] gap-y-token-40 px-token-20" />
       </section>
     </>
   );
@@ -350,7 +350,7 @@ function PortfolioLauncher({
           liveChatTiming={liveChatTiming}
           shaderSpeed={shaderSpeed}
         />
-        <div className="absolute bottom-[24px] left-[20px] right-[20px] z-10">
+        <div className="absolute bottom-token-24 left-token-20 right-token-20 z-10">
           <AgentControlBar
             className="w-full"
             onUseVoice={onMobileStart}

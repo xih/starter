@@ -169,7 +169,7 @@ function TestingLauncher({
         </div>
 
         <div className="flex min-h-[681px] flex-col justify-end md:hidden">
-          <div className="flex w-full flex-col gap-[8px]">
+          <div className="flex w-full flex-col gap-token-8">
             <PersonaVoiceSwitcher
               onSelectPersona={onSelectPersona}
               personas={personas}

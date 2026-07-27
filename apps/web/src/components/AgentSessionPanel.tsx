@@ -69,7 +69,7 @@ function HeaderButton({
   return (
     <button
       aria-label={label}
-      className="flex size-[32px] items-center justify-center rounded-[8px] text-[#4b4b4b]"
+      className="flex size-token-32 items-center justify-center rounded-token-xs text-[#4b4b4b]"
       type="button"
     >
       {children}
@@ -101,8 +101,8 @@ function ControlIconButton({
         pressed && "bg-[#18181b] text-white",
         !pressed && "bg-[rgba(231,0,11,0.1)]",
         disabled && "bg-[#f5f5f5] text-[#a1a1aa]",
-        split === "left" && "rounded-l-full rounded-r-none pl-[4px]",
-        split === "right" && "rounded-l-none rounded-r-full pr-[4px]",
+        split === "left" && "rounded-l-full rounded-r-none pl-token-4",
+        split === "right" && "rounded-l-none rounded-r-full pr-token-4",
         !split && "rounded-full",
       )}
       disabled={disabled}
@@ -179,8 +179,8 @@ function AgentControlDock({
       )}
       data-agent-control-dock
     >
-      <div className="flex size-full items-start gap-[4px]">
-        <div className="flex flex-1 items-start gap-[4px]">
+      <div className="flex size-full items-start gap-token-4">
+        <div className="flex flex-1 items-start gap-token-4">
           <div className="flex h-[36px] rounded-full">
             <ControlIconButton
               label={
@@ -191,13 +191,13 @@ function AgentControlDock({
               split="left"
             >
               {isMicrophoneEnabled ? (
-                <Mic className="size-[16px]" />
+                <Mic className="size-token-16" />
               ) : (
-                <MicOff className="size-[16px]" />
+                <MicOff className="size-token-16" />
               )}
             </ControlIconButton>
             <ControlIconButton label="Select microphone" split="right">
-              <ChevronDown className="size-[16px]" />
+              <ChevronDown className="size-token-16" />
             </ControlIconButton>
           </div>
           <ControlIconButton
@@ -207,9 +207,9 @@ function AgentControlDock({
             pressed={isCameraEnabled}
           >
             {isCameraEnabled ? (
-              <Camera className="size-[16px]" />
+              <Camera className="size-token-16" />
             ) : (
-              <CameraOff className="size-[16px]" />
+              <CameraOff className="size-token-16" />
             )}
           </ControlIconButton>
           <ControlIconButton
@@ -221,22 +221,22 @@ function AgentControlDock({
             pressed={isScreenShareEnabled}
           >
             {isScreenShareEnabled ? (
-              <MonitorUp className="size-[16px]" />
+              <MonitorUp className="size-token-16" />
             ) : (
-              <MonitorOff className="size-[16px]" />
+              <MonitorOff className="size-token-16" />
             )}
           </ControlIconButton>
           <ControlIconButton disabled label="Toggle transcript">
-            <TextIcon className="size-[16px]" />
+            <TextIcon className="size-token-16" />
           </ControlIconButton>
         </div>
 
         <button
-          className="flex h-[36px] shrink-0 items-center justify-center gap-[8px] rounded-full bg-[rgba(231,0,11,0.1)] px-[12px] py-[8px] text-[#3b3b3b]"
+          className="flex h-[36px] shrink-0 items-center justify-center gap-token-8 rounded-full bg-[rgba(231,0,11,0.1)] px-token-12 py-token-8 text-[#3b3b3b]"
           onClick={onDisconnect}
           type="button"
         >
-          <PhoneOff className="size-[16px]" />
+          <PhoneOff className="size-token-16" />
           <span className="font-mono text-[12px] font-bold uppercase leading-[16px] tracking-[0.6px]">
             End call
           </span>
@@ -287,17 +287,17 @@ function IntroContent({ compact = false }: { compact?: boolean }) {
 
 function DesktopHeader() {
   return (
-    <header className="h-[64px] w-full shrink-0 border-b border-[rgba(13,13,13,0.05)] bg-white px-[16px] pb-px">
+    <header className="h-token-64 w-full shrink-0 border-b border-[rgba(13,13,13,0.05)] bg-white px-token-16 pb-px">
       <div className="flex size-full items-center justify-between">
         <h2 className="whitespace-nowrap font-title text-[length:var(--font-font-size-title)] font-[var(--font-font-weight-medium)] leading-[var(--font-line-height-lh-title)] tracking-[var(--font-letter-spacing-title)] text-[#282828]">
           Talk to Dennis&apos;s Agent
         </h2>
         <div className="flex items-center gap-[6px]">
           <HeaderButton label="Start a new docs agent thread">
-            <SquarePen className="size-[16px]" />
+            <SquarePen className="size-token-16" />
           </HeaderButton>
           <HeaderButton label="Close docs agent">
-            <X className="size-[16px]" />
+            <X className="size-token-16" />
           </HeaderButton>
         </div>
       </div>
@@ -307,7 +307,7 @@ function DesktopHeader() {
 
 function AgentAvatar() {
   return (
-    <div className="flex size-[32px] shrink-0 items-center justify-center rounded-full bg-[#f4f4f5] font-sans text-[16px] leading-[28px] text-[#3f3f47]">
+    <div className="flex size-token-32 shrink-0 items-center justify-center rounded-full bg-[#f4f4f5] font-sans text-cta leading-[28px] text-[#3f3f47]">
       AI
     </div>
   );
@@ -316,24 +316,24 @@ function AgentAvatar() {
 function ChatMessage({ message }: { message: AgentSessionMessage }) {
   if (message.speaker === "user") {
     return (
-      <div className="ml-[71px] w-[343px] rounded-[9.6px] bg-[#18181b] p-[8px] font-sans text-[16px] leading-[28px] text-[#fafafa]">
+      <div className="ml-[71px] w-[343px] rounded-[9.6px] bg-[#18181b] p-token-8 font-sans text-cta leading-[28px] text-[#fafafa]">
         {message.text}
       </div>
     );
   }
 
   return (
-    <div className="flex w-full items-start gap-[12px]">
+    <div className="flex w-full items-start gap-token-12">
       <AgentAvatar />
-      <div className="min-w-0 flex-1 rounded-[9.6px] bg-[#f4f4f5] p-[8px] font-sans text-[16px] leading-[28px] text-[#09090b]">
+      <div className="min-w-0 flex-1 rounded-[9.6px] bg-[#f4f4f5] p-token-8 font-sans text-cta leading-[28px] text-[#09090b]">
         <p>{message.text}</p>
         {message.code && (
-          <pre className="mt-[8px] max-h-[150px] overflow-hidden rounded-[13.6px] border border-[#e4e4e7] bg-white p-[16px] font-mono text-[13px] leading-[22.75px] text-[#24292e]">
+          <pre className="mt-token-8 max-h-[150px] overflow-hidden rounded-[13.6px] border border-[#e4e4e7] bg-white p-token-16 font-mono text-caption leading-[22.75px] text-[#24292e]">
             <code>{message.code}</code>
           </pre>
         )}
         {message.code && message.id === "3" && (
-          <div className="mt-[8px]">
+          <div className="mt-token-8">
             <p>This creates a grid where:</p>
             <p>Columns automatically fit as many as possible</p>
             <p>Each column is at least 250px wide</p>
@@ -349,7 +349,7 @@ function ChatMessage({ message }: { message: AgentSessionMessage }) {
 
 function ChatTranscript({ messages }: { messages: AgentSessionMessage[] }) {
   return (
-    <div className="absolute left-[24px] top-[25px] flex w-[400px] flex-col gap-[16px]">
+    <div className="absolute left-token-24 top-[25px] flex w-[400px] flex-col gap-token-16">
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} />
       ))}
@@ -404,9 +404,9 @@ function DesktopPanel({
       <div className="relative h-[860px] w-[439px] shrink-0 bg-[#fcfcfc]">
         {isPreconnect && (
           <>
-            <div className="absolute left-[91px] top-[272px] size-[256px] rounded-[8px] bg-[#f3f3f3]" />
+            <div className="absolute left-[91px] top-[272px] size-[256px] rounded-token-xs bg-[#f3f3f3]" />
             <button
-              className="absolute left-[192px] top-[553px] flex h-[40px] w-[54px] items-center justify-center rounded-[8px] font-sans text-[14px] text-[#282828]"
+              className="absolute left-[192px] top-[553px] flex h-token-40 w-[54px] items-center justify-center rounded-token-xs font-sans text-[14px] text-[#282828]"
               onClick={onConnect}
               type="button"
             >
@@ -415,9 +415,9 @@ function DesktopPanel({
           </>
         )}
         {isError && (
-          <div className="absolute left-[72px] top-[264px] flex w-[296px] flex-col items-center gap-[16px] text-center">
-            <div className="flex size-[56px] items-center justify-center rounded-full bg-[rgba(231,0,11,0.1)] text-[#e7000b]">
-              <X className="size-[24px]" />
+          <div className="absolute left-[72px] top-[264px] flex w-[296px] flex-col items-center gap-token-16 text-center">
+            <div className="flex size-token-56 items-center justify-center rounded-full bg-[rgba(231,0,11,0.1)] text-[#e7000b]">
+              <X className="size-token-24" />
             </div>
             <div>
               <h3 className="font-title text-[length:var(--font-font-size-heading)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-heading)] text-[var(--color-text-primary)]">
@@ -521,15 +521,15 @@ function MobileCard({
       data-panel-variant="mobile"
     >
       <IntroContent compact />
-      <div className="absolute left-[8px] top-[450px] h-[372px] w-[381px] overflow-hidden rounded-[12px] bg-[#1e1f24]">
+      <div className="absolute left-token-8 top-[450px] h-[372px] w-[381px] overflow-hidden rounded-token-s bg-[#1e1f24]">
         {isConnected && (
-          <div className="absolute left-[56px] top-[12px] size-[270px]">
+          <div className="absolute left-token-56 top-token-12 size-[270px]">
             <AuraVisualizer dark />
           </div>
         )}
         {state === "error" && (
-          <div className="absolute left-[40px] top-[84px] flex w-[300px] flex-col items-center gap-[14px] text-center">
-            <div className="flex size-[48px] items-center justify-center rounded-full bg-[rgba(231,0,11,0.16)] text-[#ff4d55]">
+          <div className="absolute left-token-40 top-[84px] flex w-[300px] flex-col items-center gap-[14px] text-center">
+            <div className="flex size-token-48 items-center justify-center rounded-full bg-[rgba(231,0,11,0.16)] text-[#ff4d55]">
               <X className="size-[22px]" />
             </div>
             <div>
@@ -566,7 +566,7 @@ function MobileCard({
         />
       </div>
       <div className="absolute bottom-0 left-0 h-[34px] w-[402px] overflow-hidden bg-[#121318]">
-        <div className="flex h-full items-center gap-[16px] p-[8px] font-title text-[12px] uppercase leading-[18px] text-white">
+        <div className="flex h-full items-center gap-token-16 p-token-8 font-title text-[12px] uppercase leading-lhBody text-white">
           <span>2:16:05 PM</span>
           <span className="normal-case">San Francisco</span>
           <span className="normal-case">Overcast, 70°F</span>

@@ -30,7 +30,7 @@ export function Checkbox({
     <button
       aria-checked={resolvedChecked}
       className={cn(
-        "flex size-[24px] items-center justify-center rounded-[3px] border border-[#d9d9d9] bg-white text-white transition focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:ring-offset-2 focus-visible:outline-none",
+        "size-token-24 flex items-center justify-center rounded-[3px] border border-[#d9d9d9] bg-white text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:ring-offset-2",
         resolvedChecked && "border-[#121318] bg-[#121318]",
         disabled && "cursor-not-allowed opacity-45",
         className,
@@ -49,7 +49,7 @@ export function Checkbox({
       {...props}
     >
       {resolvedChecked ? (
-        <Check className="size-[16px]" strokeWidth={3} />
+        <Check className="size-token-16" strokeWidth={3} />
       ) : null}
     </button>
   );

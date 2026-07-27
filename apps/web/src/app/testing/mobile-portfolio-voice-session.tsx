@@ -63,7 +63,7 @@ export function MobilePortfolioVoiceSession({
       <MobileTranscript messages={chatMessages} pending={pending} />
       {hasStartupError ? null : renderOrb}
       <div
-        className="absolute bottom-0 left-[20px] right-[20px] z-20 flex flex-col gap-[8px]"
+        className="absolute bottom-0 left-token-20 right-token-20 z-20 flex flex-col gap-token-8"
         data-testid="mobile-agent-control-stack"
       >
         {hasStartupError ? (
@@ -145,14 +145,14 @@ function MobileStartupError({
 }) {
   return (
     <div
-      className="absolute bottom-[calc(100%_+_8px)] left-0 z-30 flex h-[42px] items-center rounded-[21px] border border-[#901923] bg-[#D6222E] pr-[8px] text-white shadow-[0_8px_18px_rgba(18,19,24,0.18)]"
+      className="absolute bottom-[calc(100%_+_8px)] left-0 z-30 flex h-[42px] items-center rounded-[21px] border border-[#901923] bg-[#D6222E] pr-token-8 text-white shadow-[0_8px_18px_rgba(18,19,24,0.18)]"
       data-testid="mobile-agent-issue-pill"
       role="alert"
       title={errorMessage}
     >
       <button
         aria-label="Retry voice connection"
-        className="flex h-full items-center gap-[10px] rounded-l-[21px] pl-[12px] pr-[10px] text-[16px] font-[700] leading-[20px]"
+        className="flex h-full items-center gap-[10px] rounded-l-[21px] pl-token-12 pr-[10px] text-cta font-[700] leading-[20px]"
         onClick={onRetry}
         type="button"
       >
@@ -160,7 +160,7 @@ function MobileStartupError({
           N
         </span>
         <span className="inline-flex items-center gap-[6px]">
-          <CircleAlert className="size-[16px]" strokeWidth={2.2} />1 Issue
+          <CircleAlert className="size-token-16" strokeWidth={2.2} />1 Issue
         </span>
       </button>
       <button

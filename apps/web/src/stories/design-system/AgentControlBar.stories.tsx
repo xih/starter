@@ -107,7 +107,7 @@ function PromptVoiceInteractionStory() {
   );
 
   return (
-    <div className="flex w-[375px] flex-col items-end gap-[8px]">
+    <div className="flex w-[375px] flex-col items-end gap-token-8">
       {isVoicePanelOpen ? (
         <VoiceParameterPanel
           onSelectVoice={(voice) => {

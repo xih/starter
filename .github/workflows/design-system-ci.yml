@@ -36,6 +36,9 @@ jobs:
       - name: Stylelint token rules
         run: corepack pnpm lint:styles
 
+      - name: Token className lint
+        run: corepack pnpm lint:classnames
+
       - name: AST structural checks
         run: corepack pnpm lint:ast
 

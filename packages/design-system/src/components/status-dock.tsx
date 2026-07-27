@@ -65,7 +65,7 @@ function StatusText({
   return (
     <span
       className={cn(
-        "font-body inline-flex h-[18px] shrink-0 items-center text-[14px] leading-[18px] font-[500] whitespace-nowrap text-white",
+        "font-body leading-lhBody inline-flex h-[18px] shrink-0 items-center whitespace-nowrap text-[14px] font-medium text-white",
         className,
       )}
     >
@@ -102,9 +102,9 @@ export function StatusDock({
       )}
       data-viewport={viewport}
     >
-      <div className="flex h-full items-center gap-[16px] px-[8px]">
-        <div className="flex items-center gap-[8px]">
-          <span className="size-[8px] rounded-full bg-[#58bd3f]" />
+      <div className="gap-token-16 px-token-8 flex h-full items-center">
+        <div className="gap-token-8 flex items-center">
+          <span className="size-token-8 rounded-full bg-[#58bd3f]" />
           <StatusText className="text-[#222329]">
             {data.visitors} visitors
           </StatusText>
@@ -117,10 +117,10 @@ export function StatusDock({
         </StatusText>
         {isDesktop ? (
           <>
-            <StatusText className="pl-[8px]">
+            <StatusText className="pl-token-8">
               {(data.weather.windInchesPerSecond ?? 19.1).toFixed(1)} in/s
             </StatusText>
-            <StatusText className="pl-[24px]">
+            <StatusText className="pl-token-24">
               {data.weather.precipitationLabel ?? "Rain"}
             </StatusText>
           </>

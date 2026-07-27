@@ -290,7 +290,7 @@ function VisitorDot() {
   return (
     <span
       aria-hidden="true"
-      className="block size-[8px] shrink-0 rounded-token-round bg-[var(--color-state-success)]"
+      className="block size-token-8 shrink-0 rounded-token-round bg-[var(--color-state-success)]"
     />
   );
 }

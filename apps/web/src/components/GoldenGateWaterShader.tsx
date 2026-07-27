@@ -75,7 +75,7 @@ export function GoldenGateWaterShader() {
       className="dark relative min-h-svh overflow-hidden bg-background bg-cover bg-center font-body text-text-primary"
       style={{ backgroundImage: `url(${scene.image})` }}
     >
-      <DialKitRoot />
+      <DialKitRoot mode="inline" theme="dark" />
       <Water
         image={scene.image}
         colorBack="#6f8588"

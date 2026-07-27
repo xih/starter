@@ -1,15 +1,3 @@
-"use client";
+import { PortfolioPage } from "./portfolio/portfolio-page";
 
-import dynamic from "next/dynamic";
-
-const GoldenGateWaterShader = dynamic(
-  () =>
-    import("~/components/GoldenGateWaterShader").then(
-      (mod) => mod.GoldenGateWaterShader,
-    ),
-  { ssr: false },
-);
-
-export default function Home() {
-  return <GoldenGateWaterShader />;
-}
+export default PortfolioPage;

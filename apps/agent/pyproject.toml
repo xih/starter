@@ -6,8 +6,8 @@ readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "httpx>=0.28.1",
-  "livekit-agents~=1.5",
-  "livekit-plugins-cartesia~=1.5",
+  "livekit-agents[openai]~=1.6",
+  "livekit-plugins-cartesia~=1.6",
   "python-dotenv>=1.2.1",
 ]
 

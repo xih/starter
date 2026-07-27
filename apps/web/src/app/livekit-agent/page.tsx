@@ -38,6 +38,10 @@ import {
   type AgentSideBarMessage,
   type AgentSideBarState,
 } from "~/components/AgentSideBar";
+import {
+  getPersonaSwitchRpcIdentity,
+  usePersonaSwitchRpc,
+} from "~/components/persona-switch-rpc";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -375,7 +379,6 @@ function LiveAgentConsole({
   manualState,
   onSessionEnded,
   onSelectPersona,
-  onRestartWithPersona,
   personas,
   roomName,
   selectedPersonaId,
@@ -388,7 +391,6 @@ function LiveAgentConsole({
   manualState: AgentSideBarState;
   onSessionEnded: () => void;
   onSelectPersona: (personaId: string) => void;
-  onRestartWithPersona: () => void;
   personas: AgentSideBarPersona[];
   roomName: string;
   selectedPersonaId: string;
@@ -423,7 +425,6 @@ function LiveAgentConsole({
         agentName={agentName}
         inputValue={inputValue}
         manualState={manualState}
-        onRestartWithPersona={onRestartWithPersona}
         onSelectPersona={onSelectPersona}
         onSessionEnded={onSessionEnded}
         personas={personas}
@@ -443,7 +444,6 @@ function LiveAgentSession({
   agentName,
   inputValue,
   manualState,
-  onRestartWithPersona,
   onSelectPersona,
   onSessionEnded,
   personas,
@@ -457,7 +457,6 @@ function LiveAgentSession({
   agentName: string;
   inputValue: string;
   manualState: AgentSideBarState;
-  onRestartWithPersona: () => void;
   onSelectPersona: (personaId: string) => void;
   onSessionEnded: () => void;
   personas: AgentSideBarPersona[];
@@ -471,6 +470,12 @@ function LiveAgentSession({
   const agent = useAgent(session);
   const sessionMessages = useSessionMessages(session);
   const { microphoneToggle } = useInputControls();
+  const switchPersonaTts = usePersonaSwitchRpc({
+    agentIdentity: getPersonaSwitchRpcIdentity(agent),
+    localParticipant: session.room.localParticipant,
+    roomName: session.room.name,
+    userId: "local-qa",
+  });
   const [toolCallStatus, dispatchToolCallStatus] = useReducer(
     toolCallStatusReducer,
     null,
@@ -516,12 +521,13 @@ function LiveAgentSession({
 
     onSelectPersona(personaId);
 
-    if (session.connectionState === ConnectionState.Disconnected) {
+    if (session.connectionState !== ConnectionState.Connected) {
       return;
     }
 
-    setManualState("switching");
-    void session.end().finally(onRestartWithPersona);
+    void switchPersonaTts({ personaId }).catch((error) => {
+      console.error("LiveKit persona TTS switch failed", error);
+    });
   };
   const startSession = useCallback(() => {
     setSessionErrorMessage(
@@ -705,6 +711,9 @@ function LiveAgentSession({
         state={state}
         personas={personas}
         selectedPersonaId={selectedPersonaId}
+        showThinkingMessage={
+          agent.state === "thinking" && messages.at(-1)?.role !== "agent"
+        }
         voiceName={
           personas.find((persona) => persona.id === selectedPersonaId)
             ?.display_name ?? "Portfolio Agent"
@@ -983,11 +992,6 @@ export default function LiveKitAgentPage() {
     setManualState("intro");
     setRoomName(createLocalAgentRoomName());
   };
-  const restartLiveSessionWithPersona = () => {
-    setRoomName(createLocalAgentRoomName());
-    setManualState("switching");
-    setSessionStartRequestId((requestId) => requestId + 1);
-  };
   const resolvedPersonas =
     personas.length > 0
       ? personas
@@ -1207,7 +1211,6 @@ export default function LiveKitAgentPage() {
                 agentName={agentName}
                 endpointAuth={endpointAuth}
                 manualState={manualState}
-                onRestartWithPersona={restartLiveSessionWithPersona}
                 onSelectPersona={setSelectedPersonaId}
                 onSessionEnded={endLiveSession}
                 personas={resolvedPersonas}

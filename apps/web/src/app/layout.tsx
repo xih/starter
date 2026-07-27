@@ -7,6 +7,7 @@ import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import { SITE_URL } from "~/config/site";
+import { DialKitRoot } from "~/components/DialKitRoot";
 import { VoiceRecorderProvider } from "~/hooks/useVoiceRecorder";
 import { TRPCReactProvider } from "~/trpc/react";
 import { Toaster } from "~/components/ui/sonner";
@@ -60,12 +61,13 @@ export default function RootLayout({
       className={`${GeistSans.variable}`}
       suppressHydrationWarning
     >
-      <body>
+      <body suppressHydrationWarning>
         <VoiceRecorderProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <TRPCReactProvider>
               {children}
               <Toaster position="bottom-right" />
+              <DialKitRoot defaultOpen={false} />
             </TRPCReactProvider>
           </ThemeProvider>
         </VoiceRecorderProvider>

@@ -21,6 +21,7 @@ export default [
       "next.config.js",
       "node_modules/**",
       "postcss.config.js",
+      "scripts/*.mjs",
       "public/ort-wasm-simd-threaded.mjs",
       "public/vad.worklet.bundle.min.js",
       "public/storybook/**",
@@ -67,6 +68,25 @@ export default [
         },
       ],
       "@typescript-eslint/require-await": "off",
+    },
+  },
+  {
+    files: ["src/app/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"],
+    ignores: ["src/components/DialKitRoot.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "dialkit",
+              importNames: ["DialRoot"],
+              message:
+                "Use ~/components/DialKitRoot so DialKit stays disabled on production routes unless explicitly enabled.",
+            },
+          ],
+        },
+      ],
     },
   },
 ];

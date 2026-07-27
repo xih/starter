@@ -23,7 +23,8 @@
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "storybook": "SKIP_ENV_VALIDATION=1 storybook dev -p 6006",
-    "build-storybook": "SKIP_ENV_VALIDATION=1 storybook build"
+    "build-storybook": "SKIP_ENV_VALIDATION=1 storybook build",
+    "test:ask-livekit": "node scripts/ask-livekit-regression.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.8",

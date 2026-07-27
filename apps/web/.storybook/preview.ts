@@ -1,6 +1,7 @@
 import "@starter/tokens/css";
 import "@starter/design-system/styles";
 import "../src/styles/globals.css";
+import "dialkit/styles.css";
 
 import type { Preview } from "@storybook/react";
 

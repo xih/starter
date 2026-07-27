@@ -15,6 +15,7 @@ import {
   guestIpCooldownKey,
   guestSessionKey,
   hashGuestIdentifier,
+  ensureGuestAgentDispatch,
   isOriginAllowed,
   issueGuestLiveKitToken,
   type GuestSessionRecord,
@@ -59,6 +60,33 @@ export function OPTIONS(request: Request) {
   });
 }
 
+export function GET(request: Request) {
+  const origin = request.headers.get("origin");
+
+  if (origin !== null && !isOriginAllowed(origin)) {
+    return jsonWithCors(
+      request,
+      { error: "Origin is not allowed to inspect LiveKit guest sessions." },
+      { status: 403 },
+    );
+  }
+
+  const env = assertGuestSessionEnv();
+
+  if (!env.ok) {
+    return jsonWithCors(
+      request,
+      {
+        error: env.error,
+        issues: env.issues,
+      },
+      { status: 500 },
+    );
+  }
+
+  return jsonWithCors(request, { ok: true }, { status: 200 });
+}
+
 function parseAgentMetadata(metadata: unknown) {
   if (typeof metadata !== "string" || !metadata.trim()) {
     return {};
@@ -74,8 +102,8 @@ function parseAgentMetadata(metadata: unknown) {
   }
 }
 
-async function getRequestedPersonaMetadata(request: Request) {
-  const body = (await request.json().catch(() => null)) as {
+function getRequestedPersonaMetadata(
+  body: {
     persona_id?: unknown;
     room_config?: {
       agents?: Array<{
@@ -83,7 +111,8 @@ async function getRequestedPersonaMetadata(request: Request) {
         metadata?: unknown;
       }>;
     };
-  } | null;
+  } | null,
+) {
   const requestedAgent = body?.room_config?.agents?.[0];
   const metadata = parseAgentMetadata(
     requestedAgent?.agent_metadata ?? requestedAgent?.metadata,
@@ -133,8 +162,20 @@ export async function POST(request: Request) {
     );
   }
 
+  const requestBody = (await request.json().catch(() => null)) as {
+    ensure_dispatch?: unknown;
+    persona_id?: unknown;
+    room_config?: {
+      agents?: Array<{
+        agent_metadata?: unknown;
+        metadata?: unknown;
+      }>;
+    };
+  } | null;
+  const shouldEnsureDispatch = requestBody?.ensure_dispatch === true;
+
   const redis = createRedis();
-  const { personaId } = await getRequestedPersonaMetadata(request);
+  const { personaId } = getRequestedPersonaMetadata(requestBody);
   const persona = await getPersona(personaId);
 
   if (!persona) {
@@ -174,6 +215,22 @@ export async function POST(request: Request) {
     Date.parse(activeRecord.expiresAt) > Date.now() &&
     isSameGuestSessionRequest(activeRecord, requestedSession)
   ) {
+    if (shouldEnsureDispatch) {
+      try {
+        await ensureGuestAgentDispatch(activeRecord);
+      } catch (error) {
+        return jsonWithCors(
+          request,
+          {
+            error:
+              error instanceof Error
+                ? `Failed to ensure LiveKit agent dispatch: ${error.message}`
+                : "Failed to ensure LiveKit agent dispatch.",
+          },
+          { status: 500 },
+        );
+      }
+    }
     const payload = await issueGuestLiveKitToken(activeRecord);
 
     return jsonWithCors(
@@ -183,6 +240,17 @@ export async function POST(request: Request) {
         reused_session: true,
       },
       { status: 200 },
+    );
+  }
+
+  if (shouldEnsureDispatch) {
+    return jsonWithCors(
+      request,
+      {
+        error: "No active LiveKit guest session is available to dispatch.",
+        code: "active_session_missing",
+      },
+      { status: 404 },
     );
   }
 
@@ -230,6 +298,22 @@ export async function POST(request: Request) {
       Date.parse(concurrentRecord.expiresAt) > Date.now() &&
       isSameGuestSessionRequest(concurrentRecord, requestedSession)
     ) {
+      if (shouldEnsureDispatch) {
+        try {
+          await ensureGuestAgentDispatch(concurrentRecord);
+        } catch (error) {
+          return jsonWithCors(
+            request,
+            {
+              error:
+                error instanceof Error
+                  ? `Failed to ensure LiveKit agent dispatch: ${error.message}`
+                  : "Failed to ensure LiveKit agent dispatch.",
+            },
+            { status: 500 },
+          );
+        }
+      }
       const payload = await issueGuestLiveKitToken(concurrentRecord);
 
       return jsonWithCors(

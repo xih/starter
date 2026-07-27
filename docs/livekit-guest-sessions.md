@@ -1,7 +1,7 @@
 # LiveKit Guest Sessions
 
 The guest LiveKit flow lets unauthenticated visitors try the portfolio voice
-agent once for 30 seconds. It is intentionally separate from the protected
+agent for up to 2 minutes. It is intentionally separate from the protected
 `/api/livekit/token` QA/admin route.
 
 ## Routes
@@ -23,22 +23,24 @@ Guest policy constants live in
 `apps/web/src/server/livekit/guest-session-config.ts`:
 
 ```ts
-LIVEKIT_GUEST_SESSION_SECONDS = 30;
+LIVEKIT_GUEST_SESSION_SECONDS = 2 * 60;
 LIVEKIT_GUEST_TOKEN_TTL_SECONDS = 45;
-LIVEKIT_GUEST_ACTIVE_TTL_SECONDS = 60;
+LIVEKIT_GUEST_ACTIVE_TTL_SECONDS = LIVEKIT_GUEST_SESSION_SECONDS;
 LIVEKIT_GUEST_CLEANUP_ENABLED =
   process.env.LIVEKIT_GUEST_CLEANUP_ENABLED === "true";
 LIVEKIT_GUEST_COOLDOWN_ENABLED = false;
-LIVEKIT_GUEST_COOLDOWN_SECONDS = 3_600;
+LIVEKIT_GUEST_COOLDOWN_SECONDS = LIVEKIT_GUEST_SESSION_SECONDS;
 LIVEKIT_GUEST_SIGNUP_URL = "/api/auth/signin";
+LIVEKIT_GUEST_ROOM_DEPARTURE_TIMEOUT_SECONDS = 5;
 ```
 
 These are product policy values, not secrets. `LIVEKIT_GUEST_CLEANUP_ENABLED`
 is read from the environment so deployments can enable QStash cleanup without
 code changes. It controls whether QStash forcibly expires the room after
-`LIVEKIT_GUEST_SESSION_SECONDS`. Leave it unset or set to `false` for local QA
-so conversations can run longer. Set it to `true` when you want the 30-second
-cap.
+`LIVEKIT_GUEST_SESSION_SECONDS`. The client also auto-disconnects after
+2 minutes, disconnects hidden tabs after a short grace period, and closes idle
+sessions that connect without conversation. LiveKit is configured to close
+empty rooms shortly after the last participant leaves.
 `LIVEKIT_GUEST_COOLDOWN_ENABLED` controls whether a browser/IP is limited to
 one completed guest trial per cooldown window. It is currently off for local
 QA, while the active-session lock still prevents parallel guest sessions from
@@ -80,6 +82,23 @@ openssl rand -base64 32
 Keep `LIVEKIT_TOKEN_AUTH_SECRET` configured too. It is still used by the
 protected QA/admin `/api/livekit/token` route, not by guest sessions.
 
+## Agent Model Provider
+
+The portfolio worker pins the model provider to OpenAI in code:
+
+```text
+AGENT_PROVIDER = "openai"
+OPENAI_API_KEY
+OPENAI_AGENT_STT_MODEL=whisper-1
+OPENAI_AGENT_LLM_MODEL=gpt-4o-mini
+OPENAI_AGENT_TTS_MODEL=tts-1
+OPENAI_AGENT_TTS_VOICE=alloy
+```
+
+This keeps rooms, dispatch, and realtime transport on LiveKit while STT, LLM,
+and TTS bypass LiveKit Inference quotas. `LIVEKIT_AGENT_PROVIDER` is ignored so
+deployments cannot accidentally switch back to LiveKit Inference.
+
 ## Upstash Setup
 
 Create one Upstash Redis database and one QStash project per environment, or
@@ -110,7 +129,7 @@ For QStash:
    - `QSTASH_NEXT_SIGNING_KEY`
 5. Store all four in the matching Infisical environment.
 
-QStash calls the public expire route after 30 seconds. The route must be
+QStash calls the public expire route after 2 minutes. The route must be
 reachable from the internet, so full cleanup cannot be validated through a
 plain `localhost:3000` URL unless you expose it with a tunnel.
 
@@ -224,8 +243,9 @@ Guest happy path:
    participant plus an `agent-*` participant.
 5. Expected while `LIVEKIT_GUEST_CLEANUP_ENABLED = false`: the room remains
    connected until the user ends it.
-6. Expected after turning `LIVEKIT_GUEST_CLEANUP_ENABLED = true`: after 30
-   seconds, QStash calls expire and the room is deleted.
+6. Expected after turning `LIVEKIT_GUEST_CLEANUP_ENABLED = true`: after
+   `LIVEKIT_GUEST_SESSION_SECONDS`, QStash calls expire and the room is
+   deleted.
 
 Guest retry while active:
 

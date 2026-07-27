@@ -1,10 +1,34 @@
 "use client";
 
 import { DialRoot } from "dialkit";
+import type { DialMode, DialPosition, DialTheme } from "dialkit";
 import { Minus, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-export function DialKitRoot() {
+import { cn } from "~/lib/utils";
+
+type DialKitRootProps = {
+  className?: string;
+  defaultOpen?: boolean;
+  mode?: DialMode;
+  position?: DialPosition;
+  theme?: DialTheme;
+};
+
+function isDialKitEnabled() {
+  return (
+    process.env.NODE_ENV !== "production" ||
+    process.env.NEXT_PUBLIC_DIALKIT_ENABLED === "true"
+  );
+}
+
+export function DialKitRoot({
+  className,
+  defaultOpen,
+  mode = "popover",
+  position,
+  theme = "system",
+}: DialKitRootProps) {
   const dragStartRef = useRef<{
     pointerX: number;
     pointerY: number;
@@ -13,7 +37,7 @@ export function DialKitRoot() {
   } | null>(null);
   const [mounted, setMounted] = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const [position, setPosition] = useState({ x: 16, y: 16 });
+  const [panelPosition, setPanelPosition] = useState({ x: 16, y: 16 });
 
   useEffect(() => {
     setMounted(true);
@@ -29,7 +53,7 @@ export function DialKitRoot() {
 
       const nextX = dragStart.x + event.clientX - dragStart.pointerX;
       const nextY = dragStart.y + event.clientY - dragStart.pointerY;
-      setPosition({
+      setPanelPosition({
         x: Math.max(8, Math.min(window.innerWidth - 72, nextX)),
         y: Math.max(8, Math.min(window.innerHeight - 40, nextY)),
       });
@@ -50,17 +74,31 @@ export function DialKitRoot() {
     };
   }, []);
 
-  if (!mounted) {
+  if (!mounted || !isDialKitEnabled()) {
     return null;
+  }
+
+  if (mode !== "inline") {
+    return (
+      <DialRoot
+        defaultOpen={defaultOpen}
+        position={position}
+        productionEnabled
+        theme={theme}
+      />
+    );
   }
 
   return (
     <aside
-      className="fixed z-[9999] overflow-hidden rounded-md border border-white/10 bg-neutral-950 text-white shadow-2xl"
+      className={cn(
+        "fixed z-[9999] overflow-hidden rounded-md border border-white/10 bg-neutral-950 text-white shadow-2xl",
+        className,
+      )}
       style={{
         height: minimized ? 40 : 388,
-        left: position.x,
-        top: position.y,
+        left: panelPosition.x,
+        top: panelPosition.y,
         width: minimized ? 56 : 280,
       }}
     >
@@ -70,8 +108,8 @@ export function DialKitRoot() {
           dragStartRef.current = {
             pointerX: event.clientX,
             pointerY: event.clientY,
-            x: position.x,
-            y: position.y,
+            x: panelPosition.x,
+            y: panelPosition.y,
           };
         }}
       >
@@ -102,7 +140,13 @@ export function DialKitRoot() {
         />
       ) : (
         <div className="h-[348px] overflow-hidden">
-          <DialRoot mode="inline" theme="dark" productionEnabled />
+          <DialRoot
+            defaultOpen={defaultOpen}
+            mode="inline"
+            position={position}
+            productionEnabled
+            theme={theme}
+          />
         </div>
       )}
     </aside>

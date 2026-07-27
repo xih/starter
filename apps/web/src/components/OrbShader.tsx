@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CanvasHTMLAttributes } from "react";
 
 import { cn } from "~/lib/utils";
 
 export type OrbShaderState = "idle" | "loading" | "thinking";
 
-export type OrbShaderProps = {
+export type OrbShaderProps = Omit<
+  CanvasHTMLAttributes<HTMLCanvasElement>,
+  "className" | "height" | "width"
+> & {
   className?: string;
   size?: number;
   state?: OrbShaderState;
@@ -16,6 +19,7 @@ export function OrbShader({
   className,
   size = 162,
   state = "loading",
+  ...props
 }: OrbShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -99,6 +103,7 @@ export function OrbShader({
       aria-label="AI thinking"
       className={cn("block rounded-full", className)}
       ref={canvasRef}
+      {...props}
     />
   );
 }

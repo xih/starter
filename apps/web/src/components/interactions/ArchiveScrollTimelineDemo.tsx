@@ -501,8 +501,10 @@ function ArchiveScrollTimelineExperience({
 
       <ScrollTimelineRail
         activeSectionId={selectedSectionId ?? activeSection.id}
+        animateIndicator={displayPhase === "zoomingIn"}
         forceVisible
         indicatorBlue={controls.indicatorBlue}
+        indicatorTransitionDurationMs={controls.zoomDurationMs}
         labelActiveScale={controls.labelActiveScale}
         labelPressedScale={controls.labelPressedScale}
         onScrubEnd={endTimelineScrub}

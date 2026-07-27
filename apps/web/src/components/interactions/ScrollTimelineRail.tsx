@@ -12,8 +12,10 @@ import type { InteractionSection, TimelinePhase } from "./types";
 
 type ScrollTimelineRailProps = {
   activeSectionId?: string;
+  animateIndicator?: boolean;
   forceVisible?: boolean;
   indicatorBlue: string;
+  indicatorTransitionDurationMs?: number;
   labelActiveScale: number;
   labelPressedScale: number;
   onScrubEnd?: (progress: number) => void;
@@ -28,8 +30,10 @@ type ScrollTimelineRailProps = {
 
 export function ScrollTimelineRail({
   activeSectionId,
+  animateIndicator,
   forceVisible,
   indicatorBlue,
+  indicatorTransitionDurationMs = 520,
   labelActiveScale,
   labelPressedScale,
   onScrubEnd,
@@ -179,6 +183,11 @@ export function ScrollTimelineRail({
             style={{
               backgroundColor: indicatorBlue,
               transform: `scaleY(${normalizedProgress})`,
+              transitionDuration: animateIndicator
+                ? `${indicatorTransitionDurationMs}ms`
+                : "0ms",
+              transitionProperty: "transform",
+              transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           />
         </div>

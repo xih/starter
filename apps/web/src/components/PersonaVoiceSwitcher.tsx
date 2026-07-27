@@ -92,7 +92,7 @@ export function PersonaVoiceSwitcher({
         aria-label="Select persona voice"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        className="flex h-[42px] w-full items-center gap-2 rounded-full border border-[var(--color-border-opaque)] bg-white px-3 text-left shadow-[0_2px_10px_rgba(18,19,24,0.06)]"
+        className="flex h-[42px] w-full items-center gap-2 rounded-full border border-[var(--color-border-opaque)] bg-white px-3 text-left text-[#121318] shadow-[0_2px_10px_rgba(18,19,24,0.06)]"
         onClick={() => setIsOpen((open) => !open)}
         type="button"
       >
@@ -118,7 +118,7 @@ export function PersonaVoiceSwitcher({
 
       {isOpen ? (
         <div
-          className="absolute bottom-full left-0 z-20 mb-2 w-full min-w-[280px] rounded-[12px] border border-[var(--color-border-opaque)] bg-white p-2 shadow-[0_18px_44px_rgba(18,19,24,0.16)]"
+          className="absolute bottom-full left-0 z-20 mb-2 w-full min-w-[280px] rounded-[12px] border border-[var(--color-border-opaque)] bg-white p-2 text-[#121318] shadow-[0_18px_44px_rgba(18,19,24,0.16)]"
           role="listbox"
         >
           {personas.map((persona) => {

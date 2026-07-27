@@ -548,7 +548,7 @@ function PortfolioMobileSessionShell({
       pending={controller.showPendingReply}
       renderOrb={
         <OrbShader
-          className="absolute bottom-[calc(var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap))] left-1/2 -translate-x-1/2"
+          className="absolute bottom-[calc(var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_env(safe-area-inset-bottom))] left-1/2 z-20 -translate-x-1/2"
           data-testid="mobile-agent-orb"
           size={controller.mobileOrbSize}
           state={

@@ -184,9 +184,7 @@ export function useLiveKitSessionController(
         ? "agent-streaming"
         : "default";
   const hasStartupError = state === "error";
-  const mobileOrbSize = isConnecting
-    ? agentControlBarLayout.mobileConnectingOrbSize
-    : agentControlBarLayout.mobileOrbSize;
+  const mobileOrbSize = agentControlBarLayout.mobileOrbSize;
   const completedSources = getCompletedSources(toolCallStatus);
   const visibleToolCallStatus = getVisibleToolCallStatus(toolCallStatus);
   const isAgentReady =

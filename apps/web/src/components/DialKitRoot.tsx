@@ -12,6 +12,12 @@ import {
 
 import { cn } from "~/lib/utils";
 
+const inlinePanelWidth = 280;
+const inlinePanelMinVisibleWidth = 288;
+const inlinePanelMinVisibleHeight = 120;
+const inlinePanelInset = 8;
+const inlinePanelTop = 88;
+
 type DialKitRootProps = {
   className?: string;
   defaultOpen?: boolean;
@@ -28,6 +34,26 @@ function isDialKitEnabled() {
   );
 }
 
+function getDefaultInlinePosition() {
+  return {
+    x: Math.max(inlinePanelInset, window.innerWidth - inlinePanelWidth - 24),
+    y: inlinePanelTop,
+  };
+}
+
+function clampInlinePosition(position: { x: number; y: number }) {
+  return {
+    x: Math.max(
+      inlinePanelInset,
+      Math.min(window.innerWidth - inlinePanelMinVisibleWidth, position.x),
+    ),
+    y: Math.max(
+      inlinePanelInset,
+      Math.min(window.innerHeight - inlinePanelMinVisibleHeight, position.y),
+    ),
+  };
+}
+
 export function DialKitRoot({
   className,
   defaultOpen,
@@ -37,7 +63,10 @@ export function DialKitRoot({
   theme = "system",
 }: DialKitRootProps) {
   const [mounted, setMounted] = useState(false);
-  const [inlinePosition, setInlinePosition] = useState({ x: 24, y: 88 });
+  const [inlinePosition, setInlinePosition] = useState({
+    x: 24,
+    y: inlinePanelTop,
+  });
   const dragStartRef = useRef<{
     pointerId: number;
     pointerX: number;
@@ -53,10 +82,19 @@ export function DialKitRoot({
   useEffect(() => {
     if (mode !== "inline") return;
 
-    setInlinePosition({
-      x: Math.max(8, window.innerWidth - 304),
-      y: 88,
-    });
+    setInlinePosition(clampInlinePosition(getDefaultInlinePosition()));
+
+    const handleResize = () => {
+      setInlinePosition((currentPosition) =>
+        clampInlinePosition(currentPosition),
+      );
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   }, [mode]);
 
   if (!mounted || !isDialKitEnabled()) {
@@ -107,10 +145,7 @@ export function DialKitRoot({
 
     const nextX = dragStart.x + event.clientX - dragStart.pointerX;
     const nextY = dragStart.y + event.clientY - dragStart.pointerY;
-    setInlinePosition({
-      x: Math.max(8, Math.min(window.innerWidth - 288, nextX)),
-      y: Math.max(8, Math.min(window.innerHeight - 120, nextY)),
-    });
+    setInlinePosition(clampInlinePosition({ x: nextX, y: nextY }));
   };
 
   const handlePointerUp = (event: PointerEvent<HTMLElement>) => {

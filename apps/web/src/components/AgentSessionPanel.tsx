@@ -307,7 +307,7 @@ function DesktopHeader() {
 
 function AgentAvatar() {
   return (
-    <div className="flex size-token-32 shrink-0 items-center justify-center rounded-full bg-[#f4f4f5] font-sans text-cta leading-[28px] text-[#3f3f47]">
+    <div className="flex size-token-32 shrink-0 items-center justify-center rounded-full bg-[#f4f4f5] font-sans text-cta font-regular leading-[28px] text-[#3f3f47]">
       AI
     </div>
   );
@@ -316,7 +316,7 @@ function AgentAvatar() {
 function ChatMessage({ message }: { message: AgentSessionMessage }) {
   if (message.speaker === "user") {
     return (
-      <div className="ml-[71px] w-[343px] rounded-[9.6px] bg-[#18181b] p-token-8 font-sans text-cta leading-[28px] text-[#fafafa]">
+      <div className="ml-[71px] w-[343px] rounded-[9.6px] bg-[#18181b] p-token-8 font-sans text-cta font-regular leading-[28px] text-[#fafafa]">
         {message.text}
       </div>
     );
@@ -325,10 +325,10 @@ function ChatMessage({ message }: { message: AgentSessionMessage }) {
   return (
     <div className="flex w-full items-start gap-token-12">
       <AgentAvatar />
-      <div className="min-w-0 flex-1 rounded-[9.6px] bg-[#f4f4f5] p-token-8 font-sans text-cta leading-[28px] text-[#09090b]">
+      <div className="min-w-0 flex-1 rounded-[9.6px] bg-[#f4f4f5] p-token-8 font-sans text-cta font-regular leading-[28px] text-[#09090b]">
         <p>{message.text}</p>
         {message.code && (
-          <pre className="mt-token-8 max-h-[150px] overflow-hidden rounded-[13.6px] border border-[#e4e4e7] bg-white p-token-16 font-mono text-caption leading-[22.75px] text-[#24292e]">
+          <pre className="mt-token-8 max-h-[150px] overflow-hidden rounded-[13.6px] border border-[#e4e4e7] bg-white p-token-16 font-mono text-caption font-regular leading-[22.75px] text-[#24292e]">
             <code>{message.code}</code>
           </pre>
         )}

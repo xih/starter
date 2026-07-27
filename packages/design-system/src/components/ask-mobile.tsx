@@ -26,6 +26,7 @@ export type AskMobileExperienceProps = {
   onEnd?: () => void;
   onRetry?: () => void;
   onSend?: (value: string) => void | Promise<void>;
+  onSelectVoice?: (voice: VoiceOption) => void;
   onStopResponse?: () => void | Promise<void>;
   onToggleMicrophone?: () => void | Promise<void>;
   pending?: boolean;
@@ -33,6 +34,7 @@ export type AskMobileExperienceProps = {
   showBackButton?: boolean;
   showHeader?: boolean;
   voice?: VoiceOption;
+  voiceOptions?: VoiceOption[];
 };
 
 export function AskMobileExperience({
@@ -49,6 +51,7 @@ export function AskMobileExperience({
   onEnd,
   onRetry,
   onSend,
+  onSelectVoice,
   onStopResponse,
   onToggleMicrophone,
   pending = false,
@@ -56,6 +59,7 @@ export function AskMobileExperience({
   showBackButton = true,
   showHeader = true,
   voice,
+  voiceOptions,
 }: AskMobileExperienceProps) {
   const transcriptRef = useRef<HTMLDivElement>(null);
   const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
@@ -70,6 +74,10 @@ export function AskMobileExperience({
       ]
     : messages;
   const sourcedMessageId = getLatestSystemMessageId(transcriptMessages);
+
+  useEffect(() => {
+    setSelectedVoice(voice);
+  }, [voice]);
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -118,7 +126,7 @@ export function AskMobileExperience({
               >
                 <ChatMessage
                   message={message}
-                  pending={message.id === "thinking"}
+                  pending={message.id === "thinking" || message.isStreaming}
                 />
               </ChatMessageWithSources>
             ))}
@@ -138,10 +146,14 @@ export function AskMobileExperience({
           <VoiceParameterPanel
             className="w-full"
             onSelectVoice={(nextVoice) => {
-              setSelectedVoice(nextVoice);
+              if (!onSelectVoice) {
+                setSelectedVoice(nextVoice);
+              }
+              onSelectVoice?.(nextVoice);
               setIsVoicePanelOpen(false);
             }}
             selectedVoiceName={(selectedVoice ?? voice)?.name}
+            voices={voiceOptions}
           />
         ) : null}
         <AgentControlBar

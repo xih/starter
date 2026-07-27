@@ -5,6 +5,31 @@ import {
   VoiceSelectorPill,
 } from "@starter/design-system";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useState } from "react";
+
+const storybookVoices = [
+  {
+    avatar: "/agent-sidebar/avatar-4.png",
+    description: "Warm, concise portfolio voice agent",
+    name: "Portfolio Agent",
+  },
+  {
+    avatar: "/agent-sidebar/avatar-1.png",
+    description: "Warm reflective confidence-focused persona",
+    name: "Wife E2E",
+  },
+  {
+    avatar: "/design-system/steve-jobs-avatar.png",
+    description: "Focused product critique voice",
+    name: "Steve Jobs",
+  },
+  {
+    avatar: "/agent-sidebar/avatar-2.png",
+    description: "Direct Cartesia Sonic voice",
+    name: "Cartesia Voice",
+  },
+];
+const defaultStorybookVoice = storybookVoices[0]!;
 
 const meta = {
   title: "Design System/Voice Selector",
@@ -53,9 +78,34 @@ export const FigmaStates: Story = {
             <MicSelector state="outlined" />
           </div>
           <VoiceSelectorPill voice={{ ...voice, name: "Masa Son" }} />
-          <VoiceParameterPanel />
+          <VoiceParameterPanel voices={storybookVoices} />
         </div>
       </div>
     );
   },
+};
+
+function PromptVoiceInteractionStory() {
+  const [selectedVoiceName, setSelectedVoiceName] = useState(
+    defaultStorybookVoice.name,
+  );
+
+  return (
+    <div className="flex items-end gap-[16px]">
+      <VoiceParameterPanel
+        onSelectVoice={(voice) => setSelectedVoiceName(voice.name)}
+        selectedVoiceName={selectedVoiceName}
+        voices={storybookVoices}
+      />
+      <VoiceSelectorPill
+        voice={storybookVoices.find(
+          (voice) => voice.name === selectedVoiceName,
+        )}
+      />
+    </div>
+  );
+}
+
+export const PromptVoiceInteraction: Story = {
+  render: () => <PromptVoiceInteractionStory />,
 };

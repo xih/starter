@@ -78,8 +78,8 @@ export function PortfolioCard({
     <article className={cn("grid w-full gap-[13px]", className)}>
       <PortfolioCardArtwork artwork={artwork} label={artworkLabel} />
 
-      <div className="grid gap-[8px] font-body text-[14px] font-[400] leading-[18px] text-[#121318]">
-        <div className="flex flex-wrap items-center gap-x-[8px] gap-y-[4px]">
+      <div className="grid gap-token-8 font-body text-[14px] font-regular leading-lhBody text-[#121318]">
+        <div className="flex flex-wrap items-center gap-x-token-8 gap-y-token-4">
           <span className="text-[#595a5d]">{year}</span>
           <span>{company}</span>
           <span className="text-[#595a5d]">{role}</span>
@@ -173,7 +173,7 @@ function PortfolioCardArtwork({
 
 function NellArtwork() {
   return (
-    <div className="absolute left-1/2 top-1/2 flex h-12 w-[171px] -translate-x-1/2 -translate-y-1/2 items-center gap-[12px]">
+    <div className="absolute left-1/2 top-1/2 flex h-12 w-[171px] -translate-x-1/2 -translate-y-1/2 items-center gap-token-12">
       <Image
         alt=""
         className="h-[42px] w-[66px]"
@@ -208,7 +208,7 @@ function AgiArtwork() {
         <div className="absolute left-[3.38%] top-[1.58%] h-[96.6%] w-[92.65%]">
           <Image
             alt=""
-            className="rounded-[4px] object-cover"
+            className="rounded-token-xxs object-cover"
             fill
             sizes="121px"
             src="/portfolio/samsung-screen.png"

@@ -27,7 +27,7 @@ export const Default: Story = {};
 
 export const FigmaStates: Story = {
   render: () => (
-    <div className="grid gap-[20px]">
+    <div className="grid gap-token-20">
       {(["default", "hovered", "selected", "disabled"] as const).map(
         (state) => (
           <DesignSystemButton buttonType="secondary" key={state} state={state}>
@@ -35,7 +35,7 @@ export const FigmaStates: Story = {
           </DesignSystemButton>
         ),
       )}
-      <div className="grid grid-cols-4 gap-[20px] pt-[40px]">
+      <div className="grid grid-cols-4 gap-token-20 pt-token-40">
         {(["default", "hovered", "selected", "disabled"] as const).map(
           (state) => (
             <DesignSystemButton

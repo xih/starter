@@ -82,7 +82,7 @@ function StatefulSwitcher() {
         </span>
       </p>
       {lastRpcCall ? (
-        <pre className="mt-4 max-h-[180px] overflow-auto rounded-[8px] bg-white p-3 text-xs text-[var(--color-text-secondary)]">
+        <pre className="mt-4 max-h-[180px] overflow-auto rounded-token-xs bg-white p-3 text-xs text-[var(--color-text-secondary)]">
           {JSON.stringify(
             {
               ...lastRpcCall,

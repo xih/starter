@@ -151,7 +151,7 @@ function HostAvatar({ index, name }: { index: number; name: string }) {
   return (
     <div
       aria-label={name}
-      className="relative size-[24px] shrink-0 overflow-hidden rounded-token-round"
+      className="relative size-token-24 shrink-0 overflow-hidden rounded-token-round"
     >
       <img
         alt=""
@@ -164,7 +164,7 @@ function HostAvatar({ index, name }: { index: number; name: string }) {
 
 function HostStack() {
   return (
-    <div className="flex h-[24px] items-center justify-center">
+    <div className="flex h-token-24 items-center justify-center">
       {hostAvatars.map((_, index) => (
         <div
           className={cn(index > 0 && "-ml-token-8")}
@@ -200,9 +200,11 @@ function PrimaryAction({
 }
 
 export function MicSelector({
+  disabled,
   enabled,
   onToggle,
 }: {
+  disabled?: boolean;
   enabled?: boolean;
   onToggle?: () => void | Promise<void>;
 }) {
@@ -219,9 +221,17 @@ export function MicSelector({
       data-state={enabled ? "listening" : "muted"}
     >
       <button
-        aria-label={enabled ? "Mute microphone" : "Unmute microphone"}
+        aria-disabled={disabled}
+        aria-label={
+          disabled
+            ? "Microphone unavailable"
+            : enabled
+              ? "Mute microphone"
+              : "Unmute microphone"
+        }
         aria-pressed={enabled}
-        className="flex h-full flex-1 items-center justify-center rounded-l-token-round pl-token-12 pr-token-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
+        className="flex h-full flex-1 items-center justify-center rounded-l-token-round pl-token-12 pr-token-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)] disabled:cursor-not-allowed disabled:opacity-55"
+        disabled={disabled}
         onClick={() => {
           void onToggle?.();
         }}
@@ -233,13 +243,15 @@ export function MicSelector({
         aria-label="Select microphone"
         className={cn(
           "relative flex h-full w-[36px] items-center justify-center rounded-r-token-round pl-token-8 pr-token-12 before:absolute before:left-0 before:top-1/2 before:h-token-16 before:w-px before:-translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]",
+          disabled && "cursor-not-allowed opacity-55",
           enabled
             ? "before:bg-[var(--color-bg-secondary)]"
             : "before:bg-[var(--color-core-negative)]",
         )}
+        disabled={disabled}
         type="button"
       >
-        <ChevronDown className="size-[16px]" strokeWidth={2.3} />
+        <ChevronDown className="size-token-16" strokeWidth={2.3} />
       </button>
     </div>
   );
@@ -264,7 +276,7 @@ export function VoiceSelector({
       onClick={onClick}
       type="button"
     >
-      <span className="relative flex size-[16px] shrink-0 items-center justify-center overflow-hidden rounded-token-round bg-[var(--color-bg-secondary)] font-body text-[length:var(--font-font-size-caption)] font-[var(--font-font-weight-semi-bold)] leading-none text-[var(--color-text-inverse-primary)]">
+      <span className="relative flex size-token-16 shrink-0 items-center justify-center overflow-hidden rounded-token-round bg-[var(--color-bg-secondary)] font-body text-[length:var(--font-font-size-caption)] font-[var(--font-font-weight-semi-bold)] leading-none text-[var(--color-text-inverse-primary)]">
         {avatar ? (
           <img
             alt=""
@@ -278,7 +290,7 @@ export function VoiceSelector({
       <span className="min-w-0 flex-1 truncate font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-text)]">
         {voiceName}
       </span>
-      <ChevronDown className="size-[12px] shrink-0 text-[var(--agent-sidebar-muted)]" />
+      <ChevronDown className="size-token-12 shrink-0 text-[var(--agent-sidebar-muted)]" />
     </button>
   );
 }
@@ -308,7 +320,7 @@ function VoicePanel({
               onClick={() => onSelect(voice.id)}
               type="button"
             >
-              <span className="relative size-[32px] shrink-0 overflow-hidden rounded-token-round">
+              <span className="relative size-token-32 shrink-0 overflow-hidden rounded-token-round">
                 {voice.avatar_url ? (
                   <img
                     alt=""
@@ -326,7 +338,7 @@ function VoicePanel({
                 </span>
               </span>
               {selected ? (
-                <Check className="size-[16px] shrink-0 text-[var(--color-core-primary-a)]" />
+                <Check className="size-token-16 shrink-0 text-[var(--color-core-primary-a)]" />
               ) : null}
             </button>
           );
@@ -353,7 +365,7 @@ function SendButton({
       onClick={onClick}
       type="button"
     >
-      <ArrowUp className="size-[20px]" />
+      <ArrowUp className="size-token-20" />
     </button>
   );
 }
@@ -366,7 +378,7 @@ function StopButton({ onClick }: { onClick?: () => void }) {
       onClick={onClick}
       type="button"
     >
-      <Square className="size-[16px] fill-current" />
+      <Square className="size-token-16 fill-current" />
     </button>
   );
 }
@@ -420,6 +432,7 @@ function AgentPromptBar({
   const hasInput = inputValue.trim().length > 0;
   const isTyping = state === "user-typing" || hasInput;
   const isStreaming = state === "agent-streaming";
+  const isMicrophoneDisabled = state === "error" || !onToggleMicrophone;
   const placeholder = "How are you feeling today?";
   const selectedVoiceOption =
     personas.find((voice) => voice.id === resolvedPersonaId) ?? personas[0];
@@ -490,6 +503,7 @@ function AgentPromptBar({
               />
             ) : null}
             <MicSelector
+              disabled={isMicrophoneDisabled}
               enabled={isMicrophoneEnabled}
               onToggle={onToggleMicrophone}
             />
@@ -604,7 +618,7 @@ function getLatestAgentMessageId(messages: AgentSideBarMessage[]) {
 
 function ErrorToast({ message }: { message: string }) {
   return (
-    <div className="mb-token-16 flex min-h-[48px] w-full items-center gap-token-12 rounded-token-m bg-[var(--color-state-error)] px-token-16 py-token-12 text-[var(--color-text-inverse)]">
+    <div className="mb-token-16 flex min-h-token-48 w-full items-center gap-token-12 rounded-token-m bg-[var(--color-state-error)] px-token-16 py-token-12 text-[var(--color-text-inverse)]">
       <CircleAlert className="size-[18px] shrink-0" />
       <span className="font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)]">
         {message}

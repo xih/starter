@@ -89,4 +89,25 @@ describe("AgentSideBar", () => {
 
     expect(screen.getByText("Thinking")).toBeVisible();
   });
+
+  it("disables microphone controls after the voice session ends in an error state", () => {
+    const onToggleMicrophone = vi.fn();
+
+    render(
+      <AgentSideBar
+        isMicrophoneEnabled={false}
+        messages={messages}
+        onToggleMicrophone={onToggleMicrophone}
+        state="error"
+      />,
+    );
+
+    const microphoneButton = screen.getByRole("button", {
+      name: /microphone unavailable/i,
+    });
+
+    expect(microphoneButton).toBeDisabled();
+    fireEvent.click(microphoneButton);
+    expect(onToggleMicrophone).not.toHaveBeenCalled();
+  });
 });

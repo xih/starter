@@ -283,7 +283,7 @@ export const LiveChatMessageRow = forwardRef<
         opacity: 0,
       }}
     >
-      <div className="pt-token-4 flex w-[32px] shrink-0 items-start">
+      <div className="pt-token-4 w-token-32 flex shrink-0 items-start">
         <VoiceAvatar
           avatar={message.avatarUrl}
           className="bg-[var(--color-background-secondary)]"

@@ -143,7 +143,7 @@ export default function AskPage() {
           transition={toAskTransition(askTransition)}
         >
           <SectionHeader
-            className="absolute left-[20px] top-[24px] z-40 w-[calc(100%-40px)]"
+            className="absolute left-token-20 top-token-24 z-40 w-[calc(100%-40px)]"
             onBack={requestEndAndReturn}
             showBackButton
             subtext={

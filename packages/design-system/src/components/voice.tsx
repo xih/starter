@@ -103,11 +103,13 @@ export function VoiceAvatar({
 
 export function MultipleHosts({ className }: { className?: string }) {
   return (
-    <div className={cn("flex h-[24px] items-center justify-center", className)}>
+    <div
+      className={cn("h-token-24 flex items-center justify-center", className)}
+    >
       {hostAvatars.map((avatar, index) => (
         <VoiceAvatar
           avatar={avatar}
-          className={cn(index > 0 && "-ml-[8px]")}
+          className={cn(index > 0 && "-ml-token-8")}
           key={avatar}
           name={`Host ${index + 1}`}
           size={24}
@@ -142,10 +144,10 @@ export function MicSelector({
       onClick={onClick}
       type="button"
     >
-      <span className="flex h-full items-center px-[12px]">
+      <span className="px-token-12 flex h-full items-center">
         <Icon className="size-[18px]" strokeWidth={2.2} />
       </span>
-      <span className="h-[16px] w-px bg-[#d9d9d9]" />
+      <span className="h-token-16 w-px bg-[#d9d9d9]" />
       <span className="flex h-full items-center px-[10px]">
         <ChevronDown className="size-[14px]" />
       </span>
@@ -161,7 +163,7 @@ export function VoiceSelector({
   return (
     <button
       className={cn(
-        "font-body flex h-[113px] w-[144px] flex-col items-start justify-end rounded-[10px] p-[12px] text-left text-[#121318]",
+        "font-body p-token-12 flex h-[113px] w-[144px] flex-col items-start justify-end rounded-[10px] text-left text-[#121318]",
         state === "default" && "bg-[#f5f5f5]",
         state === "hovered" && "bg-[#e8e8e8]",
         state === "selected" && "bg-[#dcdcdc]",
@@ -171,10 +173,10 @@ export function VoiceSelector({
       type="button"
     >
       <VoiceAvatar avatar={voice.avatar} name={voice.name} size={48} />
-      <span className="mt-[8px] text-[16px] leading-[18px] font-[700]">
+      <span className="mt-token-8 text-cta leading-lhBody font-[700]">
         {voice.name}
       </span>
-      <span className="text-[14px] leading-[18px] text-[#595a5d]">
+      <span className="leading-lhBody text-[14px] text-[#595a5d]">
         {voice.description}
       </span>
     </button>
@@ -194,17 +196,17 @@ export function VoiceSelectorPill({
     <button
       aria-label="Select voice"
       className={cn(
-        "inline-flex h-[36px] items-center gap-[8px] rounded-full border border-[#e5e5e5] bg-white px-[15px] text-[#121318]",
+        "gap-token-8 inline-flex h-[36px] items-center rounded-full border border-[#e5e5e5] bg-white px-[15px] text-[#121318]",
         className,
       )}
       onClick={onClick}
       type="button"
     >
       <VoiceAvatar avatar={voice.avatar} name={voice.name} size={16} />
-      <span className="font-body text-[14px] leading-[20px] font-[700]">
+      <span className="font-body text-[14px] font-[700] leading-[20px]">
         {voice.name}
       </span>
-      <ChevronDown className="size-[12px] text-[#8c8d90]" />
+      <ChevronDown className="size-token-12 text-[#8c8d90]" />
     </button>
   );
 }
@@ -230,19 +232,19 @@ export function VoiceParameterPanel({
   return (
     <div
       className={cn(
-        "font-body flex h-[var(--ds-agent-control-voice-panel-height)] w-[var(--ds-agent-control-voice-panel-width)] flex-col gap-[10px] rounded-[18px] border border-[#dcdcdc] bg-[#f7f7f7] px-[20px] py-[18px] text-[#121318] shadow-[0_18px_40px_rgba(18,19,24,0.08)]",
+        "font-body px-token-20 flex h-[var(--ds-agent-control-voice-panel-height)] w-[var(--ds-agent-control-voice-panel-width)] flex-col gap-[10px] rounded-[18px] border border-[#dcdcdc] bg-[#f7f7f7] py-[18px] text-[#121318] shadow-[0_18px_40px_rgba(18,19,24,0.08)]",
         className,
       )}
     >
-      <h2 className="shrink-0 text-[14px] leading-[20px] font-[700]">Voice</h2>
-      <div className="min-h-0 flex-1 space-y-[8px] overflow-y-auto pr-[4px] [scrollbar-width:thin]">
+      <h2 className="shrink-0 text-[14px] font-[700] leading-[20px]">Voice</h2>
+      <div className="space-y-token-8 pr-token-4 min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
         {voices.map((option) => {
           const selected = option.name === selectedVoiceName;
 
           return (
             <button
               className={cn(
-                "flex min-h-[60px] w-full shrink-0 items-center gap-[10px] rounded-[12px] border px-[10px] py-[8px] text-left transition-colors",
+                "rounded-token-s py-token-8 flex min-h-[60px] w-full shrink-0 items-center gap-[10px] border px-[10px] text-left transition-colors",
                 selected
                   ? "border-[#dcdcdc] bg-[#e8e8e8]"
                   : "border-[#e5e5e5] bg-white",
@@ -257,10 +259,10 @@ export function VoiceParameterPanel({
                 size={40}
               />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[16px] leading-[18px] font-[700]">
+                <span className="text-cta leading-lhBody block truncate font-[700]">
                   {option.name}
                 </span>
-                <span className="block truncate text-[14px] leading-[18px] text-[#595a5d]">
+                <span className="leading-lhBody block truncate text-[14px] text-[#595a5d]">
                   {option.description}
                 </span>
               </span>
@@ -309,7 +311,7 @@ export function AgentControlBar({
         )}
         data-state={state}
       >
-        <div className="flex min-w-0 items-center gap-[8px]">
+        <div className="gap-token-8 flex min-w-0 items-center">
           <MicSelector state="outlined" onClick={onToggleMicrophone} />
           <VoiceSelectorPill
             className="max-w-[160px] [&>span:nth-child(2)]:truncate"
@@ -319,7 +321,7 @@ export function AgentControlBar({
         </div>
         <DesignSystemButton
           buttonType="primary"
-          className="h-[36px] w-auto shrink-0 rounded-[12px] bg-[#050505] px-[16px] text-white"
+          className="rounded-token-s px-token-16 h-[36px] w-auto shrink-0 bg-[#050505] text-white"
           onClick={onUseVoice}
           showIcon={false}
           size="small"
@@ -333,7 +335,7 @@ export function AgentControlBar({
   return (
     <div
       className={cn(
-        "flex h-[var(--ds-agent-control-bar-height)] w-[var(--ds-agent-control-bar-width)] flex-col justify-between rounded-[31px] border border-[#dcdcdc] bg-white px-[20px] py-[16px] shadow-[0_3px_12px_rgba(0,0,0,0.06)]",
+        "px-token-20 py-token-16 flex h-[var(--ds-agent-control-bar-height)] w-[var(--ds-agent-control-bar-width)] flex-col justify-between rounded-[31px] border border-[#dcdcdc] bg-white shadow-[0_3px_12px_rgba(0,0,0,0.06)]",
         className,
       )}
       data-state={state}
@@ -355,7 +357,7 @@ export function AgentControlBar({
         />
       </div>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-[4px]">
+        <div className="gap-token-4 flex items-center">
           <MicSelector state={micState} onClick={onToggleMicrophone} />
           <VoiceSelectorPill onClick={onOpenVoicePanel} voice={voice} />
         </div>
@@ -375,12 +377,12 @@ export function AgentControlBar({
             onClick={sendInput}
             type="button"
           >
-            <ArrowUp className="size-[20px]" />
+            <ArrowUp className="size-token-20" />
           </button>
         ) : (
           <DesignSystemButton
             buttonType="primary"
-            className="h-[36px] w-auto rounded-[12px] bg-[#050505] px-[16px] text-white"
+            className="rounded-token-s px-token-16 h-[36px] w-auto bg-[#050505] text-white"
             onClick={onEnd}
             showIcon={false}
             size="small"
@@ -415,10 +417,10 @@ export function ChatMessage({
     >
       <div
         className={cn(
-          "font-body text-[16px] leading-[26px] font-[400] text-[#1e1f24]",
+          "font-body text-cta font-regular leading-[26px] text-[#1e1f24]",
           (pending || message.isStreaming) && "ds-text-shimmer",
           isUser &&
-            "max-w-[343px] rounded-[22px] bg-[#050505] px-[16px] py-[10px] text-white md:max-w-[404px]",
+            "px-token-16 max-w-[343px] rounded-[22px] bg-[#050505] py-[10px] text-white md:max-w-[404px]",
         )}
       >
         {message.text}
@@ -449,7 +451,7 @@ export function ChatConversation({
   ];
 
   return (
-    <div className={cn("flex w-[477px] flex-col gap-[12px]", className)}>
+    <div className={cn("gap-token-12 flex w-[477px] flex-col", className)}>
       {resolvedMessages.map((message) => (
         <ChatMessage key={message.id} message={message} />
       ))}

@@ -593,7 +593,7 @@ function ChatConversation({
   const sourcedMessageId = getLatestAgentMessageId(messages);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-token-4 [scrollbar-width:thin]">
+    <div className="flex flex-col pr-token-4">
       {messages.map((message) => (
         <ChatMessage
           key={message.id}
@@ -709,7 +709,7 @@ export function AgentSideBar({
   return (
     <aside
       className={cn(
-        "relative flex h-[1117px] w-[428px] max-w-full flex-col overflow-hidden border-l border-[var(--agent-sidebar-border)] bg-[var(--agent-sidebar-surface)] p-token-24 text-[var(--agent-sidebar-text)]",
+        "relative flex h-[1117px] w-[428px] max-w-full flex-col overflow-hidden border-l border-[var(--agent-sidebar-border)] bg-[var(--agent-sidebar-surface)] text-[var(--agent-sidebar-text)]",
         className,
       )}
       data-state={state}
@@ -719,23 +719,32 @@ export function AgentSideBar({
       {state === "loading" ? <LoadingState /> : null}
 
       {showConversation ? (
-        <div className="flex min-h-0 flex-1 flex-col">
-          {state === "begin" ? (
-            <div className="flex flex-1 items-center justify-center text-center">
-              <AgentTitle className="w-full">Ask a question</AgentTitle>
+        <>
+          <div
+            className="absolute inset-0 overflow-y-auto p-token-24 pb-[158px] [scrollbar-width:thin]"
+            data-testid="desktop-chat-scroll-container"
+          >
+            <div className="min-h-full">
+              {state === "begin" ? (
+                <div className="flex min-h-full items-center justify-center text-center">
+                  <AgentTitle className="w-full">Ask a question</AgentTitle>
+                </div>
+              ) : (
+                <>
+                  {state === "error" ? (
+                    <ErrorToast message={errorMessage} />
+                  ) : null}
+                  {state === "switching" ? <SwitchingState /> : null}
+                  <ChatConversation
+                    latestSearchSources={latestSearchSources}
+                    messages={resolvedMessages}
+                  />
+                </>
+              )}
             </div>
-          ) : (
-            <>
-              {state === "error" ? <ErrorToast message={errorMessage} /> : null}
-              {state === "switching" ? <SwitchingState /> : null}
-              <ChatConversation
-                latestSearchSources={latestSearchSources}
-                messages={resolvedMessages}
-              />
-            </>
-          )}
+          </div>
 
-          <div className="mt-token-24 shrink-0">
+          <div className="absolute bottom-token-24 left-token-24 right-token-24 z-10">
             <AgentPromptBar
               inputValue={inputValue}
               isMicrophoneEnabled={isMicrophoneEnabled}
@@ -752,7 +761,7 @@ export function AgentSideBar({
               voiceName={voiceName}
             />
           </div>
-        </div>
+        </>
       ) : null}
     </aside>
   );

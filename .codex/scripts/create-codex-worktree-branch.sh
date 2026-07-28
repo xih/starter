@@ -60,7 +60,30 @@ branch_base="codex/$slug"
 branch_name="$branch_base"
 suffix=2
 
-while git show-ref --verify --quiet "refs/heads/$branch_name"; do
+branch_ref_conflicts() {
+  local candidate="$1"
+  local ref="refs/heads/$candidate"
+  local prefix="$candidate"
+
+  if git show-ref --verify --quiet "$ref"; then
+    return 0
+  fi
+
+  if git for-each-ref --format='%(refname)' "$ref/" | grep -q .; then
+    return 0
+  fi
+
+  while [[ "$prefix" == */* ]]; do
+    prefix="${prefix%/*}"
+    if git show-ref --verify --quiet "refs/heads/$prefix"; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+while branch_ref_conflicts "$branch_name"; do
   branch_name="$branch_base-$suffix"
   suffix=$((suffix + 1))
 done

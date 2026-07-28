@@ -65,7 +65,7 @@ export const FigmaStates: Story = {
     };
 
     return (
-      <div className="grid gap-[48px]">
+      <div className="grid gap-token-48">
         <div className="flex gap-[19px]">
           <VoiceSelector state="default" voice={voice} />
           <VoiceSelector state="hovered" voice={voice} />
@@ -91,7 +91,7 @@ function PromptVoiceInteractionStory() {
   );
 
   return (
-    <div className="flex items-end gap-[16px]">
+    <div className="flex items-end gap-token-16">
       <VoiceParameterPanel
         onSelectVoice={(voice) => setSelectedVoiceName(voice.name)}
         selectedVoiceName={selectedVoiceName}

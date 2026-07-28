@@ -13,7 +13,7 @@ export type PortfolioFooterProps = {
 
 function FooterHeading({ children }: { children: string }) {
   return (
-    <h2 className="font-title text-[28px] leading-[31px] font-[700] text-white md:text-[34px] md:leading-[38px]">
+    <h2 className="font-title text-title font-[700] leading-[31px] text-white md:text-[34px] md:leading-[38px]">
       {children}
     </h2>
   );
@@ -30,7 +30,7 @@ function FooterTextLink({
 }) {
   return (
     <a
-      className="font-body inline-flex w-fit items-center gap-[4px] text-[12px] leading-[18px] font-[700] text-white underline decoration-transparent decoration-1 underline-offset-[3px] transition hover:decoration-white focus-visible:decoration-white focus-visible:outline-none md:text-[16px] md:leading-[21px]"
+      className="font-body gap-token-4 leading-lhBody md:text-cta inline-flex w-fit items-center text-[12px] font-[700] text-white underline decoration-transparent decoration-1 underline-offset-[3px] transition hover:decoration-white focus-visible:decoration-white focus-visible:outline-none md:leading-[21px]"
       href={href}
     >
       {children}
@@ -54,12 +54,12 @@ export function PortfolioFooter({
   return (
     <footer
       className={cn(
-        "relative flex min-h-[494px] w-full flex-col overflow-hidden bg-black px-[26px] pt-[18px] pb-[26px] text-white md:min-h-[556px] md:px-[29px] md:pt-[27px] md:pb-[22px]",
+        "relative flex min-h-[494px] w-full flex-col overflow-hidden bg-black px-[26px] pb-[26px] pt-[18px] text-white md:min-h-[556px] md:px-[29px] md:pb-[22px] md:pt-[27px]",
         className,
       )}
     >
-      <div className="grid grid-cols-2 gap-x-[28px] gap-y-[25px] md:grid-cols-[300px_1fr_180px_220px] md:items-start md:gap-[40px]">
-        <div className="font-body order-3 max-w-[300px] text-[12px] leading-[16px] md:order-none md:text-[16px] md:leading-[20px]">
+      <div className="md:gap-token-40 grid grid-cols-2 gap-x-[28px] gap-y-[25px] md:grid-cols-[300px_1fr_180px_220px] md:items-start">
+        <div className="font-body md:text-cta order-3 max-w-[300px] text-[12px] leading-[16px] md:order-none md:leading-[20px]">
           <p className="mb-[15px] flex items-center gap-[6px]">
             <span className="size-[7px] rounded-full bg-[#52d34f]" />
             <span>2 visitors&nbsp; 2:16:05 PM</span>
@@ -90,7 +90,7 @@ export function PortfolioFooter({
         </nav>
       </div>
 
-      <div className="font-title mt-auto text-[42px] leading-none font-[400] whitespace-nowrap text-white md:self-center md:text-[176px]">
+      <div className="font-title font-regular mt-auto whitespace-nowrap text-[42px] leading-none text-white md:self-center md:text-[176px]">
         Dennis Xing
       </div>
     </footer>

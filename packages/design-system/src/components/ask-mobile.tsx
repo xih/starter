@@ -97,7 +97,7 @@ export function AskMobileExperience({
     >
       {showHeader ? (
         <SectionHeader
-          className="absolute top-[24px] left-[20px] z-20 w-[calc(100%-40px)]"
+          className="top-token-24 left-token-20 absolute z-20 w-[calc(100%-40px)]"
           onBack={onBack}
           showBackButton={showBackButton}
           subtext={
@@ -110,7 +110,7 @@ export function AskMobileExperience({
       ) : null}
       {showConversation ? (
         <div
-          className="absolute top-[112px] right-[20px] bottom-0 left-[20px] overflow-y-auto pb-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="right-token-20 left-token-20 absolute bottom-0 top-[112px] overflow-y-auto pb-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           data-testid="mobile-chat-transcript"
           ref={transcriptRef}
         >
@@ -141,7 +141,7 @@ export function AskMobileExperience({
           {renderOrb}
         </div>
       ) : null}
-      <div className="absolute right-[20px] bottom-[calc(20px_+_env(safe-area-inset-bottom))] left-[20px] z-10 flex flex-col gap-[8px]">
+      <div className="right-token-20 left-token-20 gap-token-8 absolute bottom-[calc(20px_+_env(safe-area-inset-bottom))] z-10 flex flex-col">
         {isVoicePanelOpen ? (
           <VoiceParameterPanel
             className="w-full"
@@ -193,14 +193,14 @@ function MobileIssuePill({
 }) {
   return (
     <div
-      className="absolute bottom-[-4px] left-0 z-30 flex h-[42px] items-center rounded-[21px] border border-[#901923] bg-[#D6222E] pr-[8px] text-white shadow-[0_8px_18px_rgba(18,19,24,0.18)]"
+      className="pr-token-8 absolute bottom-[-4px] left-0 z-30 flex h-[42px] items-center rounded-[21px] border border-[#901923] bg-[#D6222E] text-white shadow-[0_8px_18px_rgba(18,19,24,0.18)]"
       data-testid="mobile-agent-issue-pill"
       role="alert"
       title={errorMessage}
     >
       <button
         aria-label="Retry voice connection"
-        className="flex h-full items-center gap-[10px] rounded-l-[21px] pr-[10px] pl-[12px] text-[16px] leading-[20px] font-[700]"
+        className="pl-token-12 text-cta flex h-full items-center gap-[10px] rounded-l-[21px] pr-[10px] font-[700] leading-[20px]"
         onClick={onRetry}
         type="button"
       >
@@ -208,7 +208,7 @@ function MobileIssuePill({
           N
         </span>
         <span className="inline-flex items-center gap-[6px]">
-          <CircleAlert className="size-[16px]" strokeWidth={2.2} />1 Issue
+          <CircleAlert className="size-token-16" strokeWidth={2.2} />1 Issue
         </span>
       </button>
       <button

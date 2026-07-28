@@ -75,7 +75,7 @@ export const FigmaStates: Story = {
 
 export const MobileLayoutTokens: Story = {
   render: () => (
-    <div className="flex w-[var(--ds-agent-control-bar-width)] max-w-full flex-col gap-token-16 rounded-token-m border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] p-token-16 font-body text-[length:var(--font-font-size-subtext)] leading-[var(--font-line-height-lh-subtext)] text-[var(--color-text-primary)]">
+    <div className="flex w-[var(--ds-agent-control-bar-width)] max-w-full flex-col gap-token-16 rounded-token-m border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] p-token-16 font-body text-[length:var(--font-font-size-subtext)] leading-lhSubtext text-[var(--color-text-primary)]">
       <AgentControlBar state="agent-streaming" />
       <dl className="grid grid-cols-[1fr_auto] gap-x-token-16 gap-y-token-8">
         <dt>Control bar height</dt>
@@ -107,7 +107,7 @@ function PromptVoiceInteractionStory() {
   );
 
   return (
-    <div className="flex w-[375px] flex-col items-end gap-[8px]">
+    <div className="flex w-[375px] flex-col items-end gap-token-8">
       {isVoicePanelOpen ? (
         <VoiceParameterPanel
           onSelectVoice={(voice) => {

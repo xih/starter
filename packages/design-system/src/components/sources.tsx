@@ -31,7 +31,7 @@ export function SourcesChip({ className, index, source }: SourcesChipProps) {
     <a
       aria-label={`${label} ${source.provider} source: ${source.title}`}
       className={cn(
-        "font-body inline-flex h-[28px] w-[237px] shrink-0 items-center gap-[6px] rounded-[4px] border border-[var(--color-border-subtle)] bg-[var(--color-bg-canvas)] px-[9px] py-[5px] text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-background-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)] focus-visible:outline-none md:w-auto md:max-w-[380px]",
+        "font-body rounded-token-xxs leading-lhCaption inline-flex h-[28px] w-[237px] shrink-0 items-center gap-[6px] border border-[var(--color-border-subtle)] bg-[var(--color-bg-canvas)] px-[9px] py-[5px] text-[length:var(--font-font-size-caption)] text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-background-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)] md:w-auto md:max-w-[380px]",
         className,
       )}
       href={safeUrl}
@@ -49,13 +49,13 @@ export function SourcesChip({ className, index, source }: SourcesChipProps) {
       {faviconUrl ? (
         <img
           alt=""
-          className="size-[12px] shrink-0 object-contain"
+          className="size-token-12 shrink-0 object-contain"
           src={faviconUrl}
         />
       ) : (
         <span
           aria-hidden="true"
-          className="size-[12px] shrink-0 bg-[var(--livechat-color-panel,#101010)]"
+          className="size-token-12 shrink-0 bg-[var(--livechat-color-panel,#101010)]"
         />
       )}
       <span className="gap-token-4 flex min-w-0 items-start overflow-hidden whitespace-nowrap">

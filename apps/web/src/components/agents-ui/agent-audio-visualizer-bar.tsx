@@ -65,11 +65,11 @@ export const AgentAudioVisualizerBarElementVariants = cva(
   {
     variants: {
       size: {
-        icon: "w-[4px] min-h-[4px]",
-        sm: "w-[8px] min-h-[8px]",
-        md: "w-[16px] min-h-[16px]",
-        lg: "w-[32px] min-h-[32px]",
-        xl: "w-[64px] min-h-[64px]",
+        icon: "w-token-4 min-h-token-4",
+        sm: "w-token-8 min-h-token-8",
+        md: "w-token-16 min-h-token-16",
+        lg: "w-token-32 min-h-token-32",
+        xl: "w-token-64 min-h-token-64",
       },
     },
     defaultVariants: {
@@ -83,11 +83,11 @@ export const AgentAudioVisualizerBarVariants = cva(
   {
     variants: {
       size: {
-        icon: "h-[24px] gap-[2px]",
-        sm: "h-[56px] gap-[4px]",
-        md: "h-[112px] gap-[8px]",
-        lg: "h-[224px] gap-[16px]",
-        xl: "h-[448px] gap-[32px]",
+        icon: "h-token-24 gap-token-2",
+        sm: "h-token-56 gap-token-4",
+        md: "h-[112px] gap-token-8",
+        lg: "h-[224px] gap-token-16",
+        xl: "h-[448px] gap-token-32",
       },
     },
     defaultVariants: {

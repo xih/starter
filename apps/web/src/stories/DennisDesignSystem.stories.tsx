@@ -67,7 +67,7 @@ function Surface({ children }: { children: ReactNode }) {
 function Section({ children, title }: { children: ReactNode; title: string }) {
   return (
     <section className="flex flex-col gap-token-16">
-      <h2 className="font-title text-[length:var(--font-font-size-title)] leading-[var(--font-line-height-lh-title)]">
+      <h2 className="font-title text-[length:var(--font-font-size-title)] leading-lhTitle">
         {title}
       </h2>
       {children}
@@ -86,7 +86,7 @@ function TokenSwatch({ token }: { token: string }) {
         <div className="truncate font-mono text-[12px] leading-[16px]">
           {token}
         </div>
-        <div className="text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--color-text-secondary)]">
+        <div className="text-[length:var(--font-font-size-caption)] leading-lhCaption text-[var(--color-text-secondary)]">
           Figma token export
         </div>
       </div>
@@ -108,7 +108,7 @@ function DsButton({
   return (
     <button
       className={[
-        "inline-flex h-[38px] items-center justify-center rounded-token-s px-token-12 font-body text-[length:var(--font-font-size-cta)] leading-[var(--font-line-height-lh-subtext)] transition",
+        "inline-flex h-[38px] items-center justify-center rounded-token-s px-token-12 font-body text-[length:var(--font-font-size-cta)] leading-lhSubtext transition",
         variant === "primary" &&
           "bg-[var(--color-core-primary-a)] text-[var(--color-text-inverse-primary)]",
         variant === "secondary" &&
@@ -132,11 +132,11 @@ function Checkbox({ checked }: { checked?: boolean }) {
   return (
     <button
       aria-pressed={checked}
-      className="flex size-[24px] items-center justify-center rounded-token-xxs border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)] data-[state=on]:bg-[var(--color-core-primary-a)] data-[state=on]:text-[var(--color-text-inverse-primary)]"
+      className="flex size-token-24 items-center justify-center rounded-token-xxs border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)] data-[state=on]:bg-[var(--color-core-primary-a)] data-[state=on]:text-[var(--color-text-inverse-primary)]"
       data-state={checked ? "on" : "off"}
       type="button"
     >
-      {checked ? <Check className="size-[16px]" /> : null}
+      {checked ? <Check className="size-token-16" /> : null}
     </button>
   );
 }
@@ -146,7 +146,7 @@ function ToastPreview({ state }: { state: "neutral" | "success" | "error" }) {
   return (
     <div
       className={[
-        "flex min-h-[48px] w-[320px] items-center gap-token-12 rounded-token-m px-token-16 py-token-12 font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)]",
+        "flex min-h-token-48 w-[320px] items-center gap-token-12 rounded-token-m px-token-16 py-token-12 font-body text-[length:var(--font-font-size-body)] leading-lhBody",
         state === "neutral" &&
           "bg-[var(--color-background-primary)] text-[var(--color-text-primary)]",
         state === "success" &&
@@ -173,7 +173,7 @@ function AgentControlPreview({
   return (
     <div className="flex w-[448px] max-w-full flex-col gap-token-20 rounded-[31px] border border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] px-token-20 py-token-16 shadow-[0_3px_3px_rgba(0,0,0,0.03)]">
       <div className="flex items-center">
-        <span className="font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)] text-[var(--color-text-secondary)]">
+        <span className="font-body text-[length:var(--font-font-size-body)] leading-lhBody text-[var(--color-text-secondary)]">
           {state === "typing" ? "Bonjourno" : "How are you feeling today?"}
         </span>
       </div>
@@ -183,19 +183,19 @@ function AgentControlPreview({
             <span className="flex h-full items-center px-token-12">
               <Mic className="size-[18px]" />
             </span>
-            <span className="h-[16px] w-px bg-[var(--color-bg-secondary)]" />
+            <span className="h-token-16 w-px bg-[var(--color-bg-secondary)]" />
             <span className="flex h-full items-center px-token-12">
-              <ChevronDown className="size-[16px]" />
+              <ChevronDown className="size-token-16" />
             </span>
           </button>
           <button className="flex h-[36px] items-center gap-token-8 rounded-token-round border border-[var(--color-border-subtle)] px-[15px]">
-            <span className="flex size-[16px] items-center justify-center rounded-token-round bg-[var(--color-bg-secondary)] text-[10px] text-[var(--color-text-inverse-primary)]">
+            <span className="flex size-token-16 items-center justify-center rounded-token-round bg-[var(--color-bg-secondary)] text-[10px] text-[var(--color-text-inverse-primary)]">
               M
             </span>
-            <span className="font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)]">
+            <span className="font-body text-[length:var(--font-font-size-body)] font-semiBold leading-lhBody">
               Masa Son
             </span>
-            <ChevronDown className="size-[12px]" />
+            <ChevronDown className="size-token-12" />
           </button>
         </div>
         {state === "typing" ? (

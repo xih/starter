@@ -67,7 +67,7 @@ export default function RootLayout({
             <TRPCReactProvider>
               {children}
               <Toaster position="bottom-right" />
-              <DialKitRoot defaultOpen={false} />
+              <DialKitRoot defaultOpen={false} position="top-left" />
             </TRPCReactProvider>
           </ThemeProvider>
         </VoiceRecorderProvider>

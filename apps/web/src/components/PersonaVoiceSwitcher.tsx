@@ -118,7 +118,7 @@ export function PersonaVoiceSwitcher({
 
       {isOpen ? (
         <div
-          className="absolute bottom-full left-0 z-20 mb-2 w-full min-w-[280px] rounded-[12px] border border-[var(--color-border-opaque)] bg-white p-2 text-[#121318] shadow-[0_18px_44px_rgba(18,19,24,0.16)]"
+          className="absolute bottom-full left-0 z-20 mb-2 w-full min-w-[280px] rounded-token-s border border-[var(--color-border-opaque)] bg-white p-2 text-[#121318] shadow-[0_18px_44px_rgba(18,19,24,0.16)]"
           role="listbox"
         >
           {personas.map((persona) => {
@@ -128,7 +128,7 @@ export function PersonaVoiceSwitcher({
               <button
                 aria-selected={selected}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-[8px] px-3 py-2 text-left transition hover:bg-[var(--color-background-secondary)]",
+                  "flex w-full items-center gap-3 rounded-token-xs px-3 py-2 text-left transition hover:bg-[var(--color-background-secondary)]",
                   selected && "bg-[var(--color-background-secondary)]",
                 )}
                 key={persona.id}

@@ -30,6 +30,8 @@ verify: dev-check ci-test ci-build agent-check ## Run complete checks for normal
 verification: verify design-check agent-deploy-check ## Run exhaustive release-confidence checks.
 
 design-check: tokens-build ## Validate tokens, design rules, Storybook build, and token drift.
+	corepack pnpm lint:classnames
+	corepack pnpm lint:classnames:test
 	corepack pnpm lint:design-system
 	corepack pnpm lint:styles
 	corepack pnpm lint:ast
@@ -102,12 +104,15 @@ ci-install: ## Install workspace dependencies from the lockfile.
 ci-format: ## Check code formatting.
 	corepack pnpm format:check
 
-ci-lint: ## Run ESLint, stylelint, and project structural lint rules.
+ci-lint: tokens-build ## Run ESLint, stylelint, and project structural lint rules.
+	corepack pnpm lint:classnames
+	corepack pnpm lint:classnames:test
 	corepack pnpm lint
 	corepack pnpm lint:styles
 	corepack pnpm lint:ast
 	corepack pnpm lint:design-system
 	corepack pnpm lint:workflow
+	git diff --exit-code packages/tokens/dist
 
 ci-typecheck: ## Run TypeScript typechecking across the workspace.
 	corepack pnpm typecheck

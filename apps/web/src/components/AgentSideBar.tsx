@@ -138,7 +138,7 @@ function AgentTitle({
   return (
     <h2
       className={cn(
-        "font-title text-[length:var(--font-font-size-title)] font-[var(--font-font-weight-regular)] leading-[var(--font-line-height-lh-title)] tracking-[var(--font-letter-spacing-title)] text-[var(--agent-sidebar-text)]",
+        "font-title text-[length:var(--font-font-size-title)] font-regular leading-lhTitle tracking-[var(--font-letter-spacing-title)] text-[var(--agent-sidebar-text)]",
         className,
       )}
     >
@@ -151,7 +151,7 @@ function HostAvatar({ index, name }: { index: number; name: string }) {
   return (
     <div
       aria-label={name}
-      className="relative size-[24px] shrink-0 overflow-hidden rounded-token-round"
+      className="relative size-token-24 shrink-0 overflow-hidden rounded-token-round"
     >
       <img
         alt=""
@@ -164,7 +164,7 @@ function HostAvatar({ index, name }: { index: number; name: string }) {
 
 function HostStack() {
   return (
-    <div className="flex h-[24px] items-center justify-center">
+    <div className="flex h-token-24 items-center justify-center">
       {hostAvatars.map((_, index) => (
         <div
           className={cn(index > 0 && "-ml-token-8")}
@@ -190,7 +190,7 @@ function PrimaryAction({
 }) {
   return (
     <button
-      className="inline-flex h-[38px] items-center justify-center rounded-token-s bg-[var(--color-bg-secondary)] px-token-12 font-body text-[length:var(--font-font-size-cta)] font-[var(--font-font-weight-medium)] leading-[var(--font-line-height-lh-subtext)] text-[var(--color-text-inverse-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
+      className="inline-flex h-[38px] items-center justify-center rounded-token-s bg-[var(--color-bg-secondary)] px-token-12 font-body text-[length:var(--font-font-size-cta)] font-medium leading-lhSubtext text-[var(--color-text-inverse-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
       onClick={onClick}
       type="button"
     >
@@ -200,9 +200,11 @@ function PrimaryAction({
 }
 
 export function MicSelector({
+  disabled,
   enabled,
   onToggle,
 }: {
+  disabled?: boolean;
   enabled?: boolean;
   onToggle?: () => void | Promise<void>;
 }) {
@@ -219,9 +221,17 @@ export function MicSelector({
       data-state={enabled ? "listening" : "muted"}
     >
       <button
-        aria-label={enabled ? "Mute microphone" : "Unmute microphone"}
+        aria-disabled={disabled}
+        aria-label={
+          disabled
+            ? "Microphone unavailable"
+            : enabled
+              ? "Mute microphone"
+              : "Unmute microphone"
+        }
         aria-pressed={enabled}
-        className="flex h-full flex-1 items-center justify-center rounded-l-token-round pl-token-12 pr-token-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
+        className="flex h-full flex-1 items-center justify-center rounded-l-token-round pl-token-12 pr-token-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)] disabled:cursor-not-allowed disabled:opacity-55"
+        disabled={disabled}
         onClick={() => {
           void onToggle?.();
         }}
@@ -233,13 +243,15 @@ export function MicSelector({
         aria-label="Select microphone"
         className={cn(
           "relative flex h-full w-[36px] items-center justify-center rounded-r-token-round pl-token-8 pr-token-12 before:absolute before:left-0 before:top-1/2 before:h-token-16 before:w-px before:-translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]",
+          disabled && "cursor-not-allowed opacity-55",
           enabled
             ? "before:bg-[var(--color-bg-secondary)]"
             : "before:bg-[var(--color-core-negative)]",
         )}
+        disabled={disabled}
         type="button"
       >
-        <ChevronDown className="size-[16px]" strokeWidth={2.3} />
+        <ChevronDown className="size-token-16" strokeWidth={2.3} />
       </button>
     </div>
   );
@@ -264,7 +276,7 @@ export function VoiceSelector({
       onClick={onClick}
       type="button"
     >
-      <span className="relative flex size-[16px] shrink-0 items-center justify-center overflow-hidden rounded-token-round bg-[var(--color-bg-secondary)] font-body text-[length:var(--font-font-size-caption)] font-[var(--font-font-weight-semi-bold)] leading-none text-[var(--color-text-inverse-primary)]">
+      <span className="relative flex size-token-16 shrink-0 items-center justify-center overflow-hidden rounded-token-round bg-[var(--color-bg-secondary)] font-body text-[length:var(--font-font-size-caption)] font-semiBold leading-none text-[var(--color-text-inverse-primary)]">
         {avatar ? (
           <img
             alt=""
@@ -275,10 +287,10 @@ export function VoiceSelector({
           voiceName.slice(0, 1)
         )}
       </span>
-      <span className="min-w-0 flex-1 truncate font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-text)]">
+      <span className="min-w-0 flex-1 truncate font-body text-[length:var(--font-font-size-body)] font-semiBold leading-lhBody text-[var(--agent-sidebar-text)]">
         {voiceName}
       </span>
-      <ChevronDown className="size-[12px] shrink-0 text-[var(--agent-sidebar-muted)]" />
+      <ChevronDown className="size-token-12 shrink-0 text-[var(--agent-sidebar-muted)]" />
     </button>
   );
 }
@@ -308,7 +320,7 @@ function VoicePanel({
               onClick={() => onSelect(voice.id)}
               type="button"
             >
-              <span className="relative size-[32px] shrink-0 overflow-hidden rounded-token-round">
+              <span className="relative size-token-32 shrink-0 overflow-hidden rounded-token-round">
                 {voice.avatar_url ? (
                   <img
                     alt=""
@@ -318,15 +330,15 @@ function VoicePanel({
                 ) : null}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-text)]">
+                <span className="block truncate font-body text-[length:var(--font-font-size-body)] font-semiBold leading-lhBody text-[var(--agent-sidebar-text)]">
                   {voice.display_name}
                 </span>
-                <span className="block truncate font-body text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--agent-sidebar-muted)]">
+                <span className="block truncate font-body text-[length:var(--font-font-size-caption)] leading-lhCaption text-[var(--agent-sidebar-muted)]">
                   {voice.description}
                 </span>
               </span>
               {selected ? (
-                <Check className="size-[16px] shrink-0 text-[var(--color-core-primary-a)]" />
+                <Check className="size-token-16 shrink-0 text-[var(--color-core-primary-a)]" />
               ) : null}
             </button>
           );
@@ -353,7 +365,7 @@ function SendButton({
       onClick={onClick}
       type="button"
     >
-      <ArrowUp className="size-[20px]" />
+      <ArrowUp className="size-token-20" />
     </button>
   );
 }
@@ -366,7 +378,7 @@ function StopButton({ onClick }: { onClick?: () => void }) {
       onClick={onClick}
       type="button"
     >
-      <Square className="size-[16px] fill-current" />
+      <Square className="size-token-16 fill-current" />
     </button>
   );
 }
@@ -374,7 +386,7 @@ function StopButton({ onClick }: { onClick?: () => void }) {
 function EndChatButton({ onEnd }: { onEnd?: () => void }) {
   return (
     <button
-      className="inline-flex h-[36px] shrink-0 items-center justify-center rounded-token-s bg-[var(--color-core-primary-a)] px-token-12 py-token-8 font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--color-text-inverse-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
+      className="inline-flex h-[36px] shrink-0 items-center justify-center rounded-token-s bg-[var(--color-core-primary-a)] px-token-12 py-token-8 font-body text-[length:var(--font-font-size-body)] font-semiBold leading-lhBody text-[var(--color-text-inverse-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)]"
       onClick={onEnd}
       type="button"
     >
@@ -420,6 +432,7 @@ function AgentPromptBar({
   const hasInput = inputValue.trim().length > 0;
   const isTyping = state === "user-typing" || hasInput;
   const isStreaming = state === "agent-streaming";
+  const isMicrophoneDisabled = state === "error" || !onToggleMicrophone;
   const placeholder = "How are you feeling today?";
   const selectedVoiceOption =
     personas.find((voice) => voice.id === resolvedPersonaId) ?? personas[0];
@@ -461,7 +474,7 @@ function AgentPromptBar({
         <div className="flex h-[28px] items-center gap-token-8 px-token-4">
           <input
             aria-label="Message"
-            className="min-w-0 flex-1 bg-transparent font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-regular)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-text)] outline-none placeholder:text-[var(--agent-sidebar-muted)]"
+            className="min-w-0 flex-1 bg-transparent font-body text-[length:var(--font-font-size-body)] font-regular leading-lhBody text-[var(--agent-sidebar-text)] outline-none placeholder:text-[var(--agent-sidebar-muted)]"
             onChange={(event) => onChangeInput?.(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
@@ -490,6 +503,7 @@ function AgentPromptBar({
               />
             ) : null}
             <MicSelector
+              disabled={isMicrophoneDisabled}
               enabled={isMicrophoneEnabled}
               onToggle={onToggleMicrophone}
             />
@@ -551,13 +565,13 @@ export function ChatMessage({
     >
       <div
         className={cn(
-          "font-body text-[length:var(--font-font-size-subtext)] font-[var(--font-font-weight-regular)] tracking-normal",
+          "font-body text-[length:var(--font-font-size-subtext)] font-regular tracking-normal",
           message.isStreaming && "ds-text-shimmer inline-block",
           isSystem
-            ? "py-token-6 max-w-[477px] rounded-token-round bg-[var(--color-background-secondary)] px-token-12 text-center text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--agent-sidebar-muted)]"
+            ? "py-token-6 max-w-[477px] rounded-token-round bg-[var(--color-background-secondary)] px-token-12 text-center text-[length:var(--font-font-size-caption)] leading-lhCaption text-[var(--agent-sidebar-muted)]"
             : isUser
-              ? "max-w-[404px] rounded-[22px] bg-[var(--color-core-primary-a)] px-token-16 py-token-8 leading-[var(--font-line-height-lh-heading)] text-[var(--color-text-inverse-primary)]"
-              : "max-w-[477px] pb-token-4 leading-[var(--font-line-height-lh-title)] text-[var(--color-text-primary)]",
+              ? "max-w-[404px] rounded-[22px] bg-[var(--color-core-primary-a)] px-token-16 py-token-8 leading-lhHeading text-[var(--color-text-inverse-primary)]"
+              : "max-w-[477px] pb-token-4 leading-lhTitle text-[var(--color-text-primary)]",
         )}
       >
         {message.text}
@@ -579,7 +593,7 @@ function ChatConversation({
   const sourcedMessageId = getLatestAgentMessageId(messages);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-token-4 [scrollbar-width:thin]">
+    <div className="flex flex-col pr-token-4">
       {messages.map((message) => (
         <ChatMessage
           key={message.id}
@@ -604,9 +618,9 @@ function getLatestAgentMessageId(messages: AgentSideBarMessage[]) {
 
 function ErrorToast({ message }: { message: string }) {
   return (
-    <div className="mb-token-16 flex min-h-[48px] w-full items-center gap-token-12 rounded-token-m bg-[var(--color-state-error)] px-token-16 py-token-12 text-[var(--color-text-inverse)]">
+    <div className="mb-token-16 flex min-h-token-48 w-full items-center gap-token-12 rounded-token-m bg-[var(--color-state-error)] px-token-16 py-token-12 text-[var(--color-text-inverse)]">
       <CircleAlert className="size-[18px] shrink-0" />
-      <span className="font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)]">
+      <span className="font-body text-[length:var(--font-font-size-body)] leading-lhBody">
         {message}
       </span>
     </div>
@@ -617,7 +631,7 @@ function IntroState({ onStart }: { onStart?: () => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-token-24 text-center">
       <HostStack />
-      <AgentTitle className="mt-token-8 w-[404px] max-w-full font-[var(--font-font-weight-medium)] text-[var(--color-text-primary)]">
+      <AgentTitle className="mt-token-8 w-[404px] max-w-full font-medium text-[var(--color-text-primary)]">
         Chat with Masa Son, Sam Altman, Elon Musk
       </AgentTitle>
       <div className="mt-token-16">
@@ -635,7 +649,7 @@ function LoadingState() {
         className="h-[164px] w-[269px] object-contain"
         src="/agent-sidebar/cloud.png"
       />
-      <p className="mt-token-24 max-w-[292px] font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-muted)]">
+      <p className="mt-token-24 max-w-[292px] font-body text-[length:var(--font-font-size-body)] leading-lhBody text-[var(--agent-sidebar-muted)]">
         Watch the clouds move while we connect you to their consciousness
       </p>
     </div>
@@ -645,10 +659,10 @@ function LoadingState() {
 function SwitchingState() {
   return (
     <div className="mb-token-16 rounded-token-m border border-[var(--agent-sidebar-border)] bg-[var(--color-background-secondary)] px-token-16 py-token-12">
-      <p className="ds-text-shimmer font-body text-[length:var(--font-font-size-body)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-body)] text-[var(--agent-sidebar-text)]">
+      <p className="ds-text-shimmer font-body text-[length:var(--font-font-size-body)] font-semiBold leading-lhBody text-[var(--agent-sidebar-text)]">
         Switching voices
       </p>
-      <p className="mt-token-2 font-body text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--agent-sidebar-muted)]">
+      <p className="mt-token-2 font-body text-[length:var(--font-font-size-caption)] leading-lhCaption text-[var(--agent-sidebar-muted)]">
         Preparing the new voice for the next response.
       </p>
     </div>
@@ -695,7 +709,7 @@ export function AgentSideBar({
   return (
     <aside
       className={cn(
-        "relative flex h-[1117px] w-[428px] max-w-full flex-col overflow-hidden border-l border-[var(--agent-sidebar-border)] bg-[var(--agent-sidebar-surface)] p-token-24 text-[var(--agent-sidebar-text)]",
+        "relative flex h-[1117px] w-[428px] max-w-full flex-col overflow-hidden border-l border-[var(--agent-sidebar-border)] bg-[var(--agent-sidebar-surface)] text-[var(--agent-sidebar-text)]",
         className,
       )}
       data-state={state}
@@ -705,23 +719,32 @@ export function AgentSideBar({
       {state === "loading" ? <LoadingState /> : null}
 
       {showConversation ? (
-        <div className="flex min-h-0 flex-1 flex-col">
-          {state === "begin" ? (
-            <div className="flex flex-1 items-center justify-center text-center">
-              <AgentTitle className="w-full">Ask a question</AgentTitle>
+        <>
+          <div
+            className="absolute inset-0 overflow-y-auto p-token-24 pb-[158px] [scrollbar-width:thin]"
+            data-testid="desktop-chat-scroll-container"
+          >
+            <div className="min-h-full">
+              {state === "begin" ? (
+                <div className="flex min-h-full items-center justify-center text-center">
+                  <AgentTitle className="w-full">Ask a question</AgentTitle>
+                </div>
+              ) : (
+                <>
+                  {state === "error" ? (
+                    <ErrorToast message={errorMessage} />
+                  ) : null}
+                  {state === "switching" ? <SwitchingState /> : null}
+                  <ChatConversation
+                    latestSearchSources={latestSearchSources}
+                    messages={resolvedMessages}
+                  />
+                </>
+              )}
             </div>
-          ) : (
-            <>
-              {state === "error" ? <ErrorToast message={errorMessage} /> : null}
-              {state === "switching" ? <SwitchingState /> : null}
-              <ChatConversation
-                latestSearchSources={latestSearchSources}
-                messages={resolvedMessages}
-              />
-            </>
-          )}
+          </div>
 
-          <div className="mt-token-24 shrink-0">
+          <div className="absolute bottom-token-24 left-token-24 right-token-24 z-10">
             <AgentPromptBar
               inputValue={inputValue}
               isMicrophoneEnabled={isMicrophoneEnabled}
@@ -738,7 +761,7 @@ export function AgentSideBar({
               voiceName={voiceName}
             />
           </div>
-        </div>
+        </>
       ) : null}
     </aside>
   );

@@ -20,7 +20,7 @@ export const Matrix: Story = {
     title: "Title",
   },
   render: () => (
-    <div className="grid w-[863px] grid-cols-2 gap-x-[98px] gap-y-[82px] bg-white p-[20px]">
+    <div className="grid w-[863px] grid-cols-2 gap-x-[98px] gap-y-[82px] bg-white p-token-20">
       <SectionHeader showBackButton title="Title" />
       <SectionHeader title="Title" />
       <SectionHeader actionLabel="View all" showBackButton title="Title" />
@@ -45,7 +45,7 @@ export const AskHeader: Story = {
     title: "Hi, what would you like to ask?",
   },
   render: () => (
-    <div className="w-[402px] bg-white p-[20px]">
+    <div className="w-[402px] bg-white p-token-20">
       <SectionHeader
         showBackButton
         subtext="This feature uses the memories of living people. It can make some mistakes"

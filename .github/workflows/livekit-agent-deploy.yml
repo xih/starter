@@ -1,0 +1,102 @@
+name: LiveKit Agent Deploy
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/livekit-agent-deploy.yml"
+      - "Makefile"
+      - "apps/agent/**"
+      - "apps/web/src/app/ask/page.tsx"
+      - "apps/web/src/app/api/livekit/**"
+      - "apps/web/src/app/livekit-agent/**"
+      - "apps/web/src/app/portfolio/**"
+      - "apps/web/src/app/testing/**"
+      - "apps/web/src/components/AgentSideBar.tsx"
+      - "apps/web/src/components/PersonaVoiceSwitcher.tsx"
+      - "apps/web/src/components/persona-switch-rpc.ts"
+      - "apps/web/src/server/livekit/**"
+      - "apps/web/src/server/personas.ts"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/livekit-agent-deploy.yml"
+      - "Makefile"
+      - "apps/agent/**"
+      - "apps/web/src/app/ask/page.tsx"
+      - "apps/web/src/app/api/livekit/**"
+      - "apps/web/src/app/livekit-agent/**"
+      - "apps/web/src/app/portfolio/**"
+      - "apps/web/src/app/testing/**"
+      - "apps/web/src/components/AgentSideBar.tsx"
+      - "apps/web/src/components/PersonaVoiceSwitcher.tsx"
+      - "apps/web/src/components/persona-switch-rpc.ts"
+      - "apps/web/src/server/livekit/**"
+      - "apps/web/src/server/personas.ts"
+  workflow_dispatch:
+
+concurrency:
+  group: livekit-agent-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-check:
+    name: Deploy Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Verify deploy context
+        run: make agent-deploy-check
+
+  deploy-production:
+    name: Deploy Production
+    needs: deploy-check
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install LiveKit CLI
+        run: curl -sSL https://get.livekit.io/cli | bash
+
+      - name: Install Infisical CLI
+        run: |
+          curl -1sLf "https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh" | sudo -E bash
+          sudo apt-get update
+          sudo apt-get install -y infisical
+
+      - name: Deploy LiveKit Cloud Agent
+        env:
+          INFISICAL_ENV: prod
+          INFISICAL_PATH: /
+          INFISICAL_PROJECT_ID: ${{ secrets.INFISICAL_PROJECT_ID }}
+          INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
+        run: |
+          export PATH="$HOME/.livekit/bin:$PATH"
+          cd apps/agent
+          scripts/deploy-livekit-cloud.sh
+
+      - name: Smoke test production dispatch
+        env:
+          INFISICAL_ENV: prod
+          INFISICAL_PATH: /
+          INFISICAL_PROJECT_ID: ${{ secrets.INFISICAL_PROJECT_ID }}
+          INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
+        run: |
+          export PATH="$HOME/.livekit/bin:$PATH"
+          infisical_args=(run --env="$INFISICAL_ENV" --path="$INFISICAL_PATH")
+          if [[ -n "${INFISICAL_PROJECT_ID:-}" ]]; then
+            infisical_args+=(--projectId "$INFISICAL_PROJECT_ID")
+          fi
+
+          infisical "${infisical_args[@]}" -- bash -lc '
+            cd apps/agent
+            scripts/smoke-livekit-dispatch.sh
+          '

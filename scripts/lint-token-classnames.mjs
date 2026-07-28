@@ -138,6 +138,10 @@ if (failures.length > 0 && shouldFix) {
 }
 
 function collectClassTokenReplacements(file, source) {
+  if (path.extname(file) === ".mdx") {
+    return collectMdxClassTokenReplacements(source);
+  }
+
   const sourceFile = ts.createSourceFile(
     file,
     source,
@@ -149,12 +153,7 @@ function collectClassTokenReplacements(file, source) {
 
   const inspectClassNode = (node) => {
     if (isStringLike(node)) {
-      inspectClassString(
-        source,
-        node.text,
-        getStringContentStart(node),
-        replacements,
-      );
+      inspectStringLiteral(source, node, replacements);
       return;
     }
 
@@ -200,6 +199,45 @@ function collectClassTokenReplacements(file, source) {
   return replacements;
 }
 
+function collectMdxClassTokenReplacements(source) {
+  const replacements = [];
+
+  for (const match of source.matchAll(
+    /\bclass(?:Name)?\s*=\s*(["'])([\s\S]*?)\1/g,
+  )) {
+    inspectClassString(
+      source,
+      match[2],
+      match.index + match[0].indexOf(match[2]),
+      replacements,
+    );
+  }
+
+  for (const match of source.matchAll(
+    /\bclass(?:Name)?\s*=\s*\{\s*`([\s\S]*?)`\s*\}/g,
+  )) {
+    inspectClassString(
+      source,
+      match[1],
+      match.index + match[0].indexOf(match[1]),
+      replacements,
+    );
+  }
+
+  return replacements;
+}
+
+function inspectStringLiteral(source, node, replacements) {
+  const contentStart = node.getStart() + 1;
+  const contentEnd = node.getEnd() - 1;
+  inspectClassString(
+    source,
+    source.slice(contentStart, contentEnd),
+    contentStart,
+    replacements,
+  );
+}
+
 function inspectClassString(source, classString, contentStart, replacements) {
   for (const match of classString.matchAll(
     /[\w!:[\]()>+&./-]+-\[[^\]\s"'`]+\]/g,
@@ -227,17 +265,26 @@ function inspectTemplateExpression(source, node, replacements) {
 
 function inspectTemplateLiteralChunk(source, node, replacements) {
   const raw = node.getText();
-  const text = node.text;
-  const rawTextIndex = raw.indexOf(text);
-
-  if (rawTextIndex === -1) return;
+  const contentStart = node.getStart() + getTemplateChunkContentStart(raw);
+  const contentEnd = node.getEnd() - getTemplateChunkContentEnd(raw);
 
   inspectClassString(
     source,
-    text,
-    node.getStart() + rawTextIndex,
+    source.slice(contentStart, contentEnd),
+    contentStart,
     replacements,
   );
+}
+
+function getTemplateChunkContentStart(raw) {
+  if (raw.startsWith("`") || raw.startsWith("}")) return 1;
+  return 0;
+}
+
+function getTemplateChunkContentEnd(raw) {
+  if (raw.endsWith("${")) return 2;
+  if (raw.endsWith("`")) return 1;
+  return 0;
 }
 
 function getTokenClassReplacement(classToken) {
@@ -532,10 +579,6 @@ function getScriptKind(file) {
 
 function isStringLike(node) {
   return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
-}
-
-function getStringContentStart(node) {
-  return node.getStart() + 1;
 }
 
 function isClassAttributeName(name) {

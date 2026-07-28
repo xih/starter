@@ -418,7 +418,7 @@ export function ChatMessage({
           "font-body text-[16px] leading-[26px] font-[400] text-[#1e1f24]",
           (pending || message.isStreaming) && "ds-text-shimmer",
           isUser &&
-            "max-w-[343px] rounded-[22px] bg-[#050505] px-[16px] py-[10px] text-white md:max-w-[404px]",
+            "max-w-full rounded-[22px] bg-[#050505] px-[16px] py-[10px] text-white md:max-w-[404px]",
         )}
       >
         {message.text}
@@ -449,7 +449,9 @@ export function ChatConversation({
   ];
 
   return (
-    <div className={cn("flex w-[477px] flex-col gap-[12px]", className)}>
+    <div
+      className={cn("flex w-full flex-col gap-[12px] md:w-[477px]", className)}
+    >
       {resolvedMessages.map((message) => (
         <ChatMessage key={message.id} message={message} />
       ))}

@@ -85,7 +85,7 @@ export function SourcesRail({
     <div
       aria-label="Sources"
       className={cn(
-        "gap-token-8 pb-token-4 flex w-full max-w-[380px] overflow-x-auto overflow-y-hidden [scrollbar-width:thin] md:max-w-[477px]",
+        "gap-token-8 pb-token-4 flex w-full overflow-x-auto overflow-y-hidden [scrollbar-width:thin] md:max-w-[477px]",
         className,
       )}
       role="list"
@@ -121,7 +121,7 @@ export function ChatMessageWithSources({
   return (
     <div
       className={cn(
-        "flex w-full max-w-[380px] flex-col items-start gap-[7px] overflow-hidden md:max-w-[477px]",
+        "flex w-full flex-col items-start gap-[7px] overflow-hidden md:max-w-[477px]",
         className,
       )}
     >

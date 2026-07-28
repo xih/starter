@@ -10,7 +10,13 @@ import {
 import { ChatMessageWithSources, type SourceData } from "./sources";
 import { SectionHeader } from "./section-header";
 import { X, CircleAlert } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 
 export type AskMobileExperienceProps = {
   className?: string;
@@ -61,6 +67,7 @@ export function AskMobileExperience({
   voice,
   voiceOptions,
 }: AskMobileExperienceProps) {
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<VoiceOption | undefined>(
@@ -80,6 +87,10 @@ export function AskMobileExperience({
   }, [voice]);
 
   useEffect(() => {
+    surfaceRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
     const transcript = transcriptRef.current;
 
     if (!transcript) return;
@@ -87,13 +98,50 @@ export function AskMobileExperience({
     transcript.scrollTop = transcript.scrollHeight;
   }, [transcriptMessages.length, transcriptMessages.at(-1)?.text]);
 
+  const trapFocus = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Tab") return;
+
+    const surface = surfaceRef.current;
+    if (!surface) return;
+
+    const focusableElements = Array.from(
+      surface.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      surface.focus();
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements.at(-1);
+
+    if (!event.shiftKey && document.activeElement === lastElement) {
+      event.preventDefault();
+      firstElement?.focus();
+    }
+
+    if (event.shiftKey && document.activeElement === firstElement) {
+      event.preventDefault();
+      lastElement?.focus();
+    }
+  };
+
   return (
     <div
+      aria-modal="true"
       className={cn(
         "relative h-[874px] w-[402px] overflow-hidden bg-white text-[#121318]",
         className,
       )}
       data-testid="ask-mobile-experience"
+      onKeyDown={trapFocus}
+      ref={surfaceRef}
+      role="dialog"
+      tabIndex={-1}
     >
       {showHeader ? (
         <SectionHeader

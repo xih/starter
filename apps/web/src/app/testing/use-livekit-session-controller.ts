@@ -10,10 +10,6 @@ import {
 import { ConnectionState } from "livekit-client";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 
-import {
-  clearMobileAskResume,
-  markMobileAskResumeActive,
-} from "~/app/portfolio/mobile-ask-resume";
 import type {
   AgentSideBarMessage,
   AgentSideBarState,
@@ -50,7 +46,6 @@ export type LiveKitSessionControllerOptions = {
   endRequestKey: number;
   onMobileConversationChange?: (hasConversation: boolean) => void;
   onSessionEnded: () => void;
-  persistMobileAskResume: boolean;
   tokenEndpoint: string;
 };
 
@@ -110,7 +105,6 @@ export function useLiveKitSessionController(
     endRequestKey,
     onMobileConversationChange,
     onSessionEnded,
-    persistMobileAskResume,
     tokenEndpoint,
   }: LiveKitSessionControllerOptions,
 ) {
@@ -120,7 +114,6 @@ export function useLiveKitSessionController(
   const startAbortControllerRef = useRef<AbortController | null>(null);
   const didAutoStartRef = useRef(false);
   const didEnsureGuestDispatchRef = useRef(false);
-  const didPersistMobileAskResumeRef = useRef(false);
   const didCleanupAfterErrorRef = useRef(false);
   const pendingOutboundMessagesRef = useRef<
     Array<{ tempId: string; text: string; timestamp: number }>
@@ -357,10 +350,6 @@ export function useLiveKitSessionController(
   }, [session, tokenEndpoint]);
 
   const endSession = useCallback(() => {
-    if (persistMobileAskResume) {
-      clearMobileAskResume();
-    }
-
     setInputValue("");
     setPendingReply(null);
     setManualState("intro");
@@ -373,21 +362,12 @@ export function useLiveKitSessionController(
       await cleanupLiveKitSession();
       onSessionEnded();
     })();
-  }, [cleanupLiveKitSession, onSessionEnded, persistMobileAskResume]);
+  }, [cleanupLiveKitSession, onSessionEnded]);
 
   useEffect(() => {
     if (session.connectionState !== ConnectionState.Connected) return;
 
-    if (persistMobileAskResume) {
-      markMobileAskResumeActive();
-      didPersistMobileAskResumeRef.current = true;
-    }
-
     const handlePageHide = () => {
-      if (persistMobileAskResume) {
-        clearMobileAskResume();
-      }
-
       startAbortControllerRef.current?.abort();
 
       void cleanupLiveKitSession();
@@ -398,16 +378,7 @@ export function useLiveKitSessionController(
     return () => {
       window.removeEventListener("pagehide", handlePageHide);
     };
-  }, [cleanupLiveKitSession, persistMobileAskResume, session.connectionState]);
-
-  useEffect(() => {
-    if (!persistMobileAskResume) return;
-    if (session.connectionState === ConnectionState.Connected) return;
-    if (!didPersistMobileAskResumeRef.current) return;
-
-    clearMobileAskResume();
-    didPersistMobileAskResumeRef.current = false;
-  }, [persistMobileAskResume, session.connectionState]);
+  }, [cleanupLiveKitSession, session.connectionState]);
 
   useEffect(() => {
     if (previousEndRequestKeyRef.current === endRequestKey) {

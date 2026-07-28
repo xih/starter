@@ -74,7 +74,6 @@ export type TestingSessionProps = {
   onMobileBack?: () => void;
   onMobileConversationChange?: (hasConversation: boolean) => void;
   onSelectPersona?: (personaId: string) => void;
-  persistMobileAskResume?: boolean;
   personas?: PersonaVoiceOption[];
   selectedPersonaId?: string;
   showMobileHeader?: boolean;
@@ -97,7 +96,6 @@ export function TestingSession({
   onMobileBack,
   onMobileConversationChange,
   onSelectPersona,
-  persistMobileAskResume = false,
   personas = fallbackPersonaVoiceOptions,
   selectedPersonaId,
   showMobileHeader = true,
@@ -153,7 +151,6 @@ export function TestingSession({
         onMobileConversationChange={onMobileConversationChange}
         onSelectPersona={selectPersonaId}
         onSessionEnded={onSessionEnded}
-        persistMobileAskResume={persistMobileAskResume}
         personas={personas}
         roomName={roomName}
         selectedPersonaId={resolvedSelectedPersonaId}
@@ -182,7 +179,6 @@ function TestingSessionLayout({
   onMobileConversationChange,
   onSelectPersona,
   onSessionEnded,
-  persistMobileAskResume,
   personas,
   roomName,
   selectedPersonaId,
@@ -206,7 +202,6 @@ function TestingSessionLayout({
     onMobileConversationChange:
       mobileLayout === "ask" ? onMobileConversationChange : undefined,
     onSessionEnded,
-    persistMobileAskResume: persistMobileAskResume ?? false,
     tokenEndpoint,
   });
   const resolvedPersonas = personas ?? fallbackPersonaVoiceOptions;
@@ -224,6 +219,7 @@ function TestingSessionLayout({
   });
   const pendingPersonaIdRef = useRef<string | null>(null);
   const canSwitchPersona = controller.isConnected && Boolean(agentIdentity);
+  const isMobileAskLayout = mobileLayout === "ask";
   const applyPersonaSwitch = useCallback(
     (personaId: string) => {
       void switchPersonaTts({ personaId }).catch((error) => {
@@ -284,10 +280,12 @@ function TestingSessionLayout({
       ) : null}
 
       <section
+        aria-hidden={isMobileAskLayout ? true : undefined}
         className={cn(
           "grid gap-4 md:grid-cols-[minmax(0,1fr)_402px]",
           desktopSectionClassName,
         )}
+        inert={isMobileAskLayout ? true : undefined}
       >
         {desktopHero ? (
           <div className="hidden md:block">{desktopHero}</div>
@@ -300,27 +298,14 @@ function TestingSessionLayout({
           />
         )}
 
-        {mobileLayout === "ask" ? (
-          <AskMobileSessionShell
-            chatMessages={controller.chatMessages}
-            controller={controller}
-            onBack={onMobileBack}
-            onSelectVoice={selectVoice}
-            showBackButton={showMobileBackButton ?? true}
-            showHeader={showMobileHeader ?? true}
-            voice={selectedVoice}
-            voiceOptions={voiceOptions}
-          />
-        ) : (
-          <PortfolioMobileSessionShell
-            chatMessages={controller.chatMessages}
-            controller={controller}
-            mobileHero={mobileHero}
-            onSelectVoice={selectVoice}
-            voice={selectedVoice}
-            voiceOptions={voiceOptions}
-          />
-        )}
+        <PortfolioMobileSessionShell
+          chatMessages={controller.chatMessages}
+          controller={controller}
+          mobileHero={mobileHero}
+          onSelectVoice={selectVoice}
+          voice={selectedVoice}
+          voiceOptions={voiceOptions}
+        />
 
         <DesktopAgentSidebar
           className={desktopSidebarClassName}
@@ -332,6 +317,18 @@ function TestingSessionLayout({
           voiceName={selectedVoice.name}
         />
       </section>
+      {isMobileAskLayout ? (
+        <AskMobileSessionShell
+          chatMessages={controller.chatMessages}
+          controller={controller}
+          onBack={onMobileBack}
+          onSelectVoice={selectVoice}
+          showBackButton={showMobileBackButton ?? true}
+          showHeader={showMobileHeader ?? true}
+          voice={selectedVoice}
+          voiceOptions={voiceOptions}
+        />
+      ) : null}
     </div>
   );
 }
@@ -477,7 +474,7 @@ function AskMobileSessionShell({
 }) {
   return (
     <AskMobileExperience
-      className="h-svh w-full md:hidden"
+      className="fixed inset-0 z-40 h-svh w-full md:hidden"
       controlState={controller.mobileControlState}
       errorMessage={controller.errorMessage}
       hasStartupError={controller.hasStartupError}

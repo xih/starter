@@ -1,29 +1,34 @@
-# Next.js Starter Template with Storybook
+# Starter Monorepo
 
-A modern, full-stack Next.js starter template with built-in Storybook integration, tRPC, and more. Perfect for building scalable web applications with a great developer experience.
+Full-stack Next.js workspace with Storybook, design tokens, a shared design
+system, and a Python LiveKit agent.
 
 ## 🌟 Features
 
 - **Next.js 15** - Latest version with App Router
 - **TypeScript** - For type safety and better developer experience
-- **Storybook 8** - For component development and documentation
+- **Storybook 10** - For component development and design-system documentation
 - **tRPC** - End-to-end typesafe APIs
 - **Tailwind CSS** - For styling with utility classes
 - **Clerk Auth** - Authentication and user management
-- **Prettier & ESLint** - Code formatting and linting
+- **Prettier, ESLint & Stylelint** - Code formatting and linting
+- **Root Makefile** - One command surface for local checks, CI, hooks, and release-confidence verification
 
 ## 📚 Documentation
 
 - Main Application: [https://starter2-ten.vercel.app](https://starter2-ten.vercel.app)
 - Storybook: [https://starter2-ten.vercel.app/storybook](https://starter2-ten.vercel.app/storybook)
+- Developer workflow: [docs/developer-workflow.md](docs/developer-workflow.md)
 - LiveKit guest sessions: [docs/livekit-guest-sessions.md](docs/livekit-guest-sessions.md)
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- pnpm (recommended) or npm
+- Node.js 22.12.0, matching `.nvmrc`
+- pnpm 10.10.0 through Corepack
+- `uv` for the Python LiveKit agent
+- Infisical for secret-backed development commands
 
 ### Installation
 
@@ -37,7 +42,7 @@ cd starter
 2. Install dependencies:
 
 ```bash
-pnpm install
+corepack pnpm install
 ```
 
 3. Create a `.env` file in the root directory:
@@ -55,16 +60,34 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 
 ### Development
 
-Run the development server:
+Run the web development server with Infisical:
 
 ```bash
-pnpm dev
+make web-dev
+```
+
+Run the web development server without Infisical:
+
+```bash
+make web-dev-local
 ```
 
 Run Storybook:
 
 ```bash
-pnpm storybook
+make design-gallery-serve
+```
+
+Install repository-owned Git hooks:
+
+```bash
+make hooks-install
+```
+
+See all workflow commands:
+
+```bash
+make help
 ```
 
 ### Building
@@ -72,13 +95,13 @@ pnpm storybook
 Build the application:
 
 ```bash
-pnpm build
+make build
 ```
 
 Build Storybook:
 
 ```bash
-pnpm build-storybook
+make design-gallery
 ```
 
 ## 🏗️ Project Structure
@@ -109,7 +132,19 @@ The project is configured for deployment on Vercel with both the main applicatio
 Run tests:
 
 ```bash
-pnpm test
+make test
+```
+
+Run fast local checks:
+
+```bash
+make dev-check
+```
+
+Run PR-confidence checks:
+
+```bash
+make verify
 ```
 
 ## 🤝 Contributing

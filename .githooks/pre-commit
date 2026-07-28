@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+branch="$(git branch --show-current)"
+
+case "$branch" in
+  main | master)
+    echo "Refusing to commit directly on $branch. Create a feature branch first."
+    exit 1
+    ;;
+esac
+
+make dev-check

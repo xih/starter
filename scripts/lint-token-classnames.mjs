@@ -203,43 +203,31 @@ function collectMdxClassTokenReplacements(source) {
   const replacements = [];
   const ignoredRanges = collectMdxIgnoredRanges(source);
 
-  for (const match of source.matchAll(
-    /\bclass(?:Name)?\s*=\s*(["'])([\s\S]*?)\1/g,
-  )) {
+  for (const match of source.matchAll(/\bclass(?:Name)?\s*=/g)) {
     if (isInIgnoredRange(match.index, ignoredRanges)) continue;
 
-    inspectClassString(
-      source,
-      match[2],
-      match.index + match[0].indexOf(match[2]),
-      replacements,
-    );
-  }
+    const valueStart = skipWhitespace(source, match.index + match[0].length);
+    const firstChar = source[valueStart];
 
-  for (const match of source.matchAll(
-    /\bclass(?:Name)?\s*=\s*\{\s*(["'])([\s\S]*?)\1\s*\}/g,
-  )) {
-    if (isInIgnoredRange(match.index, ignoredRanges)) continue;
+    if (firstChar === '"' || firstChar === "'") {
+      const valueEnd = findQuotedStringEnd(source, valueStart);
+      if (valueEnd === -1) continue;
 
-    inspectClassString(
-      source,
-      match[2],
-      match.index + match[0].indexOf(match[2]),
-      replacements,
-    );
-  }
+      inspectClassString(
+        source,
+        source.slice(valueStart + 1, valueEnd),
+        valueStart + 1,
+        replacements,
+      );
+      continue;
+    }
 
-  for (const match of source.matchAll(
-    /\bclass(?:Name)?\s*=\s*\{\s*`([\s\S]*?)`\s*\}/g,
-  )) {
-    if (isInIgnoredRange(match.index, ignoredRanges)) continue;
+    if (firstChar === "{") {
+      const valueEnd = findBracedExpressionEnd(source, valueStart);
+      if (valueEnd === -1) continue;
 
-    inspectClassString(
-      source,
-      match[1],
-      match.index + match[0].indexOf(match[1]),
-      replacements,
-    );
+      inspectClassExpression(source, valueStart + 1, valueEnd, replacements);
+    }
   }
 
   return replacements;
@@ -264,6 +252,115 @@ function collectMdxIgnoredRanges(source) {
 
 function isInIgnoredRange(index, ranges) {
   return ranges.some((range) => index >= range.start && index < range.end);
+}
+
+function skipWhitespace(source, index) {
+  let nextIndex = index;
+
+  while (/\s/.test(source[nextIndex] ?? "")) {
+    nextIndex += 1;
+  }
+
+  return nextIndex;
+}
+
+function findQuotedStringEnd(source, start) {
+  const quote = source[start];
+
+  for (let index = start + 1; index < source.length; index += 1) {
+    if (source[index] === "\\") {
+      index += 1;
+      continue;
+    }
+
+    if (source[index] === quote) return index;
+  }
+
+  return -1;
+}
+
+function findBracedExpressionEnd(source, start) {
+  let depth = 0;
+  let quote = null;
+  let inTemplate = false;
+
+  for (let index = start; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (quote) {
+      if (char === "\\") {
+        index += 1;
+      } else if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (inTemplate) {
+      if (char === "\\") {
+        index += 1;
+      } else if (char === "`") {
+        inTemplate = false;
+      }
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+
+    if (char === "`") {
+      inTemplate = true;
+      continue;
+    }
+
+    if (char === "{") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) return index;
+    }
+  }
+
+  return -1;
+}
+
+function inspectClassExpression(
+  source,
+  expressionStart,
+  expressionEnd,
+  replacements,
+) {
+  const paddedSource =
+    " ".repeat(expressionStart) + source.slice(expressionStart, expressionEnd);
+  const sourceFile = ts.createSourceFile(
+    "class-expression.tsx",
+    paddedSource,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+
+  const visit = (node) => {
+    if (isStringLike(node)) {
+      inspectStringLiteral(source, node, replacements);
+      return;
+    }
+
+    if (ts.isTemplateExpression(node)) {
+      inspectTemplateExpression(source, node, replacements);
+      ts.forEachChild(node, visit);
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
 }
 
 function inspectStringLiteral(source, node, replacements) {
@@ -607,10 +704,11 @@ function applyReplacements(source, replacements) {
 
 function getScriptKind(file) {
   switch (path.extname(file)) {
-    case ".tsx":
-      return ts.ScriptKind.TSX;
+    case ".js":
     case ".jsx":
       return ts.ScriptKind.JSX;
+    case ".tsx":
+      return ts.ScriptKind.TSX;
     default:
       return ts.ScriptKind.TS;
   }

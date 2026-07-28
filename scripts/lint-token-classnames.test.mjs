@@ -176,6 +176,24 @@ test("fixes token-backed classes in quoted MDX expression attributes", async () 
   );
 });
 
+test("fixes token-backed classes in dynamic MDX class expressions", async () => {
+  const file = await writeTempSource(
+    `
+<div className={cn("px-[16px]", active && "py-[12px]")} />
+`,
+    ".mdx",
+  );
+
+  await runLint(["--fix", file]);
+
+  assert.equal(
+    await readFile(file, "utf8"),
+    `
+<div className={cn("px-token-16", active && "py-token-12")} />
+`,
+  );
+});
+
 test("fixes token-backed classes in JavaScript class helpers", async () => {
   const file = await writeTempSource(
     `
@@ -190,6 +208,24 @@ export const item = cn("px-[16px]");
     await readFile(file, "utf8"),
     `
 export const item = cn("px-token-16");
+`,
+  );
+});
+
+test("fixes token-backed classes in JavaScript JSX", async () => {
+  const file = await writeTempSource(
+    `
+export const item = <div className="px-[16px]" />;
+`,
+    ".js",
+  );
+
+  await runLint(["--fix", file]);
+
+  assert.equal(
+    await readFile(file, "utf8"),
+    `
+export const item = <div className="px-token-16" />;
 `,
   );
 });

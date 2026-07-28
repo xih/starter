@@ -20,6 +20,15 @@ describe("AskMobileExperience", () => {
       />,
     );
 
+    expect(screen.getByTestId("ask-mobile-experience")).toHaveAttribute(
+      "role",
+      "dialog",
+    );
+    expect(screen.getByTestId("ask-mobile-experience")).toHaveAttribute(
+      "aria-modal",
+      "true",
+    );
+    expect(screen.getByTestId("ask-mobile-experience")).toHaveFocus();
     expect(screen.getByTestId("section-header")).toBeInTheDocument();
     expect(
       screen.getByText("Hi, what would you like to ask?"),
@@ -71,6 +80,25 @@ describe("AskMobileExperience", () => {
     expect(screen.getByTestId("mobile-agent-orb")).toHaveClass(
       "bottom-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_env(safe-area-inset-bottom))]",
     );
+  });
+
+  it("keeps tab focus inside the full-screen ask dialog", () => {
+    render(<AskMobileExperience />);
+
+    const backButton = screen.getByLabelText("Go back");
+    const sendButton = screen.getByLabelText("Send message");
+
+    backButton.focus();
+    fireEvent.keyDown(screen.getByTestId("ask-mobile-experience"), {
+      key: "Tab",
+      shiftKey: true,
+    });
+    expect(sendButton).toHaveFocus();
+
+    fireEvent.keyDown(screen.getByTestId("ask-mobile-experience"), {
+      key: "Tab",
+    });
+    expect(backButton).toHaveFocus();
   });
 
   it("keeps the mobile orb size stable across connection states", () => {

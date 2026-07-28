@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 
 const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
-const askUrl = new URL("/ask", baseUrl).toString();
+const portfolioUrl = new URL("/", baseUrl).toString();
 const timeoutMs = Number(process.env.ASK_REGRESSION_TIMEOUT_MS ?? 90_000);
 
 const browser = await chromium.launch({
@@ -43,7 +43,12 @@ try {
     });
   });
 
-  await page.goto(askUrl, { waitUntil: "networkidle" });
+  await page.goto(portfolioUrl, { waitUntil: "networkidle" });
+  await page.getByRole("button", { exact: true, name: "Use Voice" }).click();
+  await page.getByTestId("ask-mobile-experience").waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
   await page
     .locator('input[aria-label="Message"]:visible')
     .first()

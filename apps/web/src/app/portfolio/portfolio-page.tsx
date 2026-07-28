@@ -1,7 +1,7 @@
 "use client";
 
 import { MeshGradient } from "@paper-design/shaders-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AgentControlBar,
   LiveChat,
@@ -11,23 +11,18 @@ import type { LiveChatMessage, VoiceOption } from "@starter/design-system";
 import { type DialConfig, type ResolvedValues, useDialKit } from "dialkit";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import { AgentSideBar } from "~/components/AgentSideBar";
 import { DialKitRoot } from "~/components/DialKitRoot";
 import { PortfolioCardGrid } from "~/components/PortfolioCard";
 import { SkeuomorphicClock } from "~/components/SkeuomorphicClock";
 import { TestingSession } from "~/app/testing/testing-session";
-import {
-  ASK_TRANSITION_STORAGE_KEY,
-  toAskTransition,
-  useAskPushTransition,
-} from "./ask-transition";
-import { hasActiveMobileAskResume } from "./mobile-ask-resume";
+import { toAskTransition, useAskPushTransition } from "./ask-transition";
 import { AskRouteTransitionPreview } from "./transition-previews";
 
 const DEFAULT_AGENT_NAME = "dennis-portfolio-agent";
 const DEFAULT_TOKEN_ENDPOINT = "/api/livekit/guest-session";
+const MOBILE_ASK_HISTORY_STATE_KEY = "__portfolioMobileAsk";
 const DEFAULT_VOICE: VoiceOption = {
   avatar: "/agent-sidebar/avatar-1.png",
   description: "Softbank founder",
@@ -139,6 +134,8 @@ const MOBILE_LIVE_CHAT_MESSAGES: LiveChatMessage[] = [
     text: "ambient, readable, warm",
   },
 ];
+
+type MobileAskMode = "closed" | "pushing" | "open" | "returning" | "dismissed";
 
 function createBrowserSafeId() {
   if (
@@ -364,7 +361,6 @@ function PortfolioLauncher({
 }
 
 export function PortfolioPage() {
-  const router = useRouter();
   const heroMeshGradient = useDialKit(
     "Portfolio mesh gradient",
     HERO_MESH_GRADIENT_CONTROLS,
@@ -392,9 +388,11 @@ export function PortfolioPage() {
     persistKey: "portfolio-live-chat-mobile-v1",
   });
   const [sessionStarted, setSessionStarted] = useState(false);
-  const [isPushingMobile, setIsPushingMobile] = useState(false);
+  const [mobileAskMode, setMobileAskMode] = useState<MobileAskMode>("closed");
   const [roomName, setRoomName] = useState("portfolio_agent_pending");
   const mobileAskTimeoutRef = useRef<number | null>(null);
+  const mobileReturnTimeoutRef = useRef<number | null>(null);
+  const mobileAskHistoryRef = useRef(false);
   const liveChatTiming = {
     desktop: desktopLiveChat,
     mobile: mobileLiveChat,
@@ -403,37 +401,192 @@ export function PortfolioPage() {
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
 
-    const resumeAskIfMobile = () => {
-      if (!mediaQuery.matches) return;
-      if (!hasActiveMobileAskResume()) return;
+    const syncMobileAskWithViewport = () => {
+      if (!sessionStarted) return;
 
-      window.sessionStorage.setItem(ASK_TRANSITION_STORAGE_KEY, "push");
-      router.replace("/ask");
+      if (mediaQuery.matches) {
+        if (mobileAskMode === "closed") {
+          setMobileAskMode("open");
+        }
+        return;
+      }
+
+      if (mobileAskMode === "dismissed") return;
+
+      if (mobileAskTimeoutRef.current) {
+        window.clearTimeout(mobileAskTimeoutRef.current);
+        mobileAskTimeoutRef.current = null;
+      }
+      if (mobileReturnTimeoutRef.current) {
+        window.clearTimeout(mobileReturnTimeoutRef.current);
+        mobileReturnTimeoutRef.current = null;
+      }
+      if (mobileAskHistoryRef.current) {
+        mobileAskHistoryRef.current = false;
+        window.history.back();
+      }
+      setMobileAskMode("closed");
     };
 
-    resumeAskIfMobile();
-    mediaQuery.addEventListener("change", resumeAskIfMobile);
+    syncMobileAskWithViewport();
+    mediaQuery.addEventListener("change", syncMobileAskWithViewport);
 
     return () => {
-      mediaQuery.removeEventListener("change", resumeAskIfMobile);
+      mediaQuery.removeEventListener("change", syncMobileAskWithViewport);
+    };
+  }, [mobileAskMode, sessionStarted]);
+
+  useEffect(() => {
+    return () => {
       if (mobileAskTimeoutRef.current) {
         window.clearTimeout(mobileAskTimeoutRef.current);
       }
+      if (mobileReturnTimeoutRef.current) {
+        window.clearTimeout(mobileReturnTimeoutRef.current);
+      }
     };
-  }, [router]);
+  }, []);
+
+  const clearMobileAskPushTimer = useCallback(() => {
+    if (!mobileAskTimeoutRef.current) return;
+
+    window.clearTimeout(mobileAskTimeoutRef.current);
+    mobileAskTimeoutRef.current = null;
+  }, []);
+
+  const clearMobileAskReturnTimer = useCallback(() => {
+    if (!mobileReturnTimeoutRef.current) return;
+
+    window.clearTimeout(mobileReturnTimeoutRef.current);
+    mobileReturnTimeoutRef.current = null;
+  }, []);
+
+  const pushMobileAskHistory = useCallback(() => {
+    if (mobileAskHistoryRef.current) return;
+
+    window.history.pushState(
+      {
+        ...(typeof window.history.state === "object" &&
+        window.history.state !== null
+          ? window.history.state
+          : {}),
+        [MOBILE_ASK_HISTORY_STATE_KEY]: true,
+      },
+      "",
+      window.location.href,
+    );
+    mobileAskHistoryRef.current = true;
+  }, []);
+
+  const clearMobileAskHistory = useCallback(() => {
+    if (!mobileAskHistoryRef.current) return;
+
+    mobileAskHistoryRef.current = false;
+    window.history.back();
+  }, []);
+
+  const beginMobileAskDismissal = useCallback(() => {
+    if (mobileAskMode === "returning") return;
+
+    clearMobileAskPushTimer();
+    clearMobileAskReturnTimer();
+    setMobileAskMode("returning");
+    mobileReturnTimeoutRef.current = window.setTimeout(() => {
+      mobileReturnTimeoutRef.current = null;
+      setMobileAskMode("dismissed");
+    }, askTransition.duration * 1000);
+  }, [
+    askTransition.duration,
+    clearMobileAskPushTimer,
+    clearMobileAskReturnTimer,
+    mobileAskMode,
+  ]);
+
+  const resetMobileAskMode = () => {
+    clearMobileAskPushTimer();
+    clearMobileAskReturnTimer();
+    clearMobileAskHistory();
+    setMobileAskMode("closed");
+  };
 
   const startSession = () => {
     setRoomName(createRoomName());
+    resetMobileAskMode();
     setSessionStarted(true);
   };
 
   const startMobileAsk = () => {
-    window.sessionStorage.setItem(ASK_TRANSITION_STORAGE_KEY, "push");
-    setIsPushingMobile(true);
+    clearMobileAskPushTimer();
+    clearMobileAskReturnTimer();
+    pushMobileAskHistory();
+    setRoomName(createRoomName());
+    setSessionStarted(true);
+    setMobileAskMode("pushing");
     mobileAskTimeoutRef.current = window.setTimeout(() => {
-      router.push("/ask");
+      mobileAskTimeoutRef.current = null;
+      setMobileAskMode("open");
     }, askTransition.duration * 1000);
   };
+
+  const dismissMobileAsk = () => {
+    clearMobileAskHistory();
+    beginMobileAskDismissal();
+  };
+
+  const isPushingMobile = mobileAskMode === "pushing";
+  const isReturningMobile = mobileAskMode === "returning";
+  const isMobileAskOpen = mobileAskMode === "open";
+  const shouldLockMobileAskScroll =
+    mobileAskMode === "pushing" ||
+    mobileAskMode === "open" ||
+    mobileAskMode === "returning";
+
+  useEffect(() => {
+    if (!isMobileAskOpen) return;
+
+    pushMobileAskHistory();
+  }, [isMobileAskOpen, pushMobileAskHistory]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!mobileAskHistoryRef.current) return;
+
+      mobileAskHistoryRef.current = false;
+      beginMobileAskDismissal();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [beginMobileAskDismissal]);
+
+  useEffect(() => {
+    if (!shouldLockMobileAskScroll) return;
+
+    const scrollY = window.scrollY;
+    const bodyPosition = document.body.style.position;
+    const bodyTop = document.body.style.top;
+    const bodyWidth = document.body.style.width;
+    const bodyOverflow = document.body.style.overflow;
+    const htmlOverflow = document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    return () => {
+      document.documentElement.style.overflow = htmlOverflow;
+      document.body.style.overflow = bodyOverflow;
+      document.body.style.position = bodyPosition;
+      document.body.style.top = bodyTop;
+      document.body.style.width = bodyWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [shouldLockMobileAskScroll]);
 
   return (
     <>
@@ -445,13 +598,7 @@ export function PortfolioPage() {
         }
       `}</style>
       <DialKitRoot className="hidden md:block" mode="inline" theme="dark" />
-      <motion.main
-        animate={{
-          x: isPushingMobile ? `-${askTransition.offsetPercent}%` : "0%",
-        }}
-        className="min-h-screen overflow-x-hidden bg-white text-[#121318]"
-        transition={toAskTransition(askTransition)}
-      >
+      <motion.main className="min-h-screen overflow-x-hidden bg-white text-[#121318]">
         <section className="mx-auto w-full md:max-w-[1728px]">
           {sessionStarted ? (
             <TestingSession
@@ -478,8 +625,10 @@ export function PortfolioPage() {
               onSessionEnded={() => {
                 setSessionStarted(false);
                 setRoomName("portfolio_agent_pending");
+                resetMobileAskMode();
               }}
-              persistMobileAskResume
+              mobileLayout={isMobileAskOpen ? "ask" : "portfolio"}
+              onMobileBack={dismissMobileAsk}
               roomName={roomName}
               showDebugPanel={false}
               tokenEndpoint={DEFAULT_TOKEN_ENDPOINT}
@@ -502,6 +651,16 @@ export function PortfolioPage() {
           animate={{ x: "0%" }}
           className="pointer-events-none fixed inset-0 z-50 bg-white md:hidden"
           initial={{ x: `${askTransition.offsetPercent}%` }}
+          transition={toAskTransition(askTransition)}
+        >
+          <AskRouteTransitionPreview />
+        </motion.div>
+      ) : null}
+      {isReturningMobile ? (
+        <motion.div
+          animate={{ x: `-${askTransition.offsetPercent}%` }}
+          className="pointer-events-none fixed inset-0 z-50 bg-white md:hidden"
+          initial={{ x: "0%" }}
           transition={toAskTransition(askTransition)}
         >
           <AskRouteTransitionPreview />

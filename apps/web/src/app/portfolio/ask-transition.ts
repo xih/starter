@@ -2,8 +2,6 @@
 
 import { useDialKit } from "dialkit";
 
-export const ASK_TRANSITION_STORAGE_KEY = "portfolio.askPushTransition";
-
 export function useAskPushTransition() {
   return useDialKit("Ask push transition", {
     duration: [0.34, 0.1, 1.2, 0.01],

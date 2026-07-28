@@ -217,6 +217,19 @@ function collectMdxClassTokenReplacements(source) {
   }
 
   for (const match of source.matchAll(
+    /\bclass(?:Name)?\s*=\s*\{\s*(["'])([\s\S]*?)\1\s*\}/g,
+  )) {
+    if (isInIgnoredRange(match.index, ignoredRanges)) continue;
+
+    inspectClassString(
+      source,
+      match[2],
+      match.index + match[0].indexOf(match[2]),
+      replacements,
+    );
+  }
+
+  for (const match of source.matchAll(
     /\bclass(?:Name)?\s*=\s*\{\s*`([\s\S]*?)`\s*\}/g,
   )) {
     if (isInIgnoredRange(match.index, ignoredRanges)) continue;
@@ -233,12 +246,20 @@ function collectMdxClassTokenReplacements(source) {
 }
 
 function collectMdxIgnoredRanges(source) {
-  return [...source.matchAll(/^```[\s\S]*?^```[^\n]*(?:\n|$)/gm)].map(
+  const fencedCodeRanges = [
+    ...source.matchAll(/^```[\s\S]*?^```[^\n]*(?:\n|$)/gm),
+  ].map((match) => ({
+    start: match.index,
+    end: match.index + match[0].length,
+  }));
+  const inlineCodeRanges = [...source.matchAll(/(?<!`)`[^`\n]+`(?!`)/g)].map(
     (match) => ({
       start: match.index,
       end: match.index + match[0].length,
     }),
   );
+
+  return [...fencedCodeRanges, ...inlineCodeRanges];
 }
 
 function isInIgnoredRange(index, ranges) {

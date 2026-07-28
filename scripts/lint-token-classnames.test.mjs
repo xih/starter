@@ -138,6 +138,44 @@ test("does not inspect MDX fenced code examples", async () => {
   );
 });
 
+test("does not inspect MDX inline code examples", async () => {
+  const file = await writeTempSource(
+    `
+Use \`<div className="px-[16px]" />\` in the docs.
+`,
+    ".mdx",
+  );
+
+  await runLint(["--fix", file]);
+
+  assert.equal(
+    await readFile(file, "utf8"),
+    `
+Use \`<div className="px-[16px]" />\` in the docs.
+`,
+  );
+});
+
+test("fixes token-backed classes in quoted MDX expression attributes", async () => {
+  const file = await writeTempSource(
+    `
+<div className={"px-[16px]"} />
+<div className={'py-[12px]'} />
+`,
+    ".mdx",
+  );
+
+  await runLint(["--fix", file]);
+
+  assert.equal(
+    await readFile(file, "utf8"),
+    `
+<div className={"px-token-16"} />
+<div className={'py-token-12'} />
+`,
+  );
+});
+
 test("fixes token-backed classes in JavaScript class helpers", async () => {
   const file = await writeTempSource(
     `

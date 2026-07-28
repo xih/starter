@@ -56,14 +56,9 @@ if [[ -z "$slug" || "$slug" =~ ^[0-9a-f]{4}$ ]]; then
   slug="codex-worktree-$(date +%Y%m%d-%H%M%S)"
 fi
 
-branch_base="codex/$slug"
-branch_name="$branch_base"
-suffix=2
-
-branch_ref_conflicts() {
+branch_ref_has_exact_or_descendant() {
   local candidate="$1"
   local ref="refs/heads/$candidate"
-  local prefix="$candidate"
 
   if git show-ref --verify --quiet "$ref"; then
     return 0
@@ -72,6 +67,12 @@ branch_ref_conflicts() {
   if git for-each-ref --format='%(refname)' "$ref/" | grep -q .; then
     return 0
   fi
+
+  return 1
+}
+
+branch_ref_has_ancestor() {
+  local prefix="$1"
 
   while [[ "$prefix" == */* ]]; do
     prefix="${prefix%/*}"
@@ -83,10 +84,36 @@ branch_ref_conflicts() {
   return 1
 }
 
-while branch_ref_conflicts "$branch_name"; do
-  branch_name="$branch_base-$suffix"
-  suffix=$((suffix + 1))
+branch_name=""
+
+for branch_prefix in codex codex-worktree codex-task; do
+  branch_base="$branch_prefix/$slug"
+  candidate="$branch_base"
+  suffix=2
+
+  if branch_ref_has_ancestor "$candidate"; then
+    continue
+  fi
+
+  while branch_ref_has_exact_or_descendant "$candidate"; do
+    candidate="$branch_base-$suffix"
+    suffix=$((suffix + 1))
+  done
+
+  branch_name="$candidate"
+  break
 done
+
+if [[ -z "$branch_name" ]]; then
+  branch_base="codex-worktree-$(date +%Y%m%d-%H%M%S)"
+  branch_name="$branch_base"
+  suffix=2
+
+  while branch_ref_has_exact_or_descendant "$branch_name"; do
+    branch_name="$branch_base-$suffix"
+    suffix=$((suffix + 1))
+  done
+fi
 
 git switch -c "$branch_name"
 echo "Created branch: $branch_name"

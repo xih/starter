@@ -116,6 +116,46 @@ test("fixes token-backed classes in MDX JSX attributes", async () => {
   );
 });
 
+test("does not inspect MDX fenced code examples", async () => {
+  const file = await writeTempSource(
+    `
+\`\`\`tsx
+<div className="px-[16px]" />
+\`\`\`
+`,
+    ".mdx",
+  );
+
+  await runLint(["--fix", file]);
+
+  assert.equal(
+    await readFile(file, "utf8"),
+    `
+\`\`\`tsx
+<div className="px-[16px]" />
+\`\`\`
+`,
+  );
+});
+
+test("fixes token-backed classes in JavaScript class helpers", async () => {
+  const file = await writeTempSource(
+    `
+export const item = cn("px-[16px]");
+`,
+    ".js",
+  );
+
+  await runLint(["--fix", file]);
+
+  assert.equal(
+    await readFile(file, "utf8"),
+    `
+export const item = cn("px-token-16");
+`,
+  );
+});
+
 async function writeTempSource(source, extension = ".tsx") {
   const dir = await mkdtemp(path.join(tmpdir(), "token-class-lint-"));
   const file = path.join(dir, `fixture${extension}`);

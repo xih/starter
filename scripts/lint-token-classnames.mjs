@@ -17,7 +17,7 @@ const defaultTargets = [
 const args = process.argv.slice(2);
 const shouldFix = args.includes("--fix");
 const explicitFiles = args.filter((arg) => arg !== "--fix");
-const sourceExtensions = new Set([".ts", ".tsx", ".jsx", ".mdx"]);
+const sourceExtensions = new Set([".js", ".ts", ".jsx", ".tsx", ".mdx"]);
 const classHelperNames = new Set(["cn", "clsx", "cva", "twMerge"]);
 const spacingUtilityPrefixes = new Set([
   "basis",
@@ -201,10 +201,13 @@ function collectClassTokenReplacements(file, source) {
 
 function collectMdxClassTokenReplacements(source) {
   const replacements = [];
+  const ignoredRanges = collectMdxIgnoredRanges(source);
 
   for (const match of source.matchAll(
     /\bclass(?:Name)?\s*=\s*(["'])([\s\S]*?)\1/g,
   )) {
+    if (isInIgnoredRange(match.index, ignoredRanges)) continue;
+
     inspectClassString(
       source,
       match[2],
@@ -216,6 +219,8 @@ function collectMdxClassTokenReplacements(source) {
   for (const match of source.matchAll(
     /\bclass(?:Name)?\s*=\s*\{\s*`([\s\S]*?)`\s*\}/g,
   )) {
+    if (isInIgnoredRange(match.index, ignoredRanges)) continue;
+
     inspectClassString(
       source,
       match[1],
@@ -225,6 +230,19 @@ function collectMdxClassTokenReplacements(source) {
   }
 
   return replacements;
+}
+
+function collectMdxIgnoredRanges(source) {
+  return [...source.matchAll(/^```[\s\S]*?^```[^\n]*(?:\n|$)/gm)].map(
+    (match) => ({
+      start: match.index,
+      end: match.index + match[0].length,
+    }),
+  );
+}
+
+function isInIgnoredRange(index, ranges) {
+  return ranges.some((range) => index >= range.start && index < range.end);
 }
 
 function inspectStringLiteral(source, node, replacements) {

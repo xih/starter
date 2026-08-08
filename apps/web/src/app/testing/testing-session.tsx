@@ -76,6 +76,7 @@ export type TestingSessionProps = {
   onSelectPersona?: (personaId: string) => void;
   personas?: PersonaVoiceOption[];
   selectedPersonaId?: string;
+  showDesktopSidebar?: boolean;
   showMobileHeader?: boolean;
   showMobileBackButton?: boolean;
   onSessionEnded: () => void;
@@ -98,6 +99,7 @@ export function TestingSession({
   onSelectPersona,
   personas = fallbackPersonaVoiceOptions,
   selectedPersonaId,
+  showDesktopSidebar = true,
   showMobileHeader = true,
   showMobileBackButton = true,
   onSessionEnded,
@@ -156,6 +158,7 @@ export function TestingSession({
         selectedPersonaId={resolvedSelectedPersonaId}
         session={session}
         showDebugPanel={showDebugPanel}
+        showDesktopSidebar={showDesktopSidebar}
         showMobileBackButton={showMobileBackButton}
         showMobileHeader={showMobileHeader}
         tokenEndpoint={tokenEndpoint}
@@ -184,6 +187,7 @@ function TestingSessionLayout({
   selectedPersonaId,
   session,
   showDebugPanel,
+  showDesktopSidebar = true,
   showMobileBackButton,
   showMobileHeader,
   tokenEndpoint,
@@ -307,15 +311,17 @@ function TestingSessionLayout({
           voiceOptions={voiceOptions}
         />
 
-        <DesktopAgentSidebar
-          className={desktopSidebarClassName}
-          controller={controller}
-          messages={controller.messages}
-          onSelectPersona={selectPersona}
-          personas={resolvedPersonas}
-          selectedPersonaId={selectedPersonaId}
-          voiceName={selectedVoice.name}
-        />
+        {showDesktopSidebar ? (
+          <DesktopAgentSidebar
+            className={desktopSidebarClassName}
+            controller={controller}
+            messages={controller.messages}
+            onSelectPersona={selectPersona}
+            personas={resolvedPersonas}
+            selectedPersonaId={selectedPersonaId}
+            voiceName={selectedVoice.name}
+          />
+        ) : null}
       </section>
       {isMobileAskLayout ? (
         <AskMobileSessionShell

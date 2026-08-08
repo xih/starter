@@ -7,6 +7,7 @@ import {
 } from "@starter/design-system";
 
 import { OrbShader } from "~/components/OrbShader";
+import { PortfolioHeader } from "~/components/PortfolioHeader";
 
 const DEFAULT_VOICE: VoiceOption = {
   avatar: "/agent-sidebar/avatar-1.png",
@@ -47,15 +48,7 @@ export function PortfolioRouteTransitionPreview() {
       <section className="relative h-[672px] w-full overflow-hidden bg-[#075970]">
         <div className="absolute inset-0 bg-[linear-gradient(130deg,#1d9df1_0%,#7d92ef_34%,#d790d2_55%,#006079_100%)]" />
         <div className="absolute inset-x-0 top-[240px] h-[260px] rotate-[-7deg] bg-[#033840]/80 blur-[34px]" />
-        <nav
-          aria-label="Portfolio navigation"
-          className="absolute left-0 top-[2px] z-20 flex h-[44px] w-full items-center px-[20px] py-[12px] font-body text-[16px] font-[400] leading-[19.2px] text-white"
-        >
-          <div className="flex w-full items-center justify-between">
-            <span>DX</span>
-            <span>About</span>
-          </div>
-        </nav>
+        <PortfolioHeader activePage="home" />
         <div className="absolute left-[22px] right-[22px] top-[168px]">
           <h1 className="w-full max-w-[294px] font-title text-[36px] font-[400] leading-[40px] text-white">
             Dennis is a product designer based in SF

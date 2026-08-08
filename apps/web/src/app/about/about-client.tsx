@@ -2,7 +2,8 @@
 
 import { LiveChatModule } from "@starter/design-system";
 import Image from "next/image";
-import Link from "next/link";
+
+import { PortfolioHeader } from "~/components/PortfolioHeader";
 
 const aboutPhotos = [
   {
@@ -26,21 +27,6 @@ const aboutPhotos = [
     src: "/about/sailing-j22.png",
   },
 ] as const;
-
-function TopNavigation() {
-  return (
-    <nav className="absolute left-0 top-[2px] z-20 hidden w-full px-[20px] py-[12px] font-body text-[16px] leading-[20px] text-[#1e1f24] md:block">
-      <div className="flex w-full items-center justify-between">
-        <Link href="/" aria-label="Dennis Xing home">
-          DX
-        </Link>
-        <Link href="/about" aria-current="page">
-          About
-        </Link>
-      </div>
-    </nav>
-  );
-}
 
 function AboutCopy() {
   return (
@@ -140,7 +126,11 @@ export function AboutClient() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-[#121318]">
       <section className="relative mx-auto min-h-[1129px] w-full max-w-[1728px] px-[20px] pb-[430px] pt-[105px] md:min-h-[1117px] md:px-0 md:pb-0 md:pt-0">
-        <TopNavigation />
+        <PortfolioHeader
+          activePage="about"
+          className="hidden md:flex"
+          tone="dark"
+        />
 
         <div className="relative z-10 flex w-full flex-col gap-[16px] md:absolute md:left-[213px] md:top-[170px] md:w-[1117px] md:flex-row md:gap-[291px]">
           <AboutCopy />

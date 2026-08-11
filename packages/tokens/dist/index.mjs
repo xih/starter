@@ -575,7 +575,7 @@ export const lightTokens = [
     ],
     "name": "font-font-family-body",
     "type": "string",
-    "value": "Lab Grotesque"
+    "value": "ABC Diatype Hebrew Unlicensed Trial"
   },
   {
     "path": [
@@ -1633,7 +1633,7 @@ export const darkTokens = [
     ],
     "name": "font-font-family-body",
     "type": "string",
-    "value": "Lab Grotesque"
+    "value": "ABC Diatype Hebrew Unlicensed Trial"
   },
   {
     "path": [

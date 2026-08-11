@@ -128,8 +128,103 @@ const nell: CaseStudy = {
   ],
 };
 
+const agi: CaseStudy = {
+  slug: "agi",
+  company: "AGI",
+  role: "Product Design Consultant",
+  period: "December 2025",
+  description:
+    "I worked with the founders of AGI to build out the interaction patterns of their mobile android app.",
+  overline: "Selected Work",
+  surfaces: [
+    { label: "Onboarding", target: "onboarding" },
+    { label: "Agent state management", target: "agent-states" },
+  ],
+  sections: [
+    {
+      id: "onboarding",
+      label: "Onboarding",
+      images: [
+        {
+          src: "onboarding.png",
+          alt: "AGI android onboarding screens",
+        },
+      ],
+    },
+    {
+      id: "agent-states",
+      label: "Agent States",
+      images: [
+        {
+          src: "agent-states.png",
+          alt: "AGI agent status pills for running, paused, retry, and complete states",
+        },
+      ],
+    },
+    {
+      id: "gradient-glows",
+      label: "Gradient glows for agent progress",
+      images: [
+        {
+          src: "gradient-glows.png",
+          alt: "AGI phone frames with gradient glow borders signalling agent progress",
+        },
+      ],
+    },
+  ],
+};
+
+const krea: CaseStudy = {
+  slug: "krea",
+  company: "Krea",
+  role: "Product Design Consultant",
+  period: "2023",
+  description:
+    "I worked with the founders of Krea to build out interaction patterns for inpainting and outpainting when ControlNet launched.",
+  overline: "Selected Work",
+  surfaces: [
+    { label: "The Canvas", target: "the-canvas" },
+    { label: "Inpainting and outpainting", target: "inpaint-outpaint" },
+    { label: "Controlnet", target: "controlnet-parameters" },
+  ],
+  sections: [
+    {
+      id: "the-canvas",
+      label: "The Canvas",
+      images: [
+        {
+          src: "the-canvas.png",
+          alt: "Krea infinite canvas with a grid of generated images",
+        },
+      ],
+    },
+    {
+      id: "inpaint-outpaint",
+      label: "How to inpaint and outpaint",
+      images: [
+        {
+          src: "inpaint-outpaint.png",
+          alt: "Krea canvas with the inpaint and outpaint selection toolbar",
+        },
+      ],
+    },
+    {
+      id: "controlnet-parameters",
+      label: "ControlNet parameters",
+      images: [
+        {
+          src: "controlnet-parameters.png",
+          alt: "ControlNet conditioning maps: HED, Canny edge, Hough line, scribble, and human pose",
+        },
+      ],
+    },
+  ],
+};
+
 const caseStudies: Record<string, CaseStudy> = {
   nell,
+  agi,
+  krea,
 };
 
 export function getCaseStudy(slug: string): CaseStudy | undefined {

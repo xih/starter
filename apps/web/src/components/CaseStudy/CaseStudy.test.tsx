@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CaseStudy } from "./CaseStudy";
-import { getCaseStudy } from "./cases";
+import { getCaseStudy, getCaseStudySlugs } from "./cases";
 
 vi.mock("@starter/design-system", () => ({
   PortfolioFooter: () => <footer data-testid="portfolio-footer" />,
@@ -62,4 +62,28 @@ describe("CaseStudy", () => {
     expect(screen.getAllByRole("img")).toHaveLength(expectedImages);
     expect(expectedVideos).toBeGreaterThan(0);
   });
+
+  it("registers the agi and krea case studies", () => {
+    expect(getCaseStudySlugs()).toEqual(
+      expect.arrayContaining(["nell", "agi", "krea"]),
+    );
+  });
+
+  it.each(["agi", "krea"])(
+    "renders every section for the %s case study",
+    (slug) => {
+      const study = getCaseStudy(slug)!;
+      render(<CaseStudy study={study} />);
+
+      expect(
+        screen.getByRole("heading", { level: 1, name: study.overline }),
+      ).toBeInTheDocument();
+
+      for (const section of study.sections) {
+        expect(
+          screen.getByRole("heading", { level: 2, name: section.label }),
+        ).toBeInTheDocument();
+      }
+    },
+  );
 });

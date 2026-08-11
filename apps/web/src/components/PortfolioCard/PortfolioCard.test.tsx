@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { PortfolioCard, PortfolioCardGrid, portfolioProjects } from ".";
@@ -16,6 +16,22 @@ describe("PortfolioCard", () => {
     expect(screen.getByRole("link", { name: /case study/i })).toHaveAttribute(
       "href",
       "/work/nell",
+    );
+  });
+
+  it("links AGI and Krea cards to their internal case studies", () => {
+    render(<PortfolioCardGrid />);
+
+    const agiCard = screen.getByText("AGI").closest("article")!;
+    const kreaCard = screen.getByText("Krea").closest("article")!;
+
+    expect(within(agiCard).getByRole("link")).toHaveAttribute(
+      "href",
+      "/work/agi",
+    );
+    expect(within(kreaCard).getByRole("link")).toHaveAttribute(
+      "href",
+      "/work/krea",
     );
   });
 

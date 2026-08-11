@@ -9,6 +9,11 @@ export type CaseStudyImage = {
    * timeline nodes), so drop the source .mp4/.webm here to enable motion.
    */
   video?: string;
+  /**
+   * Optional YouTube URL. When set, the section renders an embedded YouTube
+   * player in the same landscape frame. Ignored when `video` is set.
+   */
+  youtube?: string;
 };
 
 export type CaseStudySection = {
@@ -128,8 +133,184 @@ const nell: CaseStudy = {
   ],
 };
 
+const agi: CaseStudy = {
+  slug: "agi",
+  company: "AGI",
+  role: "Product Design Consultant",
+  period: "December 2025",
+  description:
+    "I worked with the founders of AGI to build out the interaction patterns of their mobile android app.",
+  overline: "Selected Work",
+  surfaces: [
+    { label: "Onboarding", target: "onboarding" },
+    { label: "Agent state management", target: "agent-states" },
+  ],
+  sections: [
+    {
+      id: "onboarding",
+      label: "Onboarding",
+      images: [
+        {
+          src: "onboarding.png",
+          alt: "AGI android onboarding screens",
+        },
+      ],
+    },
+    {
+      id: "agent-states",
+      label: "Agent States",
+      images: [
+        {
+          src: "agent-states.png",
+          alt: "AGI agent status pills for running, paused, retry, and complete states",
+        },
+      ],
+    },
+    {
+      id: "gradient-glows",
+      label: "Gradient glows for agent progress",
+      images: [
+        {
+          src: "gradient-glows.png",
+          alt: "AGI phone frames with gradient glow borders signalling agent progress",
+        },
+      ],
+    },
+  ],
+};
+
+const krea: CaseStudy = {
+  slug: "krea",
+  company: "Krea",
+  role: "Product Design Consultant",
+  period: "2023",
+  description:
+    "I worked with the founders of Krea to build out interaction patterns for inpainting and outpainting when ControlNet launched.",
+  overline: "Selected Work",
+  surfaces: [
+    { label: "The Canvas", target: "the-canvas" },
+    { label: "Inpainting and outpainting", target: "inpaint-outpaint" },
+    { label: "Controlnet", target: "controlnet-parameters" },
+  ],
+  sections: [
+    {
+      id: "the-canvas",
+      label: "The Canvas",
+      images: [
+        {
+          src: "the-canvas.png",
+          alt: "Krea infinite canvas with a grid of generated images",
+        },
+      ],
+    },
+    {
+      id: "inpaint-outpaint",
+      label: "How to inpaint and outpaint",
+      images: [
+        {
+          src: "inpaint-outpaint.png",
+          alt: "Krea canvas with the inpaint and outpaint selection toolbar",
+        },
+      ],
+    },
+    {
+      id: "controlnet-parameters",
+      label: "ControlNet parameters",
+      images: [
+        {
+          src: "controlnet-parameters.png",
+          alt: "ControlNet conditioning maps: HED, Canny edge, Hough line, scribble, and human pose",
+        },
+      ],
+    },
+  ],
+};
+
+const skydio: CaseStudy = {
+  slug: "skydio",
+  company: "Skydio",
+  role: "First Product Designer",
+  period: "2020-2022",
+  description:
+    "I worked across drone autonomy, cloud infra, engineering and product teams to deliver a cloud dashboard to manage enterprise drone fleets.",
+  overline: "Selected Work",
+  surfaces: [
+    { label: "Livestreaming", target: "mobile-livestream" },
+    { label: "Thermal Streaming", target: "thermal-livestream" },
+    { label: "Fleet management", target: "fleet-management" },
+    { label: "Drone logs", target: "drone-flight-logs" },
+    { label: "License renewals" },
+    { label: "Media management", target: "media-management" },
+    { label: "Remote Ops", target: "mission-management" },
+  ],
+  sections: [
+    {
+      id: "thermal-livestream",
+      label: "Thermal Livestream",
+      images: [{ src: "thermal.png", alt: "Skydio thermal livestream view" }],
+    },
+    {
+      id: "cloud-model-viewer",
+      label: "Cloud Model Viewer",
+      images: [
+        {
+          src: "cloud-model-viewer.png",
+          alt: "Cloud model viewer walkthrough",
+          youtube: "https://www.youtube.com/watch?v=mO39GVeue2A",
+        },
+      ],
+    },
+    {
+      id: "flight-review",
+      label: "Flight Review",
+      images: [
+        {
+          src: "flight-review.png",
+          alt: "Flight review walkthrough",
+          youtube: "https://www.youtube.com/watch?v=e0ghXOBScmg&t=16s",
+        },
+      ],
+    },
+    {
+      id: "mission-management",
+      label: "Mission Management",
+      images: [
+        { src: "mission.png", alt: "Skydio mission management dashboard" },
+      ],
+    },
+    {
+      id: "fleet-management",
+      label: "Fleet Management",
+      images: [{ src: "fleet.png", alt: "Skydio fleet management map view" }],
+    },
+    {
+      id: "drone-flight-logs",
+      label: "Drone Flight Logs",
+      images: [{ src: "drone-logs.png", alt: "Skydio drone flight logs" }],
+    },
+    {
+      id: "mobile-livestream",
+      label: "Mobile Livestreaming",
+      images: [
+        {
+          src: "mobile-livestream.png",
+          alt: "Skydio mobile livestreaming",
+        },
+      ],
+    },
+    {
+      id: "media-management",
+      label: "Media Management",
+      images: [{ src: "media.png", alt: "Skydio media management" }],
+    },
+  ],
+};
+
 const caseStudies: Record<string, CaseStudy> = {
   nell,
+  agi,
+  krea,
+  skydio,
 };
 
 export function getCaseStudy(slug: string): CaseStudy | undefined {

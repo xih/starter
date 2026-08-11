@@ -74,12 +74,12 @@ const typeTokens = [
   },
   {
     label: "Heading",
-    family: "Lab Grotesque",
+    family: "ABC Diatype Hebrew",
     className: "font-body text-heading",
   },
   {
     label: "Headline",
-    family: "Lab Grotesque",
+    family: "ABC Diatype Hebrew",
     className: "font-body text-headline",
   },
   {
@@ -94,12 +94,12 @@ const typeTokens = [
   },
   {
     label: "Body",
-    family: "Lab Grotesque",
+    family: "ABC Diatype Hebrew",
     className: "font-body text-body",
   },
   {
     label: "Caption",
-    family: "Lab Grotesque",
+    family: "ABC Diatype Hebrew",
     className: "font-body text-caption",
   },
 ];

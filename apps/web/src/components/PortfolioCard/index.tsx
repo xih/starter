@@ -41,7 +41,7 @@ export const portfolioProjects: PortfolioCardProps[] = [
       "Designed mobile-first AI workflows that made multimodal assistance feel direct, useful, and ready for everyday use.",
     artwork: "agi",
     artworkLabel: "People walking around a Samsung phone mockup",
-    links: [{ label: "Product Work", href: "https://agi.tech" }],
+    links: [{ label: "Case Study", href: "/work/agi" }],
   },
   {
     year: "2023",
@@ -51,7 +51,7 @@ export const portfolioProjects: PortfolioCardProps[] = [
       "Worked with Krea's founders on inpainting and outpainting tools during the launch of ControlNet-powered creation workflows.",
     artwork: "krea",
     artworkLabel: "Krea creative tool displayed on a monitor",
-    links: [{ label: "Launch Notes", href: "https://www.krea.ai/" }],
+    links: [{ label: "Case Study", href: "/work/krea" }],
   },
   {
     year: "2022",
@@ -61,7 +61,10 @@ export const portfolioProjects: PortfolioCardProps[] = [
       "Joined as the first designer on Skydio Cloud, building the drone operations platform from zero to one.",
     artwork: "skydio",
     artworkLabel: "Skydio Cloud operations screens in a command center",
-    links: [{ label: "Platform", href: "https://www.skydio.com/" }],
+    links: [
+      { label: "Case Study", href: "/work/skydio" },
+      { label: "Platform", href: "https://www.skydio.com/" },
+    ],
   },
 ];
 

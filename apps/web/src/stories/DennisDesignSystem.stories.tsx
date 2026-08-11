@@ -37,11 +37,11 @@ const typeRows = [
     "font-title text-[length:var(--font-font-size-title)] leading-[var(--font-line-height-lh-title)] tracking-[var(--font-letter-spacing-title)]",
   ],
   [
-    "Heading · Lab Grotesque",
+    "Heading · ABC Diatype Hebrew",
     "font-body text-[length:var(--font-font-size-heading)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-heading)]",
   ],
   [
-    "Headline · Lab Grotesque",
+    "Headline · ABC Diatype Hebrew",
     "font-body text-[length:var(--font-font-size-headline)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-headline)] tracking-[var(--font-letter-spacing-headline)]",
   ],
   [
@@ -49,11 +49,11 @@ const typeRows = [
     "font-title text-[length:var(--font-font-size-subtext)] uppercase leading-[var(--font-line-height-lh-subtext)]",
   ],
   [
-    "Body · Lab Grotesque",
+    "Body · ABC Diatype Hebrew",
     "font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)]",
   ],
   [
-    "Caption · Lab Grotesque",
+    "Caption · ABC Diatype Hebrew",
     "font-body text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)]",
   ],
 ] as const;

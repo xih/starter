@@ -37,53 +37,11 @@
 }
 
 /*
- * Lab Grotesque is the primary body/reading typeface for the design system.
- * The licensed .woff2 files are not committed; drop them into
- * apps/web/public/fonts/ (LabGrotesque-Regular/Medium/Bold.woff2) to activate.
- * Until then, text falls back to ABC Diatype Hebrew, then the system sans stack.
+ * ABC Diatype Hebrew is the primary title and body/reading typeface for the
+ * design system (the --font-font-family-title and --font-font-family-body
+ * tokens both resolve to it). The trial .woff2 files live in
+ * apps/web/public/fonts/ and are loaded below.
  */
-
-/* @font-face {
-  font-family: "Lab Grotesque";
-  src: url("/fonts/LabGrotesque-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Lab Grotesque";
-  src: url("/fonts/LabGrotesque-Medium.woff2") format("woff2");
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Lab Grotesque";
-  src: url("/fonts/LabGrotesque-Bold.woff2") format("woff2");
-  font-weight: 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: Inter;
-  src: url("/fonts/Inter-400.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: Inter;
-  src: url("/fonts/Inter-500.woff2") format("woff2");
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: Inter;
-  src: url("/fonts/Inter-700.woff2") format("woff2");
-  font-weight: 700;
-  font-display: swap;
-} */
 
 @font-face {
   font-family: "ABC Diatype Hebrew Unlicensed Trial";

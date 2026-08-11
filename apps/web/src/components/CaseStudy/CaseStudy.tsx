@@ -60,28 +60,47 @@ function useActiveSection(sectionIds: string[]) {
   return activeId;
 }
 
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+
 /**
- * Extract the 11-char YouTube video id from any of:
+ * Parse a YouTube URL into its video id and optional start offset.
  *   https://www.youtube.com/watch?v=ID
- *   https://www.youtube.com/watch?v=ID&t=16s
- *   https://youtu.be/ID
- * Returns null if the URL is not a recognizable YouTube URL.
+ *   https://www.youtube.com/watch?v=ID&t=16s   → { id, startSeconds: 16 }
+ *   https://youtu.be/ID?t=1m30s                 → { id, startSeconds: 90 }
+ * Returns null if the URL is not a recognisable YouTube URL.
  */
-function parseYouTubeId(url: string): string | null {
+function parseYouTubeUrl(
+  url: string,
+): { id: string; startSeconds: number } | null {
   try {
     const parsed = new URL(url);
+    let id: string | null = null;
     if (parsed.hostname === "youtu.be") {
-      const id = parsed.pathname.replace(/^\//, "");
-      return /^[A-Za-z0-9_-]{6,}$/.test(id) ? id : null;
+      id = parsed.pathname.replace(/^\//, "");
+    } else if (parsed.hostname.endsWith("youtube.com")) {
+      id = parsed.searchParams.get("v");
     }
-    if (parsed.hostname.endsWith("youtube.com")) {
-      const id = parsed.searchParams.get("v");
-      return id && /^[A-Za-z0-9_-]{6,}$/.test(id) ? id : null;
-    }
-    return null;
+    if (!id || !YOUTUBE_ID.test(id)) return null;
+    const startSeconds = parseYouTubeStart(
+      parsed.searchParams.get("t") ?? parsed.searchParams.get("start"),
+    );
+    return { id, startSeconds };
   } catch {
     return null;
   }
+}
+
+/**
+ * Accepts "16", "16s", "1m30s", "1h2m3s" and returns whole seconds. Falls
+ * back to 0 for anything unrecognisable — YouTube ignores a 0 start param.
+ */
+function parseYouTubeStart(raw: string | null | undefined): number {
+  if (!raw) return 0;
+  if (/^\d+$/.test(raw)) return Number(raw);
+  const match = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(raw);
+  if (!match) return 0;
+  const [, h, m, s] = match;
+  return Number(h ?? 0) * 3600 + Number(m ?? 0) * 60 + Number(s ?? 0);
 }
 
 /**
@@ -90,13 +109,15 @@ function parseYouTubeId(url: string): string | null {
  * mobile while still allowing the video to be watched in place.
  */
 function LiteYouTube({ url, alt }: { url: string; alt: string }) {
-  const id = parseYouTubeId(url);
+  const parsed = parseYouTubeUrl(url);
   const [activated, setActivated] = useState(false);
 
-  if (!id) return null;
+  if (!parsed) return null;
 
+  const { id, startSeconds } = parsed;
   const thumbnail = `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
-  const embedSrc = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+  const startParam = startSeconds > 0 ? `&start=${startSeconds}` : "";
+  const embedSrc = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1${startParam}`;
 
   return (
     <div className="absolute inset-0">
@@ -240,7 +261,7 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
               <p className="font-body text-[20px] font-[600] leading-[22px]">
                 Product Surfaces
               </p>
-              <ul className="mt-[12px] flex flex-col gap-[8px]">
+              <ul className="mt-[12px] flex flex-col gap-0 leading-[22px] md:gap-[8px] md:leading-[18px]">
                 {study.surfaces.map((surface) => {
                   const isActive =
                     surface.target != null && surface.target === activeId;

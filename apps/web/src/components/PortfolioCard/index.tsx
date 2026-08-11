@@ -1,5 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 import { cn } from "~/lib/utils";
 
@@ -30,7 +31,7 @@ export const portfolioProjects: PortfolioCardProps[] = [
       "Worked with the co-founder of SoundCloud to build generative AI experiences, helping shape the product through its Index Ventures raise.",
     artwork: "nell",
     artworkLabel: "Nell brand mark on a red field",
-    links: [{ label: "Case Study", href: "https://nell.ai" }],
+    links: [{ label: "Case Study", href: "/work/nell" }],
   },
   {
     year: "2025",
@@ -89,16 +90,22 @@ export function PortfolioCard({
 
         {links.length > 0 ? (
           <div className="flex flex-wrap items-center gap-x-token-12 gap-y-token-4 pt-token-4">
-            {links.map((link) => (
-              <a
-                className="inline-flex items-center gap-1 text-[#121318] underline-offset-4 transition-colors hover:text-[#68696d] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:ring-offset-2"
-                href={link.href}
-                key={`${link.label}-${link.href}`}
-              >
-                {link.label}
-                <ExternalLink aria-hidden="true" className="size-[14px]" />
-              </a>
-            ))}
+            {links.map((link) => {
+              const linkClassName =
+                "inline-flex items-center gap-1 text-[#121318] underline-offset-4 transition-colors hover:text-[#68696d] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:ring-offset-2";
+              const key = `${link.label}-${link.href}`;
+
+              return link.href.startsWith("/") ? (
+                <Link className={linkClassName} href={link.href} key={key}>
+                  {link.label}
+                </Link>
+              ) : (
+                <a className={linkClassName} href={link.href} key={key}>
+                  {link.label}
+                  <ExternalLink aria-hidden="true" className="size-[14px]" />
+                </a>
+              );
+            })}
           </div>
         ) : null}
       </div>

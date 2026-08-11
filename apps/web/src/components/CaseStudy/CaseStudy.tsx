@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PortfolioFooter } from "@starter/design-system";
 
 import { PortfolioHeader } from "~/components/PortfolioHeader";
@@ -58,6 +58,61 @@ function useActiveSection(sectionIds: string[]) {
   }, [sectionIds]);
 
   return activeId;
+}
+
+/**
+ * Plays only while the section is on screen. `preload="none"` plus no
+ * `autoPlay` means the media is not fetched until the video scrolls into view,
+ * so off-screen sections show their poster and transfer nothing.
+ */
+function LazyVideo({
+  alt,
+  poster,
+  src,
+}: {
+  alt: string;
+  poster: string;
+  src: string;
+}) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      void element.play()?.catch(() => undefined);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          void element.play()?.catch(() => undefined);
+        } else {
+          element.pause();
+        }
+      },
+      { threshold: 0.25 },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <video
+      aria-label={alt}
+      className="absolute inset-0 size-full object-contain"
+      loop
+      muted
+      playsInline
+      poster={poster}
+      preload="none"
+      ref={ref}
+      src={src}
+    />
+  );
 }
 
 export function CaseStudy({ study }: { study: CaseStudyData }) {
@@ -172,15 +227,9 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                         style={{ aspectRatio: IMAGE_ASPECT }}
                       >
                         {image.video ? (
-                          <video
-                            aria-label={image.alt}
-                            autoPlay
-                            className="absolute inset-0 size-full object-contain"
-                            loop
-                            muted
-                            playsInline
+                          <LazyVideo
+                            alt={image.alt}
                             poster={`${assetBase}/${image.src}`}
-                            preload="metadata"
                             src={`${assetBase}/${image.video}`}
                           />
                         ) : (

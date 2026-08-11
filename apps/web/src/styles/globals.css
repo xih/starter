@@ -42,6 +42,7 @@
  * apps/web/public/fonts/ (LabGrotesque-Regular/Medium/Bold.woff2) to activate.
  * Until then, text falls back to ABC Diatype Hebrew, then the system sans stack.
  */
+
 /* @font-face {
   font-family: "Lab Grotesque";
   src: url("/fonts/LabGrotesque-Regular.woff2") format("woff2");

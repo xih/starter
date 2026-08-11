@@ -259,7 +259,7 @@ export const LiveChatMessageRow = forwardRef<
     <motion.article
       aria-label={`${message.handle}: ${message.text}`}
       className={cn(
-        "gap-token-8 px-token-8 py-token-4 flex w-full shrink-0 items-start",
+        "flex w-full shrink-0 items-start gap-token-8 px-token-8 py-token-4",
         "rounded-token-xxs transition-colors",
         tone === "dark"
           ? "hover:bg-[var(--color-background-hovered)]"
@@ -283,7 +283,7 @@ export const LiveChatMessageRow = forwardRef<
         opacity: 0,
       }}
     >
-      <div className="pt-token-4 flex w-[32px] shrink-0 items-start">
+      <div className="flex w-[32px] shrink-0 items-start pt-token-4">
         <VoiceAvatar
           avatar={message.avatarUrl}
           className="bg-[var(--color-background-secondary)]"
@@ -291,7 +291,7 @@ export const LiveChatMessageRow = forwardRef<
           size={24}
         />
       </div>
-      <div className="gap-token-4 flex min-w-0 flex-1 flex-col justify-center py-[0.5px]">
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-token-4 py-[0.5px]">
         <p
           className={cn(
             "font-body text-caption font-semibold",
@@ -506,7 +506,7 @@ export function LiveChat({
     >
       <div
         className={cn(
-          "gap-token-2 flex w-full flex-col",
+          "flex w-full flex-col gap-token-2",
           isScrollable && "min-h-full",
           verticalAlign === "start" ? "justify-start" : "justify-end",
         )}
@@ -580,7 +580,7 @@ export function LiveChatModule({
     >
       <button
         aria-expanded={!resolvedMinimized}
-        className="font-body flex h-[20px] w-full touch-manipulation items-center gap-[10px] text-left text-[16px] leading-[20px] text-[#121318]"
+        className="flex h-[20px] w-full touch-manipulation items-center gap-[10px] text-left font-body text-[16px] leading-[20px] text-[#121318]"
         onClick={toggleMinimized}
         type="button"
       >

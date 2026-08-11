@@ -51,12 +51,12 @@ export function SectionHeader({
       ) : null}
       <div className="flex w-full flex-col items-start gap-[8px]">
         <div className="flex min-h-[32px] w-full items-center justify-between gap-[3px]">
-          <h1 className="font-title min-w-0 flex-1 break-words text-[28px] font-[400] leading-[31.1px] tracking-normal">
+          <h1 className="min-w-0 flex-1 break-words font-title text-[28px] font-[400] leading-[31.1px] tracking-normal">
             {title}
           </h1>
           {rightAction ? (
             <button
-              className="font-body inline-flex h-[20px] shrink-0 items-center justify-end text-[16px] font-[400] leading-[19.2px] tracking-normal text-[#121318] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318]"
+              className="inline-flex h-[20px] shrink-0 items-center justify-end font-body text-[16px] font-[400] leading-[19.2px] tracking-normal text-[#121318] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318]"
               type="button"
             >
               {rightAction}
@@ -64,7 +64,7 @@ export function SectionHeader({
           ) : null}
         </div>
         {subtext ? (
-          <p className="font-body line-clamp-2 text-[16px] font-[400] leading-[19.2px] tracking-normal text-[#4a4a4a]">
+          <p className="line-clamp-2 font-body text-[16px] font-[400] leading-[19.2px] tracking-normal text-[#4a4a4a]">
             {subtext}
           </p>
         ) : null}

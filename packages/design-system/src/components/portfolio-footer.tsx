@@ -30,7 +30,7 @@ function FooterTextLink({
 }) {
   return (
     <a
-      className="font-body inline-flex w-fit items-center gap-[4px] text-[12px] font-[700] leading-[18px] text-white underline decoration-transparent decoration-1 underline-offset-[3px] transition hover:decoration-white focus-visible:decoration-white focus-visible:outline-none md:text-[16px] md:leading-[21px]"
+      className="inline-flex w-fit items-center gap-[4px] font-body text-[12px] font-[700] leading-[18px] text-white underline decoration-transparent decoration-1 underline-offset-[3px] transition hover:decoration-white focus-visible:decoration-white focus-visible:outline-none md:text-[16px] md:leading-[21px]"
       href={href}
     >
       {children}
@@ -59,7 +59,7 @@ export function PortfolioFooter({
       )}
     >
       <div className="grid grid-cols-2 gap-x-[28px] gap-y-[25px] md:grid-cols-[300px_1fr_180px_220px] md:items-start md:gap-[40px]">
-        <div className="font-body order-3 max-w-[300px] text-[12px] leading-[16px] md:order-none md:text-[16px] md:leading-[20px]">
+        <div className="order-3 max-w-[300px] font-body text-[12px] leading-[16px] md:order-none md:text-[16px] md:leading-[20px]">
           <p className="mb-[15px] flex items-center gap-[6px]">
             <span className="size-[7px] rounded-full bg-[#52d34f]" />
             <span>2 visitors&nbsp; 2:16:05 PM</span>
@@ -90,7 +90,7 @@ export function PortfolioFooter({
         </nav>
       </div>
 
-      <div className="font-title mt-auto whitespace-nowrap text-[42px] font-[400] leading-none text-white md:self-center md:text-[176px]">
+      <div className="mt-auto whitespace-nowrap font-title text-[42px] font-[400] leading-none text-white md:self-center md:text-[176px]">
         Dennis Xing
       </div>
     </footer>

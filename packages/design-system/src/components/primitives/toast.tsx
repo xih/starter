@@ -25,7 +25,7 @@ export function Toast({
   return (
     <div
       className={cn(
-        "font-body flex h-[42px] w-[316px] items-center gap-[12px] rounded-[7px] px-[16px] text-[14px] font-[400] leading-[20px]",
+        "flex h-[42px] w-[316px] items-center gap-[12px] rounded-[7px] px-[16px] font-body text-[14px] font-[400] leading-[20px]",
         toastClass[state],
         className,
       )}

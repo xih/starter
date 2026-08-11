@@ -161,7 +161,7 @@ export function VoiceSelector({
   return (
     <button
       className={cn(
-        "font-body flex h-[113px] w-[144px] flex-col items-start justify-end rounded-[10px] p-[12px] text-left text-[#121318]",
+        "flex h-[113px] w-[144px] flex-col items-start justify-end rounded-[10px] p-[12px] text-left font-body text-[#121318]",
         state === "default" && "bg-[#f5f5f5]",
         state === "hovered" && "bg-[#e8e8e8]",
         state === "selected" && "bg-[#dcdcdc]",
@@ -230,7 +230,7 @@ export function VoiceParameterPanel({
   return (
     <div
       className={cn(
-        "font-body flex h-[var(--ds-agent-control-voice-panel-height)] w-[var(--ds-agent-control-voice-panel-width)] flex-col gap-[10px] rounded-[18px] border border-[#dcdcdc] bg-[#f7f7f7] px-[20px] py-[18px] text-[#121318] shadow-[0_18px_40px_rgba(18,19,24,0.08)]",
+        "flex h-[var(--ds-agent-control-voice-panel-height)] w-[var(--ds-agent-control-voice-panel-width)] flex-col gap-[10px] rounded-[18px] border border-[#dcdcdc] bg-[#f7f7f7] px-[20px] py-[18px] font-body text-[#121318] shadow-[0_18px_40px_rgba(18,19,24,0.08)]",
         className,
       )}
     >
@@ -341,7 +341,7 @@ export function AgentControlBar({
       <div className="flex h-[28px] items-center gap-[8px] overflow-hidden">
         <input
           aria-label="Message"
-          className="font-body w-[114.285714%] min-w-0 flex-none origin-left scale-[0.875] bg-transparent text-[16px] font-[400] leading-[22.857143px] text-[#595a5d] outline-none placeholder:text-[#595a5d]"
+          className="w-[114.285714%] min-w-0 flex-none origin-left scale-[0.875] bg-transparent font-body text-[16px] font-[400] leading-[22.857143px] text-[#595a5d] outline-none placeholder:text-[#595a5d]"
           onChange={(event) => onChangeInput?.(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {

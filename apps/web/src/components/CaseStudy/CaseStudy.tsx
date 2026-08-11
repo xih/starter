@@ -60,6 +60,115 @@ function useActiveSection(sectionIds: string[]) {
   return activeId;
 }
 
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+// Exact host match — `.endsWith("youtube.com")` would match `evil-youtube.com`
+// (CodeQL "Incomplete URL substring sanitization").
+const YOUTUBE_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+]);
+
+/**
+ * Parse a YouTube URL into its video id and optional start offset.
+ *   https://www.youtube.com/watch?v=ID
+ *   https://www.youtube.com/watch?v=ID&t=16s   → { id, startSeconds: 16 }
+ *   https://youtu.be/ID?t=1m30s                 → { id, startSeconds: 90 }
+ * Returns null if the URL is not a recognisable YouTube URL.
+ */
+function parseYouTubeUrl(
+  url: string,
+): { id: string; startSeconds: number } | null {
+  try {
+    const parsed = new URL(url);
+    let id: string | null = null;
+    if (parsed.hostname === "youtu.be") {
+      id = parsed.pathname.replace(/^\//, "");
+    } else if (YOUTUBE_HOSTS.has(parsed.hostname)) {
+      id = parsed.searchParams.get("v");
+    }
+    if (!id || !YOUTUBE_ID.test(id)) return null;
+    const startSeconds = parseYouTubeStart(
+      parsed.searchParams.get("t") ?? parsed.searchParams.get("start"),
+    );
+    return { id, startSeconds };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Accepts "16", "16s", "1m30s", "1h2m3s" and returns whole seconds. Falls
+ * back to 0 for anything unrecognisable — YouTube ignores a 0 start param.
+ */
+function parseYouTubeStart(raw: string | null | undefined): number {
+  if (!raw) return 0;
+  if (/^\d+$/.test(raw)) return Number(raw);
+  const match = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(raw);
+  if (!match) return 0;
+  const [, h, m, s] = match;
+  return Number(h ?? 0) * 3600 + Number(m ?? 0) * 60 + Number(s ?? 0);
+}
+
+/**
+ * Lite YouTube facade: shows YouTube's thumbnail with a play button and only
+ * loads the heavy player iframe once the user clicks. Keeps the page fast on
+ * mobile while still allowing the video to be watched in place.
+ */
+function LiteYouTube({ url, alt }: { url: string; alt: string }) {
+  const parsed = parseYouTubeUrl(url);
+  const [activated, setActivated] = useState(false);
+
+  if (!parsed) return null;
+
+  const { id, startSeconds } = parsed;
+  const thumbnail = `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
+  const startParam = startSeconds > 0 ? `&start=${startSeconds}` : "";
+  const embedSrc = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1${startParam}`;
+
+  return (
+    <div className="absolute inset-0">
+      {activated ? (
+        <iframe
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="absolute inset-0 size-full"
+          referrerPolicy="strict-origin-when-cross-origin"
+          src={embedSrc}
+          title={alt}
+        />
+      ) : (
+        <button
+          aria-label={`Play ${alt}`}
+          className="group absolute inset-0 flex items-center justify-center overflow-hidden focus-visible:outline-none"
+          onClick={() => setActivated(true)}
+          type="button"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+            loading="lazy"
+            src={thumbnail}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-black/20 transition-opacity group-hover:opacity-80" />
+          <span
+            aria-hidden="true"
+            className="relative flex size-[68px] items-center justify-center rounded-full bg-[#ff0000] shadow-[0_10px_40px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-4 group-focus-visible:ring-white/70 md:size-[84px]"
+          >
+            <svg
+              className="ml-[6px] size-[26px] fill-white md:size-[32px]"
+              viewBox="0 0 24 24"
+            >
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 /**
  * Plays only while the section is on screen. `preload="none"` plus no
  * `autoPlay` means the media is not fetched until the video scrolls into view,
@@ -159,7 +268,7 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
               <p className="font-body text-[20px] font-[600] leading-[22px]">
                 Product Surfaces
               </p>
-              <ul className="mt-[12px] flex flex-col gap-[8px]">
+              <ul className="mt-[12px] flex flex-col gap-0 leading-[22px] md:gap-[8px] md:leading-[18px]">
                 {study.surfaces.map((surface) => {
                   const isActive =
                     surface.target != null && surface.target === activeId;
@@ -234,6 +343,8 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                             poster={`${assetBase}/${image.src}`}
                             src={`${assetBase}/${image.video}`}
                           />
+                        ) : image.youtube ? (
+                          <LiteYouTube alt={image.alt} url={image.youtube} />
                         ) : (
                           <Image
                             alt={image.alt}

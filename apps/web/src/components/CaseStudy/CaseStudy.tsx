@@ -61,6 +61,13 @@ function useActiveSection(sectionIds: string[]) {
 }
 
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+// Exact host match — `.endsWith("youtube.com")` would match `evil-youtube.com`
+// (CodeQL "Incomplete URL substring sanitization").
+const YOUTUBE_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+]);
 
 /**
  * Parse a YouTube URL into its video id and optional start offset.
@@ -77,7 +84,7 @@ function parseYouTubeUrl(
     let id: string | null = null;
     if (parsed.hostname === "youtu.be") {
       id = parsed.pathname.replace(/^\//, "");
-    } else if (parsed.hostname.endsWith("youtube.com")) {
+    } else if (YOUTUBE_HOSTS.has(parsed.hostname)) {
       id = parsed.searchParams.get("v");
     }
     if (!id || !YOUTUBE_ID.test(id)) return null;

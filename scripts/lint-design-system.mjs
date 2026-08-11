@@ -135,9 +135,7 @@ expect(
   "Generated CSS tokens should include length units for radius.",
 );
 expect(
-  tokenCss.includes(
-    '--font-font-family-body: "ABC Diatype Hebrew Unlicensed Trial";',
-  ),
+  tokenCss.includes('--font-font-family-body: "Lab Grotesque";'),
   "Generated CSS tokens should quote font family values that contain spaces.",
 );
 expect(

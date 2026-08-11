@@ -29,27 +29,31 @@ const colorTokens = [
 
 const typeRows = [
   [
-    "Hero",
-    "font-title text-[48px] leading-[52.8px] tracking-[var(--font-letter-spacing-title)]",
+    "Header 2 · Inter",
+    "font-header text-[length:var(--font-font-size-header-2)] font-[var(--font-font-weight-bold)] leading-[var(--font-line-height-lh-header-2)] tracking-[var(--font-letter-spacing-header-2)]",
   ],
   [
-    "Display",
-    "font-title text-[36px] leading-[40px] tracking-[var(--font-letter-spacing-title)]",
-  ],
-  [
-    "Title",
+    "Title · ABC Diatype Hebrew",
     "font-title text-[length:var(--font-font-size-title)] leading-[var(--font-line-height-lh-title)] tracking-[var(--font-letter-spacing-title)]",
   ],
   [
-    "Heading",
+    "Heading · Lab Grotesque",
     "font-body text-[length:var(--font-font-size-heading)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-heading)]",
   ],
   [
-    "Body",
+    "Headline · Lab Grotesque",
+    "font-body text-[length:var(--font-font-size-headline)] font-[var(--font-font-weight-semi-bold)] leading-[var(--font-line-height-lh-headline)] tracking-[var(--font-letter-spacing-headline)]",
+  ],
+  [
+    "Subtext · ABC Diatype Hebrew",
+    "font-title text-[length:var(--font-font-size-subtext)] uppercase leading-[var(--font-line-height-lh-subtext)]",
+  ],
+  [
+    "Body · Lab Grotesque",
     "font-body text-[length:var(--font-font-size-body)] leading-[var(--font-line-height-lh-body)]",
   ],
   [
-    "Caption",
+    "Caption · Lab Grotesque",
     "font-body text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)]",
   ],
 ] as const;

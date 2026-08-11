@@ -63,27 +63,43 @@ const radiusTokens = [
 
 const typeTokens = [
   {
+    label: "Header 2",
+    family: "Inter",
+    className: "font-header text-header-2",
+  },
+  {
     label: "Title",
+    family: "ABC Diatype Hebrew",
     className: "font-title text-title",
   },
   {
+    label: "Heading",
+    family: "Lab Grotesque",
+    className: "font-body text-heading",
+  },
+  {
     label: "Headline",
-    className: "font-title text-headline",
+    family: "Lab Grotesque",
+    className: "font-body text-headline",
   },
   {
     label: "CTA",
-    className: "font-body text-cta",
+    family: "ABC Diatype Hebrew",
+    className: "font-title text-cta uppercase",
   },
   {
     label: "Subtext",
-    className: "font-body text-subtext",
+    family: "ABC Diatype Hebrew",
+    className: "font-title text-subtext uppercase",
   },
   {
     label: "Body",
+    family: "Lab Grotesque",
     className: "font-body text-body",
   },
   {
     label: "Caption",
+    family: "Lab Grotesque",
     className: "font-body text-caption",
   },
 ];
@@ -157,11 +173,16 @@ function TokenSurface({ mode }: { mode: "light" | "dark" }) {
 
           <section className="grid gap-4">
             <h2 className="text-headline">Typography</h2>
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               {typeTokens.map((token) => (
-                <p key={token.label} className={token.className}>
-                  {token.label}: The quick brown fox jumps over the lazy dog.
-                </p>
+                <div key={token.label} className="grid gap-1">
+                  <span className="text-caption text-muted-foreground">
+                    {token.label} · {token.family}
+                  </span>
+                  <p className={token.className}>
+                    The quick brown fox jumps over the lazy dog.
+                  </p>
+                </div>
               ))}
             </div>
           </section>

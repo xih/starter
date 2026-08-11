@@ -247,9 +247,7 @@ const skydio: CaseStudy = {
     {
       id: "thermal-livestream",
       label: "Thermal Livestream",
-      images: [
-        { src: "thermal.png", alt: "Skydio thermal livestream view" },
-      ],
+      images: [{ src: "thermal.png", alt: "Skydio thermal livestream view" }],
     },
     {
       id: "cloud-model-viewer",
@@ -283,16 +281,12 @@ const skydio: CaseStudy = {
     {
       id: "fleet-management",
       label: "Fleet Management",
-      images: [
-        { src: "fleet.png", alt: "Skydio fleet management map view" },
-      ],
+      images: [{ src: "fleet.png", alt: "Skydio fleet management map view" }],
     },
     {
       id: "drone-flight-logs",
       label: "Drone Flight Logs",
-      images: [
-        { src: "drone-logs.png", alt: "Skydio drone flight logs" },
-      ],
+      images: [{ src: "drone-logs.png", alt: "Skydio drone flight logs" }],
     },
     {
       id: "mobile-livestream",
@@ -307,9 +301,7 @@ const skydio: CaseStudy = {
     {
       id: "media-management",
       label: "Media Management",
-      images: [
-        { src: "media.png", alt: "Skydio media management" },
-      ],
+      images: [{ src: "media.png", alt: "Skydio media management" }],
     },
   ],
 };

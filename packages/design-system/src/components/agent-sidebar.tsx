@@ -49,7 +49,7 @@ export function AgentSideBar({
   return (
     <div
       className={cn(
-        "relative flex h-[1117px] w-[428px] flex-col overflow-hidden border border-[#eeeeee] bg-white px-[36px] pt-[24px] pb-[26px] text-[#121318]",
+        "relative flex h-[1117px] w-[428px] flex-col overflow-hidden border border-[#eeeeee] bg-white px-[36px] pb-[26px] pt-[24px] text-[#121318]",
         className,
       )}
       data-state={state}
@@ -58,7 +58,7 @@ export function AgentSideBar({
         {state === "intro" ? (
           <>
             <MultipleHosts />
-            <h2 className="font-title mt-[8px] max-w-[360px] text-[26px] leading-[31px] font-[700]">
+            <h2 className="font-title mt-[8px] max-w-[360px] text-[26px] font-[700] leading-[31px]">
               Chat with Masa Son, Sam Altman, Elon Musk
             </h2>
             <button
@@ -76,12 +76,12 @@ export function AgentSideBar({
               className="h-[140px] w-[228px] object-cover"
               src="/agent-sidebar/cloud.png"
             />
-            <p className="font-body mt-[12px] max-w-[228px] text-[12px] leading-[15px] font-[700]">
+            <p className="font-body mt-[12px] max-w-[228px] text-[12px] font-[700] leading-[15px]">
               Watch the clouds move while we connect you to their consciousness
             </p>
           </>
         ) : state === "begin" ? (
-          <h2 className="font-title text-[24px] leading-[31px] font-[700]">
+          <h2 className="font-title text-[24px] font-[700] leading-[31px]">
             Ask a question
           </h2>
         ) : showConversation ? (

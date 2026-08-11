@@ -18,7 +18,7 @@ export function KeyboardShortcuts() {
   return isVisible ? (
     <Card className="fixed bottom-token-16 right-token-16 z-50 hidden w-80 border-[var(--color-border-opaque)] bg-[var(--color-background-primary)] text-[var(--color-text-primary)] shadow-lg lg:block">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-heading font-body font-semibold text-[var(--color-text-primary)]">
+        <CardTitle className="font-body text-heading font-semibold text-[var(--color-text-primary)]">
           Introducing keyboard shortcuts!
         </CardTitle>
         <Button

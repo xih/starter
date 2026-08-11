@@ -15,7 +15,7 @@ describe("PortfolioCard", () => {
     );
     expect(screen.getByRole("link", { name: /case study/i })).toHaveAttribute(
       "href",
-      "https://nell.ai",
+      "/work/nell",
     );
   });
 

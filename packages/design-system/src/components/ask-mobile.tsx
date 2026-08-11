@@ -145,7 +145,7 @@ export function AskMobileExperience({
     >
       {showHeader ? (
         <SectionHeader
-          className="absolute top-[24px] left-[20px] z-20 w-[calc(100%-40px)]"
+          className="absolute left-[20px] top-[24px] z-20 w-[calc(100%-40px)]"
           onBack={onBack}
           showBackButton={showBackButton}
           subtext={
@@ -158,7 +158,7 @@ export function AskMobileExperience({
       ) : null}
       {showConversation ? (
         <div
-          className="absolute top-[112px] right-[20px] bottom-0 left-[20px] overflow-y-auto pb-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="absolute bottom-0 left-[20px] right-[20px] top-[112px] overflow-y-auto pb-[calc(20px_+_var(--ds-agent-control-bar-height)_+_var(--ds-agent-mobile-orb-gap)_+_var(--ds-agent-mobile-orb-size)_+_var(--ds-agent-mobile-transcript-gap)_+_env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           data-testid="mobile-chat-transcript"
           ref={transcriptRef}
         >
@@ -189,7 +189,7 @@ export function AskMobileExperience({
           {renderOrb}
         </div>
       ) : null}
-      <div className="absolute right-[20px] bottom-[calc(20px_+_env(safe-area-inset-bottom))] left-[20px] z-10 flex flex-col gap-[8px]">
+      <div className="absolute bottom-[calc(20px_+_env(safe-area-inset-bottom))] left-[20px] right-[20px] z-10 flex flex-col gap-[8px]">
         {isVoicePanelOpen ? (
           <VoiceParameterPanel
             className="w-full"
@@ -248,7 +248,7 @@ function MobileIssuePill({
     >
       <button
         aria-label="Retry voice connection"
-        className="flex h-full items-center gap-[10px] rounded-l-[21px] pr-[10px] pl-[12px] text-[16px] leading-[20px] font-[700]"
+        className="flex h-full items-center gap-[10px] rounded-l-[21px] pl-[12px] pr-[10px] text-[16px] font-[700] leading-[20px]"
         onClick={onRetry}
         type="button"
       >

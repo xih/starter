@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { CaseStudy, getCaseStudy, getCaseStudySlugs } from "~/components/CaseStudy";
+import {
+  CaseStudy,
+  getCaseStudy,
+  getCaseStudySlugs,
+} from "~/components/CaseStudy";
 
 type WorkPageProps = {
   params: Promise<{ slug: string }>;
@@ -18,12 +22,31 @@ export async function generateMetadata({
   const study = getCaseStudy(slug);
 
   if (!study) {
-    return { title: "Work" };
+    return {
+      title: "Work",
+      alternates: { canonical: `/work/${slug}` },
+    };
   }
 
+  const canonical = `/work/${study.slug}`;
+  const title = `${study.company} case study — ${study.role} · Dennis Xing`;
+  const description = `${study.company} · ${study.role} (${study.period}). ${study.description}`;
+
   return {
-    title: `${study.company} — ${study.role}`,
-    description: study.description,
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 

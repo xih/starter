@@ -487,7 +487,7 @@ export function LiveChat({
         "w-full max-w-[423px]",
         isScrollable
           ? [
-              "block overflow-x-hidden overflow-y-auto overscroll-contain pr-[6px]",
+              "block overflow-y-auto overflow-x-hidden overscroll-contain pr-[6px]",
               "[scrollbar-color:#8f8f8f_transparent] [scrollbar-gutter:stable]",
               "[scrollbar-width:thin] [&::-webkit-scrollbar]:w-[6px]",
               "[&::-webkit-scrollbar-track]:bg-transparent",

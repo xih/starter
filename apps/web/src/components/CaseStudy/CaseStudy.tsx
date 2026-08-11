@@ -141,22 +141,22 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
           {/* Fixed-vertical sidebar on desktop; stacks inline on mobile. */}
           <aside className="md:sticky md:top-0 md:flex md:h-screen md:flex-col md:self-start md:overflow-y-auto md:py-[48px] md:pr-[8px]">
             <div className="pt-[40px] md:pt-0">
-              <p className="font-body text-[15px] leading-[18px] font-[600]">
+              <p className="font-body text-[15px] font-[600] leading-[18px]">
                 {study.company}
               </p>
-              <p className="font-body mt-[8px] text-[15px] leading-[18px] font-[400] text-[#595a5d]">
+              <p className="mt-[8px] font-body text-[15px] font-[400] leading-[18px] text-[#595a5d]">
                 {study.role}
               </p>
-              <p className="font-body text-[15px] leading-[18px] font-[400] text-[#595a5d]">
+              <p className="font-body text-[15px] font-[400] leading-[18px] text-[#595a5d]">
                 {study.period}
               </p>
-              <p className="font-body mt-[16px] text-[15px] leading-[21px] font-[400] text-[#595a5d] md:max-w-[240px]">
+              <p className="mt-[16px] font-body text-[15px] font-[400] leading-[21px] text-[#595a5d] md:max-w-[240px]">
                 {study.description}
               </p>
             </div>
 
             <nav aria-label="Product surfaces" className="mt-[40px]">
-              <p className="font-body text-[20px] leading-[22px] font-[600]">
+              <p className="font-body text-[20px] font-[600] leading-[22px]">
                 Product Surfaces
               </p>
               <ul className="mt-[12px] flex flex-col gap-[8px]">
@@ -171,7 +171,7 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                           aria-current={isActive ? "true" : undefined}
                           className={cn(
                             SURFACE_ITEM_CLASS,
-                            "transition-colors focus-visible:ring-2 focus-visible:ring-[#1e1f24] focus-visible:outline-none",
+                            "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e1f24]",
                             isActive
                               ? "font-[600] text-[#1e1f24]"
                               : "text-[#595a5d] hover:text-[#1e1f24]",
@@ -182,7 +182,9 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                           {surface.label}
                         </a>
                       ) : (
-                        <span className={cn(SURFACE_ITEM_CLASS, "text-[#595a5d]")}>
+                        <span
+                          className={cn(SURFACE_ITEM_CLASS, "text-[#595a5d]")}
+                        >
                           {surface.label}
                         </span>
                       )}
@@ -196,7 +198,7 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
           {/* Scrolling main column. */}
           <div className="pt-[40px] md:pt-[48px]">
             <h1
-              className="font-title text-[28px] leading-[31.1px] font-[500] tracking-[-0.02em] text-[#1e1f24]"
+              className="font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24]"
               id={headingId}
             >
               {study.overline}
@@ -211,7 +213,7 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                   key={section.id}
                 >
                   <h2
-                    className="font-body text-[20px] leading-[22px] font-[600] text-[#1e1f24]"
+                    className="font-body text-[20px] font-[600] leading-[22px] text-[#1e1f24]"
                     id={`${section.id}-label`}
                   >
                     {section.label}

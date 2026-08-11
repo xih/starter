@@ -13,7 +13,7 @@ export type PortfolioFooterProps = {
 
 function FooterHeading({ children }: { children: string }) {
   return (
-    <h2 className="font-title text-[28px] leading-[31px] font-[700] text-white md:text-[34px] md:leading-[38px]">
+    <h2 className="font-title text-[28px] font-[700] leading-[31px] text-white md:text-[34px] md:leading-[38px]">
       {children}
     </h2>
   );
@@ -30,7 +30,7 @@ function FooterTextLink({
 }) {
   return (
     <a
-      className="font-body inline-flex w-fit items-center gap-[4px] text-[12px] leading-[18px] font-[700] text-white underline decoration-transparent decoration-1 underline-offset-[3px] transition hover:decoration-white focus-visible:decoration-white focus-visible:outline-none md:text-[16px] md:leading-[21px]"
+      className="font-body inline-flex w-fit items-center gap-[4px] text-[12px] font-[700] leading-[18px] text-white underline decoration-transparent decoration-1 underline-offset-[3px] transition hover:decoration-white focus-visible:decoration-white focus-visible:outline-none md:text-[16px] md:leading-[21px]"
       href={href}
     >
       {children}
@@ -54,7 +54,7 @@ export function PortfolioFooter({
   return (
     <footer
       className={cn(
-        "relative flex min-h-[494px] w-full flex-col overflow-hidden bg-black px-[26px] pt-[18px] pb-[26px] text-white md:min-h-[556px] md:px-[29px] md:pt-[27px] md:pb-[22px]",
+        "relative flex min-h-[494px] w-full flex-col overflow-hidden bg-black px-[26px] pb-[26px] pt-[18px] text-white md:min-h-[556px] md:px-[29px] md:pb-[22px] md:pt-[27px]",
         className,
       )}
     >
@@ -90,7 +90,7 @@ export function PortfolioFooter({
         </nav>
       </div>
 
-      <div className="font-title mt-auto text-[42px] leading-none font-[400] whitespace-nowrap text-white md:self-center md:text-[176px]">
+      <div className="font-title mt-auto whitespace-nowrap text-[42px] font-[400] leading-none text-white md:self-center md:text-[176px]">
         Dennis Xing
       </div>
     </footer>

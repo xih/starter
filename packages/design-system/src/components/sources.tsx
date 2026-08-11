@@ -31,7 +31,7 @@ export function SourcesChip({ className, index, source }: SourcesChipProps) {
     <a
       aria-label={`${label} ${source.provider} source: ${source.title}`}
       className={cn(
-        "font-body inline-flex h-[28px] w-[237px] shrink-0 items-center gap-[6px] rounded-[4px] border border-[var(--color-border-subtle)] bg-[var(--color-bg-canvas)] px-[9px] py-[5px] text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-background-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)] focus-visible:outline-none md:w-auto md:max-w-[380px]",
+        "font-body inline-flex h-[28px] w-[237px] shrink-0 items-center gap-[6px] rounded-[4px] border border-[var(--color-border-subtle)] bg-[var(--color-bg-canvas)] px-[9px] py-[5px] text-[length:var(--font-font-size-caption)] leading-[var(--font-line-height-lh-caption)] text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-background-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-selected)] md:w-auto md:max-w-[380px]",
         className,
       )}
       href={safeUrl}

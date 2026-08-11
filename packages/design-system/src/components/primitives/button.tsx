@@ -63,7 +63,7 @@ export function DesignSystemButton({
   return (
     <button
       className={cn(
-        "font-body inline-flex shrink-0 items-center justify-center gap-[10px] rounded-[8px] border text-[14px] leading-[20px] font-[700] transition focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:ring-offset-2 focus-visible:outline-none",
+        "font-body inline-flex shrink-0 items-center justify-center gap-[10px] rounded-[8px] border text-[14px] font-[700] leading-[20px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:ring-offset-2",
         size === "large"
           ? "h-[52px] w-[354px] px-[24px]"
           : "h-[36px] w-[100px] px-[12px]",

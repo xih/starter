@@ -828,11 +828,15 @@
   "Font": {
     "font-family-title": {
       "$type": "string",
-      "$value": "Windsor"
+      "$value": "ABC Diatype Hebrew Unlicensed Trial"
     },
     "font-family-body": {
       "$type": "string",
-      "$value": "ABC Diatype Hebrew Unlicensed Trial"
+      "$value": "Lab Grotesque"
+    },
+    "font-family-header": {
+      "$type": "string",
+      "$value": "Inter"
     },
     "letter-spacing": {
       "title": {
@@ -848,6 +852,14 @@
             "targetVariableSetName": "Primitives"
           }
         }
+      },
+      "headline": {
+        "$type": "number",
+        "$value": -0.019999999552965164
+      },
+      "header-2": {
+        "$type": "number",
+        "$value": -0.019999999552965164
       }
     },
     "line-height": {
@@ -948,6 +960,10 @@
             "targetVariableSetName": "Primitives"
           }
         }
+      },
+      "lh-header-2": {
+        "$type": "number",
+        "$value": 57.599998474121094
       }
     },
     "font-size": {
@@ -1048,6 +1064,10 @@
             "targetVariableSetName": "Primitives"
           }
         }
+      },
+      "header-2": {
+        "$type": "number",
+        "$value": 48
       }
     },
     "font-weight": {
@@ -1092,6 +1112,10 @@
             "targetVariableSetName": "Primitives"
           }
         }
+      },
+      "bold": {
+        "$type": "number",
+        "$value": 700
       }
     },
     "font-family-mono": {

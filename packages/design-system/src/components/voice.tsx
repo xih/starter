@@ -161,7 +161,7 @@ export function VoiceSelector({
   return (
     <button
       className={cn(
-        "font-body flex h-[113px] w-[144px] flex-col items-start justify-end rounded-[10px] p-[12px] text-left text-[#121318]",
+        "flex h-[113px] w-[144px] flex-col items-start justify-end rounded-[10px] p-[12px] text-left font-body text-[#121318]",
         state === "default" && "bg-[#f5f5f5]",
         state === "hovered" && "bg-[#e8e8e8]",
         state === "selected" && "bg-[#dcdcdc]",
@@ -171,7 +171,7 @@ export function VoiceSelector({
       type="button"
     >
       <VoiceAvatar avatar={voice.avatar} name={voice.name} size={48} />
-      <span className="mt-[8px] text-[16px] leading-[18px] font-[700]">
+      <span className="mt-[8px] text-[16px] font-[700] leading-[18px]">
         {voice.name}
       </span>
       <span className="text-[14px] leading-[18px] text-[#595a5d]">
@@ -201,7 +201,7 @@ export function VoiceSelectorPill({
       type="button"
     >
       <VoiceAvatar avatar={voice.avatar} name={voice.name} size={16} />
-      <span className="font-body text-[14px] leading-[20px] font-[700]">
+      <span className="font-body text-[14px] font-[700] leading-[20px]">
         {voice.name}
       </span>
       <ChevronDown className="size-[12px] text-[#8c8d90]" />
@@ -230,11 +230,11 @@ export function VoiceParameterPanel({
   return (
     <div
       className={cn(
-        "font-body flex h-[var(--ds-agent-control-voice-panel-height)] w-[var(--ds-agent-control-voice-panel-width)] flex-col gap-[10px] rounded-[18px] border border-[#dcdcdc] bg-[#f7f7f7] px-[20px] py-[18px] text-[#121318] shadow-[0_18px_40px_rgba(18,19,24,0.08)]",
+        "flex h-[var(--ds-agent-control-voice-panel-height)] w-[var(--ds-agent-control-voice-panel-width)] flex-col gap-[10px] rounded-[18px] border border-[#dcdcdc] bg-[#f7f7f7] px-[20px] py-[18px] font-body text-[#121318] shadow-[0_18px_40px_rgba(18,19,24,0.08)]",
         className,
       )}
     >
-      <h2 className="shrink-0 text-[14px] leading-[20px] font-[700]">Voice</h2>
+      <h2 className="shrink-0 text-[14px] font-[700] leading-[20px]">Voice</h2>
       <div className="min-h-0 flex-1 space-y-[8px] overflow-y-auto pr-[4px] [scrollbar-width:thin]">
         {voices.map((option) => {
           const selected = option.name === selectedVoiceName;
@@ -257,7 +257,7 @@ export function VoiceParameterPanel({
                 size={40}
               />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[16px] leading-[18px] font-[700]">
+                <span className="block truncate text-[16px] font-[700] leading-[18px]">
                   {option.name}
                 </span>
                 <span className="block truncate text-[14px] leading-[18px] text-[#595a5d]">
@@ -341,7 +341,7 @@ export function AgentControlBar({
       <div className="flex h-[28px] items-center gap-[8px] overflow-hidden">
         <input
           aria-label="Message"
-          className="font-body w-[114.285714%] min-w-0 flex-none origin-left scale-[0.875] bg-transparent text-[16px] leading-[22.857143px] font-[400] text-[#595a5d] outline-none placeholder:text-[#595a5d]"
+          className="w-[114.285714%] min-w-0 flex-none origin-left scale-[0.875] bg-transparent font-body text-[16px] font-[400] leading-[22.857143px] text-[#595a5d] outline-none placeholder:text-[#595a5d]"
           onChange={(event) => onChangeInput?.(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -415,7 +415,7 @@ export function ChatMessage({
     >
       <div
         className={cn(
-          "font-body text-[16px] leading-[26px] font-[400] text-[#1e1f24]",
+          "font-body text-[16px] font-[400] leading-[26px] text-[#1e1f24]",
           (pending || message.isStreaming) && "ds-text-shimmer",
           isUser &&
             "max-w-full rounded-[22px] bg-[#050505] px-[16px] py-[10px] text-white md:max-w-[404px]",

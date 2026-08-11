@@ -178,6 +178,7 @@ function buildFontFamilyMap(tokens) {
   return {
     title: fontTokens.fontFamilyTitle,
     body: fontTokens.fontFamilyBody,
+    header: fontTokens.fontFamilyHeader,
     mono: fontTokens.fontFamilyMono,
   };
 }

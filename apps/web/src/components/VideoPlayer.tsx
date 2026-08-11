@@ -265,7 +265,7 @@ export function VideoPlayer() {
             >
               {/* Video content */}
               <div className="flex h-full w-full items-center justify-center">
-                <div className="text-heading font-body font-medium text-[var(--color-text-secondary)]">
+                <div className="font-body text-heading font-medium text-[var(--color-text-secondary)]">
                   {currentVideo.title}
                   {isMuted && <span className="ml-2">(Muted)</span>}
                 </div>
@@ -306,7 +306,7 @@ export function VideoPlayer() {
                 className="transform-3d absolute inset-0 rounded-token-l border border-[var(--color-border-opaque)] bg-[var(--color-background-hovered)] shadow-lg"
               >
                 <div className="flex h-full w-full items-center justify-center">
-                  <div className="text-heading font-body font-medium text-[var(--color-text-secondary)] opacity-70">
+                  <div className="font-body text-heading font-medium text-[var(--color-text-secondary)] opacity-70">
                     {videos[getNextIndex(currentVideoIndex)]?.title}
                   </div>
                 </div>

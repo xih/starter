@@ -80,6 +80,7 @@ export const tokens = {
   "fontFamily": {
     "title": "var(--font-font-family-title)",
     "body": "var(--font-font-family-body)",
+    "header": "var(--font-font-family-header)",
     "mono": "var(--font-font-family-mono)"
   },
   "fontSize": {
@@ -89,12 +90,14 @@ export const tokens = {
     "subtext": "var(--font-font-size-subtext)",
     "caption": "var(--font-font-size-caption)",
     "cta": "var(--font-font-size-cta)",
-    "heading": "var(--font-font-size-heading)"
+    "heading": "var(--font-font-size-heading)",
+    "header-2": "var(--font-font-size-header-2)"
   },
   "fontWeight": {
     "regular": "var(--font-font-weight-regular)",
     "medium": "var(--font-font-weight-medium)",
-    "semiBold": "var(--font-font-weight-semi-bold)"
+    "semiBold": "var(--font-font-weight-semi-bold)",
+    "bold": "var(--font-font-weight-bold)"
   },
   "lineHeight": {
     "lhTitle": "var(--font-line-height-lh-title)",
@@ -103,9 +106,12 @@ export const tokens = {
     "lhSubtext": "var(--font-line-height-lh-subtext)",
     "lhBody": "var(--font-line-height-lh-body)",
     "lhCaption": "var(--font-line-height-lh-caption)",
-    "lhHeading": "var(--font-line-height-lh-heading)"
+    "lhHeading": "var(--font-line-height-lh-heading)",
+    "lhHeader-2": "var(--font-line-height-lh-header-2)"
   },
   "letterSpacing": {
-    "title": "var(--font-letter-spacing-title)"
+    "title": "var(--font-letter-spacing-title)",
+    "headline": "var(--font-letter-spacing-headline)",
+    "header-2": "var(--font-letter-spacing-header-2)"
   }
 };

@@ -9,6 +9,11 @@ const config = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  images: {
+    // Allow the higher-quality setting used by case-study screenshots.
+    // Explicit list is required starting in Next.js 16.
+    qualities: [75, 90],
+  },
   transpilePackages: ["@starter/design-system", "@starter/tokens"],
 };
 

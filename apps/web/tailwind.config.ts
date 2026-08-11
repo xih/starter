@@ -33,10 +33,23 @@ export default {
     extend: {
       fontFamily: {
         sans: ["var(--font-geist-sans)", ...fontFamily.sans],
-        body: ["var(--font-font-family-body)", ...fontFamily.sans],
+        body: [
+          "var(--font-font-family-body)",
+          "ABC Diatype Hebrew Unlicensed Trial",
+          ...fontFamily.sans,
+        ],
         title: ["var(--font-font-family-title)", ...fontFamily.sans],
+        header: ["var(--font-font-family-header)", ...fontFamily.sans],
       },
       fontSize: {
+        "header-2": [
+          token(tokens.fontSize["header-2"]),
+          {
+            lineHeight: token(tokens.lineHeight["lhHeader-2"]),
+            letterSpacing: token(tokens.letterSpacing["header-2"]),
+            fontWeight: token(tokens.fontWeight.bold),
+          },
+        ],
         title: [
           token(tokens.fontSize.title),
           {
@@ -45,10 +58,18 @@ export default {
             fontWeight: token(tokens.fontWeight.semiBold),
           },
         ],
+        heading: [
+          token(tokens.fontSize.heading),
+          {
+            lineHeight: token(tokens.lineHeight.lhHeading),
+            fontWeight: token(tokens.fontWeight.semiBold),
+          },
+        ],
         headline: [
           token(tokens.fontSize.headline),
           {
             lineHeight: token(tokens.lineHeight.lhHeadline),
+            letterSpacing: token(tokens.letterSpacing.headline),
             fontWeight: token(tokens.fontWeight.semiBold),
           },
         ],

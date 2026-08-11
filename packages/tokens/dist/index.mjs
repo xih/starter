@@ -566,7 +566,7 @@ export const lightTokens = [
     ],
     "name": "font-font-family-title",
     "type": "string",
-    "value": "Windsor"
+    "value": "ABC Diatype Hebrew Unlicensed Trial"
   },
   {
     "path": [
@@ -575,7 +575,16 @@ export const lightTokens = [
     ],
     "name": "font-font-family-body",
     "type": "string",
-    "value": "ABC Diatype Hebrew Unlicensed Trial"
+    "value": "Lab Grotesque"
+  },
+  {
+    "path": [
+      "Font",
+      "font-family-header"
+    ],
+    "name": "font-font-family-header",
+    "type": "string",
+    "value": "Inter"
   },
   {
     "path": [
@@ -584,6 +593,26 @@ export const lightTokens = [
       "title"
     ],
     "name": "font-letter-spacing-title",
+    "type": "number",
+    "value": -0.019999999552965164
+  },
+  {
+    "path": [
+      "Font",
+      "letter-spacing",
+      "headline"
+    ],
+    "name": "font-letter-spacing-headline",
+    "type": "number",
+    "value": -0.019999999552965164
+  },
+  {
+    "path": [
+      "Font",
+      "letter-spacing",
+      "header-2"
+    ],
+    "name": "font-letter-spacing-header-2",
     "type": "number",
     "value": -0.019999999552965164
   },
@@ -660,6 +689,16 @@ export const lightTokens = [
   {
     "path": [
       "Font",
+      "line-height",
+      "lh-header-2"
+    ],
+    "name": "font-line-height-lh-header-2",
+    "type": "number",
+    "value": 57.599998474121094
+  },
+  {
+    "path": [
+      "Font",
       "font-size",
       "title"
     ],
@@ -730,6 +769,16 @@ export const lightTokens = [
   {
     "path": [
       "Font",
+      "font-size",
+      "header-2"
+    ],
+    "name": "font-font-size-header-2",
+    "type": "number",
+    "value": 48
+  },
+  {
+    "path": [
+      "Font",
       "font-weight",
       "regular"
     ],
@@ -756,6 +805,16 @@ export const lightTokens = [
     "name": "font-font-weight-semi-bold",
     "type": "number",
     "value": 600
+  },
+  {
+    "path": [
+      "Font",
+      "font-weight",
+      "bold"
+    ],
+    "name": "font-font-weight-bold",
+    "type": "number",
+    "value": 700
   },
   {
     "path": [
@@ -1565,7 +1624,7 @@ export const darkTokens = [
     ],
     "name": "font-font-family-title",
     "type": "string",
-    "value": "Windsor"
+    "value": "ABC Diatype Hebrew Unlicensed Trial"
   },
   {
     "path": [
@@ -1574,7 +1633,16 @@ export const darkTokens = [
     ],
     "name": "font-font-family-body",
     "type": "string",
-    "value": "ABC Diatype Hebrew Unlicensed Trial"
+    "value": "Lab Grotesque"
+  },
+  {
+    "path": [
+      "Font",
+      "font-family-header"
+    ],
+    "name": "font-font-family-header",
+    "type": "string",
+    "value": "Inter"
   },
   {
     "path": [
@@ -1583,6 +1651,26 @@ export const darkTokens = [
       "title"
     ],
     "name": "font-letter-spacing-title",
+    "type": "number",
+    "value": -0.019999999552965164
+  },
+  {
+    "path": [
+      "Font",
+      "letter-spacing",
+      "headline"
+    ],
+    "name": "font-letter-spacing-headline",
+    "type": "number",
+    "value": -0.019999999552965164
+  },
+  {
+    "path": [
+      "Font",
+      "letter-spacing",
+      "header-2"
+    ],
+    "name": "font-letter-spacing-header-2",
     "type": "number",
     "value": -0.019999999552965164
   },
@@ -1659,6 +1747,16 @@ export const darkTokens = [
   {
     "path": [
       "Font",
+      "line-height",
+      "lh-header-2"
+    ],
+    "name": "font-line-height-lh-header-2",
+    "type": "number",
+    "value": 57.599998474121094
+  },
+  {
+    "path": [
+      "Font",
       "font-size",
       "title"
     ],
@@ -1729,6 +1827,16 @@ export const darkTokens = [
   {
     "path": [
       "Font",
+      "font-size",
+      "header-2"
+    ],
+    "name": "font-font-size-header-2",
+    "type": "number",
+    "value": 48
+  },
+  {
+    "path": [
+      "Font",
       "font-weight",
       "regular"
     ],
@@ -1755,6 +1863,16 @@ export const darkTokens = [
     "name": "font-font-weight-semi-bold",
     "type": "number",
     "value": 600
+  },
+  {
+    "path": [
+      "Font",
+      "font-weight",
+      "bold"
+    ],
+    "name": "font-font-weight-bold",
+    "type": "number",
+    "value": 700
   },
   {
     "path": [

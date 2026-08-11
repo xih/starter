@@ -61,7 +61,10 @@ export const portfolioProjects: PortfolioCardProps[] = [
       "Joined as the first designer on Skydio Cloud, building the drone operations platform from zero to one.",
     artwork: "skydio",
     artworkLabel: "Skydio Cloud operations screens in a command center",
-    links: [{ label: "Platform", href: "https://www.skydio.com/" }],
+    links: [
+      { label: "Case Study", href: "/work/skydio" },
+      { label: "Platform", href: "https://www.skydio.com/" },
+    ],
   },
 ];
 

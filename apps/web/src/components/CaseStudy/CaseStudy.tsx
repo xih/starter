@@ -61,6 +61,87 @@ function useActiveSection(sectionIds: string[]) {
 }
 
 /**
+ * Extract the 11-char YouTube video id from any of:
+ *   https://www.youtube.com/watch?v=ID
+ *   https://www.youtube.com/watch?v=ID&t=16s
+ *   https://youtu.be/ID
+ * Returns null if the URL is not a recognizable YouTube URL.
+ */
+function parseYouTubeId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === "youtu.be") {
+      const id = parsed.pathname.replace(/^\//, "");
+      return /^[A-Za-z0-9_-]{6,}$/.test(id) ? id : null;
+    }
+    if (parsed.hostname.endsWith("youtube.com")) {
+      const id = parsed.searchParams.get("v");
+      return id && /^[A-Za-z0-9_-]{6,}$/.test(id) ? id : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lite YouTube facade: shows YouTube's thumbnail with a play button and only
+ * loads the heavy player iframe once the user clicks. Keeps the page fast on
+ * mobile while still allowing the video to be watched in place.
+ */
+function LiteYouTube({ url, alt }: { url: string; alt: string }) {
+  const id = parseYouTubeId(url);
+  const [activated, setActivated] = useState(false);
+
+  if (!id) return null;
+
+  const thumbnail = `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
+  const embedSrc = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+
+  return (
+    <div className="absolute inset-0">
+      {activated ? (
+        <iframe
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="absolute inset-0 size-full"
+          referrerPolicy="strict-origin-when-cross-origin"
+          src={embedSrc}
+          title={alt}
+        />
+      ) : (
+        <button
+          aria-label={`Play ${alt}`}
+          className="group absolute inset-0 flex items-center justify-center overflow-hidden focus-visible:outline-none"
+          onClick={() => setActivated(true)}
+          type="button"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+            loading="lazy"
+            src={thumbnail}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-black/20 transition-opacity group-hover:opacity-80" />
+          <span
+            aria-hidden="true"
+            className="relative flex size-[68px] items-center justify-center rounded-full bg-[#ff0000] shadow-[0_10px_40px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-4 group-focus-visible:ring-white/70 md:size-[84px]"
+          >
+            <svg
+              className="ml-[6px] size-[26px] fill-white md:size-[32px]"
+              viewBox="0 0 24 24"
+            >
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
  * Plays only while the section is on screen. `preload="none"` plus no
  * `autoPlay` means the media is not fetched until the video scrolls into view,
  * so off-screen sections show their poster and transfer nothing.
@@ -234,6 +315,8 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                             poster={`${assetBase}/${image.src}`}
                             src={`${assetBase}/${image.video}`}
                           />
+                        ) : image.youtube ? (
+                          <LiteYouTube alt={image.alt} url={image.youtube} />
                         ) : (
                           <Image
                             alt={image.alt}

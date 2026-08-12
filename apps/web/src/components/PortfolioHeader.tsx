@@ -19,7 +19,7 @@ export function PortfolioHeader({
     <nav
       aria-label="Portfolio navigation"
       className={cn(
-        "absolute left-0 top-[2px] z-20 flex h-[44px] w-full items-center px-[20px] py-[12px] font-body text-[16px] font-[400] leading-[19.2px]",
+        "absolute left-0 top-[2px] z-20 flex h-[44px] w-full items-center px-[20px] py-[12px] font-body text-[16px] font-[400] leading-[19.2px] md:px-[116px]",
         tone === "light" ? "text-white" : "text-[#1e1f24]",
         className,
       )}

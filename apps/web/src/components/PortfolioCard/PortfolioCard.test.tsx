@@ -11,7 +11,7 @@ describe("PortfolioCard", () => {
     expect(screen.getByText("Nell")).toBeInTheDocument();
     expect(screen.getByText("Founding Product Designer")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /nell brand mark on a red field/i }),
+      screen.getByRole("link", { name: /nell mobile creation flow screen/i }),
     ).toHaveAttribute("href", "/work/nell");
     expect(screen.getByRole("link", { name: "Case Study" })).toHaveAttribute(
       "href",
@@ -46,6 +46,36 @@ describe("PortfolioCard", () => {
 
     for (const project of portfolioProjects) {
       expect(screen.getByText(project.company)).toBeInTheDocument();
+    }
+  });
+
+  it("keeps the Figma selected-work order across the shared card data", () => {
+    expect(portfolioProjects.map((project) => project.company)).toEqual([
+      "Nell",
+      "Skydio Cloud",
+      "Krea",
+      "AGI",
+    ]);
+  });
+
+  it("uses the Figma-exported artwork assets for every card", () => {
+    render(<PortfolioCardGrid />);
+
+    const expectedArtwork = [
+      ["Nell", "/portfolio/nell-creation-flow.png"],
+      ["Skydio Cloud", "/portfolio/skydio-map.png"],
+      ["Krea", "/portfolio/krea-canvas.png"],
+      ["AGI", "/portfolio/samsung-frame.png"],
+    ] as const;
+
+    for (const [company, src] of expectedArtwork) {
+      const card = screen.getByText(company).closest("article")!;
+      const cardImages = Array.from(card.querySelectorAll("img"));
+      expect(
+        cardImages.some((image) =>
+          decodeURIComponent(image.getAttribute("src") ?? "").includes(src),
+        ),
+      ).toBe(true);
     }
   });
 });

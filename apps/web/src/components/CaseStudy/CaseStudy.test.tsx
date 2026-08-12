@@ -129,7 +129,10 @@ describe("CaseStudy", () => {
       readonly thresholds = [];
       readonly observed: Element[] = [];
 
-      constructor(readonly callback: IntersectionObserverCallback) {
+      constructor(
+        readonly callback: IntersectionObserverCallback,
+        readonly options?: IntersectionObserverInit,
+      ) {
         instances.push({ callback, observed: this.observed });
       }
 

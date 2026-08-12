@@ -65,6 +65,14 @@
 }
 
 @font-face {
+  font-family: "ABC Diatype Mono Condensed Unlicensed Trial";
+  src: url("/fonts/ABCDiatypeMonoCondensedUnlicensedTrial-Medium.otf")
+    format("opentype");
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Open Runde";
   src:
     url("/fonts/OpenRunde-Regular.woff2") format("woff2"),

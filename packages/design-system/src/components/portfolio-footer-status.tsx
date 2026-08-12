@@ -75,7 +75,7 @@ export function PortfolioFooterStatus() {
               {visitors}
             </motion.span>
           </AnimatePresence>
-          <span>&nbsp;visitors</span>
+          <span>&nbsp;{visitors === 1 ? "visitor" : "visitors"}</span>
         </span>
         <span aria-hidden="true">&nbsp;</span>
         <span className="inline-flex items-baseline gap-[4px]">

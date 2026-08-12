@@ -143,14 +143,14 @@ function CaseStudies() {
     <>
       <section className="hidden px-[116px] pb-[243px] pt-[69px] md:block">
         <h2 className="font-title text-[34px] font-[700] leading-[38px]">
-          Past Work
+          Selected Work
         </h2>
         <PortfolioCardGrid className="mt-[46px] max-w-[1497px] gap-y-[90px]" />
       </section>
 
       <section className="pb-[102px] pt-[27px] md:hidden">
         <h2 className="px-[20px] font-title text-[25px] font-[700] leading-[29px]">
-          Past Work
+          Selected Work
         </h2>
         <PortfolioCardGrid className="mt-[10px] gap-y-[40px] px-[20px]" />
       </section>
@@ -182,6 +182,7 @@ function PortfolioLauncher({
           copyClassName="absolute left-[22px] right-[22px] top-[168px]"
           shaderSpeed={shaderSpeed}
         />
+        {/* Mobile voice control bar disabled.
         <div className="absolute bottom-[24px] left-[20px] right-[20px] z-10">
           <AgentControlBar
             className="w-full"
@@ -190,6 +191,7 @@ function PortfolioLauncher({
             voice={DEFAULT_VOICE}
           />
         </div>
+        */}
       </section>
     </>
   );

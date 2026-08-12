@@ -124,7 +124,12 @@ function latestTestingSessionProps() {
   return calls.at(-1)?.[0] as { mobileLayout?: "portfolio" | "ask" };
 }
 
-describe("PortfolioPage", () => {
+// The mobile "Use Voice" AgentControlBar entry point is currently commented out
+// on the portfolio hero (see PortfolioLauncher in portfolio-page.tsx). These
+// tests exercise the mobile-ask push/dismiss/scroll-lock flow that starts from
+// that button, so they are skipped while the pill is disabled. Re-enable when
+// the mobile voice entry point is restored.
+describe.skip("PortfolioPage", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     testingSessionMock.mockClear();

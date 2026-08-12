@@ -78,9 +78,15 @@ export function PortfolioCard({
   links = [],
   className,
 }: PortfolioCardProps) {
+  const caseStudyHref = links.find((link) => link.label === "Case Study")?.href;
   return (
     <article className={cn("grid w-full gap-[13px]", className)}>
-      <PortfolioCardArtwork artwork={artwork} label={artworkLabel} />
+      <PortfolioCardArtwork
+        artwork={artwork}
+        href={caseStudyHref}
+        label={artworkLabel}
+        title={company}
+      />
 
       <div className="grid gap-[8px] font-body text-[14px] font-[400] leading-[18px] text-[#121318]">
         <div className="flex flex-wrap items-center gap-x-[8px] gap-y-[4px]">
@@ -142,17 +148,17 @@ export function PortfolioCardGrid({
 
 function PortfolioCardArtwork({
   artwork,
+  href,
   label,
+  title,
 }: {
   artwork: PortfolioArtwork;
+  href?: string;
   label: string;
+  title: string;
 }) {
-  return (
-    <div
-      aria-label={label}
-      className="relative aspect-[332/327] w-full overflow-hidden rounded-token-xs bg-[#b20000] md:aspect-[730/327]"
-      role="img"
-    >
+  const artworkContent = (
+    <>
       {artwork === "nell" ? <NellArtwork /> : null}
       {artwork === "agi" ? <AgiArtwork /> : null}
       {artwork === "krea" ? (
@@ -177,6 +183,28 @@ function PortfolioCardArtwork({
           />
         </div>
       ) : null}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        aria-label={`${label} — ${title} case study`}
+        className="relative block aspect-[332/327] w-full overflow-hidden rounded-token-xs bg-[#b20000] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:ring-offset-2 md:aspect-[730/327]"
+        href={href}
+      >
+        {artworkContent}
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      aria-label={label}
+      className="relative aspect-[332/327] w-full overflow-hidden rounded-token-xs bg-[#b20000] md:aspect-[730/327]"
+      role="img"
+    >
+      {artworkContent}
     </div>
   );
 }

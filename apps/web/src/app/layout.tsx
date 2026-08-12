@@ -12,9 +12,9 @@ import { VoiceRecorderProvider } from "~/hooks/useVoiceRecorder";
 import { TRPCReactProvider } from "~/trpc/react";
 import { Toaster } from "~/components/ui/sonner";
 
-const siteTitle = "Dennis Xing | Chat with My Portfolio";
+const siteTitle = "Dennis Xing";
 const siteDescription =
-  "An interactive portfolio you can talk to: explore Dennis Xing's work, ideas, and projects through a live agent interface.";
+  "Product designer based in San Francisco. Previously at Nell, AGI, Krea, and Skydio.";
 
 export const metadata: Metadata = {
   metadataBase: SITE_URL,
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
         url: "/og/dennis-agent-portfolio.png",
         width: 1200,
         height: 630,
-        alt: "Dennis Xing interactive agent portfolio over a Golden Gate water scene.",
+        alt: "Dennis Xing — product designer based in SF. Teal and cyan gradient card with wordmark.",
       },
     ],
     locale: "en_US",

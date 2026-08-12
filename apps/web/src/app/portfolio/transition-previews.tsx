@@ -67,7 +67,7 @@ export function PortfolioRouteTransitionPreview() {
       </section>
       <section className="pb-[102px] pt-[27px]">
         <h2 className="px-[20px] font-title text-[25px] font-[700] leading-[29px]">
-          Past Work
+          Selected Work
         </h2>
         <div className="mt-[10px] grid gap-[14px] px-[20px]">
           {["Nell", "AGI", "Krea", "Skydio"].map((project) => (

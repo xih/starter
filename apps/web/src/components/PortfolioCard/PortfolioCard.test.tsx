@@ -10,10 +10,10 @@ describe("PortfolioCard", () => {
     expect(screen.getByText("2026")).toBeInTheDocument();
     expect(screen.getByText("Nell")).toBeInTheDocument();
     expect(screen.getByText("Founding Product Designer")).toBeInTheDocument();
-    expect(screen.getByRole("img")).toHaveAccessibleName(
-      "Nell brand mark on a red field",
-    );
-    expect(screen.getByRole("link", { name: /case study/i })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: /nell brand mark on a red field/i }),
+    ).toHaveAttribute("href", "/work/nell");
+    expect(screen.getByRole("link", { name: "Case Study" })).toHaveAttribute(
       "href",
       "/work/nell",
     );
@@ -25,14 +25,20 @@ describe("PortfolioCard", () => {
     const agiCard = screen.getByText("AGI").closest("article")!;
     const kreaCard = screen.getByText("Krea").closest("article")!;
 
-    expect(within(agiCard).getByRole("link")).toHaveAttribute(
-      "href",
-      "/work/agi",
-    );
-    expect(within(kreaCard).getByRole("link")).toHaveAttribute(
-      "href",
-      "/work/krea",
-    );
+    expect(
+      within(agiCard).getByRole("link", { name: "Case Study" }),
+    ).toHaveAttribute("href", "/work/agi");
+    expect(
+      within(kreaCard).getByRole("link", { name: "Case Study" }),
+    ).toHaveAttribute("href", "/work/krea");
+  });
+
+  it("links the artwork thumbnail to the case study", () => {
+    render(<PortfolioCard {...portfolioProjects[0]!} />);
+
+    expect(
+      screen.getByRole("link", { name: /nell case study/i }),
+    ).toHaveAttribute("href", "/work/nell");
   });
 
   it("renders every configured project in the grid", () => {

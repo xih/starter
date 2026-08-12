@@ -78,9 +78,7 @@ export function PortfolioCard({
   links = [],
   className,
 }: PortfolioCardProps) {
-  const caseStudyHref = links.find(
-    (link) => link.label === "Case Study",
-  )?.href;
+  const caseStudyHref = links.find((link) => link.label === "Case Study")?.href;
   return (
     <article className={cn("grid w-full gap-[13px]", className)}>
       <PortfolioCardArtwork

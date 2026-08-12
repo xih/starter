@@ -1,6 +1,6 @@
 "use client";
 
-import { LiveChatModule } from "@starter/design-system";
+// import { LiveChatModule } from "@starter/design-system";
 import Image from "next/image";
 
 import { PortfolioHeader } from "~/components/PortfolioHeader";
@@ -100,6 +100,7 @@ function PhotoGrid() {
 function AboutLiveChat() {
   return (
     <>
+      {/*
       <LiveChatModule
         className="fixed bottom-0 right-[max(76px,calc((100vw-1728px)/2+76px))] z-30 hidden w-[371px] md:flex"
         fadeDurationMs={600}
@@ -118,6 +119,7 @@ function AboutLiveChat() {
         streamIntervalMs={640}
         visibleDurationMs={2600}
       />
+      */}
     </>
   );
 }
@@ -126,11 +128,7 @@ export function AboutClient() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-[#121318]">
       <section className="relative mx-auto min-h-[1129px] w-full max-w-[1728px] px-[20px] pb-[430px] pt-[105px] md:min-h-[1117px] md:px-0 md:pb-0 md:pt-0">
-        <PortfolioHeader
-          activePage="about"
-          className="hidden md:flex"
-          tone="dark"
-        />
+        <PortfolioHeader activePage="about" tone="dark" />
 
         <div className="relative z-10 flex w-full flex-col gap-[16px] md:absolute md:left-[213px] md:top-[170px] md:w-[1117px] md:flex-row md:gap-[291px]">
           <AboutCopy />

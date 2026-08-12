@@ -25,6 +25,7 @@ export interface SkeuomorphicClockProps {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const SSR_FALLBACK_MS = 8 * 60 * 60 * 1000 + 50 * 60 * 1000 + 30 * 1000;
 const NUMBER_MARKS = Array.from({ length: 12 }, (_, index) => {
   const value = index === 0 ? 12 : index;
   return {
@@ -37,9 +38,19 @@ function clampDayMs(ms: number) {
   return ((ms % DAY_MS) + DAY_MS) % DAY_MS;
 }
 
+function getCurrentLocalMs() {
+  const now = new Date();
+  return (
+    now.getHours() * 60 * 60 * 1000 +
+    now.getMinutes() * 60 * 1000 +
+    now.getSeconds() * 1000 +
+    now.getMilliseconds()
+  );
+}
+
 function parseTimeToMs(value: string | undefined) {
   if (!value) {
-    return 8 * 60 * 60 * 1000 + 50 * 60 * 1000 + 30 * 1000;
+    return SSR_FALLBACK_MS;
   }
 
   const [hours = "0", minutes = "0", seconds = "0"] = value.split(":");
@@ -58,7 +69,7 @@ function parseTimeToMs(value: string | undefined) {
     second < 0 ||
     second > 59
   ) {
-    return 8 * 60 * 60 * 1000 + 50 * 60 * 1000 + 30 * 1000;
+    return SSR_FALLBACK_MS;
   }
 
   return hour * 60 * 60 * 1000 + minute * 60 * 1000 + second * 1000;
@@ -99,7 +110,7 @@ function formatTime(ms: number) {
 
 export function SkeuomorphicClock({
   className,
-  initialTime = "08:50:30",
+  initialTime,
   running = true,
   secondHandMotion = "tick",
   showControls = true,
@@ -119,7 +130,10 @@ export function SkeuomorphicClock({
   const previousRunningRef = useRef(running);
 
   useEffect(() => {
-    const nextBaseTime = parseTimeToMs(initialTime);
+    const nextBaseTime =
+      initialTime === undefined
+        ? getCurrentLocalMs()
+        : parseTimeToMs(initialTime);
     const nextTimestamp = Date.now();
     setBaseTimeMs(nextBaseTime);
     setBaseTimestamp(nextTimestamp);

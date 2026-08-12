@@ -368,7 +368,6 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
       <PortfolioFooter
         clock={
           <SkeuomorphicClock
-            initialTime="14:16:05"
             running
             secondHandMotion="sweep"
             showControls={false}

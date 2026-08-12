@@ -2,6 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "../utils";
+import { PortfolioFooterStatus } from "./portfolio-footer-status";
 
 export type PortfolioFooterProps = {
   aboutHref?: string;
@@ -60,10 +61,7 @@ export function PortfolioFooter({
     >
       <div className="grid grid-cols-2 gap-x-[28px] gap-y-[25px] md:grid-cols-[300px_1fr_180px_220px] md:items-start md:gap-[40px]">
         <div className="order-3 max-w-[300px] font-body text-[12px] leading-[16px] md:order-none md:text-[16px] md:leading-[20px]">
-          <p className="mb-[15px] flex items-center gap-[6px]">
-            <span className="size-[7px] rounded-full bg-[#52d34f]" />
-            <span>2 visitors&nbsp; 2:16:05 PM</span>
-          </p>
+          <PortfolioFooterStatus />
           <p>
             A curated collection of interactive work - prototypes, patterns, and
             polished systems - exploring how modern interfaces move, respond,

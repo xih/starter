@@ -15,6 +15,7 @@ export {
   MicSelector,
   MultipleHosts,
   PortfolioFooter,
+  PortfolioFooterStatus,
   DESIGN_TWITTER_LIVE_CHAT_MESSAGES,
   SectionHeader,
   SourcesChip,

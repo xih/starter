@@ -7,7 +7,12 @@ import {
 } from "@starter/design-system";
 
 import { OrbShader } from "~/components/OrbShader";
+import { portfolioProjects } from "~/components/PortfolioCard";
 import { PortfolioHeader } from "~/components/PortfolioHeader";
+import {
+  PORTFOLIO_HERO_HEADLINE,
+  PORTFOLIO_HERO_PARAGRAPHS,
+} from "./portfolio-copy";
 
 const DEFAULT_VOICE: VoiceOption = {
   avatar: "/agent-sidebar/avatar-1.png",
@@ -51,10 +56,10 @@ export function PortfolioRouteTransitionPreview() {
         <PortfolioHeader activePage="home" />
         <div className="absolute left-[22px] right-[22px] top-[168px]">
           <h1 className="w-full max-w-[294px] font-title text-[36px] font-[400] leading-[40px] text-white">
-            Dennis is a product designer based in SF
+            {PORTFOLIO_HERO_HEADLINE}
           </h1>
           <p className="mt-[12px] w-full max-w-[294px] font-body text-[16px] font-[400] leading-[19.2px] text-white">
-            Previously at Nell, AGI, Krea, and Skydio.
+            {PORTFOLIO_HERO_PARAGRAPHS[0]}
           </p>
         </div>
         <div className="absolute bottom-[24px] left-[20px] right-[20px] z-10">
@@ -70,12 +75,12 @@ export function PortfolioRouteTransitionPreview() {
           Selected Work
         </h2>
         <div className="mt-[10px] grid gap-[14px] px-[20px]">
-          {["Nell", "AGI", "Krea", "Skydio"].map((project) => (
+          {portfolioProjects.map((project) => (
             <div
-              className="flex h-[380px] items-center justify-center bg-[#ef2200] font-body text-[14px] font-[700] text-black"
-              key={project}
+              className="flex h-[380px] items-center justify-center bg-[#f3f3f3] font-body text-[14px] font-[700] text-black"
+              key={`${project.year}-${project.company}`}
             >
-              {project}
+              {project.company}
             </div>
           ))}
         </div>

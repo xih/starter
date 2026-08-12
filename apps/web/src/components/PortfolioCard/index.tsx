@@ -28,43 +28,43 @@ export const portfolioProjects: PortfolioCardProps[] = [
     company: "Nell",
     role: "Founding Product Designer",
     description:
-      "Worked with the co-founder of SoundCloud to build generative AI experiences, helping shape the product through its Index Ventures raise.",
+      "Worked with the co-founder of SoundCloud to build out generative AI experiences, raising from Index Ventures.",
     artwork: "nell",
-    artworkLabel: "Nell brand mark on a red field",
+    artworkLabel: "Nell mobile creation flow screen",
     links: [{ label: "Case Study", href: "/work/nell" }],
-  },
-  {
-    year: "2025",
-    company: "AGI",
-    role: "Product Designer",
-    description:
-      "Designed mobile-first AI workflows that made multimodal assistance feel direct, useful, and ready for everyday use.",
-    artwork: "agi",
-    artworkLabel: "People walking around a Samsung phone mockup",
-    links: [{ label: "Case Study", href: "/work/agi" }],
-  },
-  {
-    year: "2023",
-    company: "Krea",
-    role: "Designer",
-    description:
-      "Worked with Krea's founders on inpainting and outpainting tools during the launch of ControlNet-powered creation workflows.",
-    artwork: "krea",
-    artworkLabel: "Krea creative tool displayed on a monitor",
-    links: [{ label: "Case Study", href: "/work/krea" }],
   },
   {
     year: "2022",
     company: "Skydio Cloud",
     role: "First Product Designer",
     description:
-      "Joined as the first designer on Skydio Cloud, building the drone operations platform from zero to one.",
+      "First designer on Skydio Cloud, building out the platform from 0-1.",
     artwork: "skydio",
-    artworkLabel: "Skydio Cloud operations screens in a command center",
+    artworkLabel: "Skydio Cloud fleet map",
     links: [
       { label: "Case Study", href: "/work/skydio" },
       { label: "Platform", href: "https://www.skydio.com/" },
     ],
+  },
+  {
+    year: "2023",
+    company: "Krea",
+    role: "Designer",
+    description:
+      "Worked with the founders of Krea to concept inpainting and outpainting with the launch of ControlNet.",
+    artwork: "krea",
+    artworkLabel: "Krea creative canvas",
+    links: [{ label: "Case Study", href: "/work/krea" }],
+  },
+  {
+    year: "2025",
+    company: "AGI",
+    role: "Product Designer",
+    description:
+      "Built out prototypes for how agentic experiences can work while controlling the phone.",
+    artwork: "agi",
+    artworkLabel: "Samsung phone frame for AGI prototype",
+    links: [{ label: "Case Study", href: "/work/agi" }],
   },
 ];
 
@@ -161,28 +161,8 @@ function PortfolioCardArtwork({
     <>
       {artwork === "nell" ? <NellArtwork /> : null}
       {artwork === "agi" ? <AgiArtwork /> : null}
-      {artwork === "krea" ? (
-        <div className="absolute left-[-1.5%] top-[-42%] h-[184%] w-[103%]">
-          <Image
-            alt=""
-            className="object-cover"
-            fill
-            sizes="(min-width: 768px) 752px, calc(103vw - 32px)"
-            src="/portfolio/krea.png"
-          />
-        </div>
-      ) : null}
-      {artwork === "skydio" ? (
-        <div className="absolute left-[-0.2%] top-[-24.5%] h-[149%] w-[100.4%]">
-          <Image
-            alt=""
-            className="object-cover"
-            fill
-            sizes="(min-width: 768px) 733px, calc(100vw - 32px)"
-            src="/portfolio/skydio-cloud.png"
-          />
-        </div>
-      ) : null}
+      {artwork === "krea" ? <KreaArtwork /> : null}
+      {artwork === "skydio" ? <SkydioArtwork /> : null}
     </>
   );
 
@@ -190,7 +170,7 @@ function PortfolioCardArtwork({
     return (
       <Link
         aria-label={`${label} — ${title} case study`}
-        className="relative block aspect-[332/327] w-full overflow-hidden rounded-token-xs bg-[#b20000] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:ring-offset-2 md:aspect-[730/327]"
+        className="relative block aspect-[332/327] w-full overflow-hidden rounded-token-xs bg-[#f3f3f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121318] focus-visible:ring-offset-2 md:aspect-[730/327]"
         href={href}
       >
         {artworkContent}
@@ -201,7 +181,7 @@ function PortfolioCardArtwork({
   return (
     <div
       aria-label={label}
-      className="relative aspect-[332/327] w-full overflow-hidden rounded-token-xs bg-[#b20000] md:aspect-[730/327]"
+      className="relative aspect-[332/327] w-full overflow-hidden rounded-token-xs bg-[#f3f3f3] md:aspect-[730/327]"
       role="img"
     >
       {artworkContent}
@@ -211,55 +191,69 @@ function PortfolioCardArtwork({
 
 function NellArtwork() {
   return (
-    <div className="absolute left-1/2 top-1/2 flex h-12 w-[171px] -translate-x-1/2 -translate-y-1/2 items-center gap-[12px]">
+    <div className="absolute left-[24.4%] top-[4.28%] h-[91.74%] w-[50.9%] md:left-[34.25%] md:top-0 md:h-[100.31%] md:w-[25.34%]">
       <Image
         alt=""
-        className="h-[42px] w-[66px]"
-        height={42}
-        src="/portfolio/nell-mark.svg"
-        width={66}
-      />
-      <Image
-        alt=""
-        className="h-[46px] w-[86px]"
-        height={46}
-        src="/portfolio/nell-wordmark.svg"
-        width={86}
+        className="object-contain"
+        fill
+        sizes="(min-width: 768px) 185px, 169px"
+        src="/portfolio/nell-creation-flow.png"
       />
     </div>
   );
 }
 
-function AgiArtwork() {
+function SkydioArtwork() {
+  return (
+    <div className="absolute left-[5.12%] top-[23.55%] h-[56.88%] w-[89.46%] md:left-[16.16%] md:top-[8.87%] md:h-[82.76%] md:w-[59.31%]">
+      <Image
+        alt=""
+        className="object-contain"
+        fill
+        sizes="(min-width: 768px) 433px, 297px"
+        src="/portfolio/skydio-map.png"
+      />
+    </div>
+  );
+}
+
+function KreaArtwork() {
   return (
     <>
-      <div className="absolute left-[-9.6%] top-[-5.8%] h-[113.8%] w-[119.2%]">
+      <div className="absolute left-[7.83%] top-[25.69%] h-[48.93%] w-[84.04%] md:hidden">
         <Image
           alt=""
-          className="object-cover"
+          className="object-contain"
           fill
-          sizes="(min-width: 768px) 870px, 119vw"
-          src="/portfolio/agi-background.png"
+          sizes="279px"
+          src="/portfolio/krea-canvas.png"
         />
       </div>
-      <div className="absolute left-[41%] top-[9.2%] aspect-[1014/2077] w-[17.9%]">
-        <div className="absolute left-[3.38%] top-[1.58%] h-[96.6%] w-[92.65%]">
+      <div className="absolute left-[24.52%] top-[17.43%] hidden h-[65.35%] w-[51.1%] overflow-hidden md:block">
+        <div className="absolute left-[-9.83%] top-[-9.83%] h-[119.66%] w-[119.65%]">
           <Image
             alt=""
-            className="rounded-[4px] object-cover"
+            className="object-contain"
             fill
-            sizes="121px"
-            src="/portfolio/samsung-screen.png"
+            sizes="446px"
+            src="/portfolio/krea-canvas.png"
           />
         </div>
-        <Image
-          alt=""
-          className="absolute inset-0 size-full object-contain"
-          fill
-          sizes="131px"
-          src="/portfolio/samsung-s24-ultra.png"
-        />
       </div>
     </>
+  );
+}
+
+function AgiArtwork() {
+  return (
+    <div className="absolute left-[30.42%] top-[9.17%] h-[81.96%] w-[39.35%] md:left-[41.02%] md:w-[17.9%]">
+      <Image
+        alt=""
+        className="object-contain"
+        fill
+        sizes="131px"
+        src="/portfolio/samsung-frame.png"
+      />
+    </div>
   );
 }

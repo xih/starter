@@ -2,8 +2,7 @@
 
 import { MeshGradient } from "@paper-design/shaders-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AgentControlBar, PortfolioFooter } from "@starter/design-system";
-import type { VoiceOption } from "@starter/design-system";
+import { PortfolioFooter } from "@starter/design-system";
 import { type DialConfig, useDialKit } from "dialkit";
 import { motion } from "framer-motion";
 
@@ -13,17 +12,15 @@ import { PortfolioHeader } from "~/components/PortfolioHeader";
 import { SkeuomorphicClock } from "~/components/SkeuomorphicClock";
 import { TestingSession } from "~/app/testing/testing-session";
 import { toAskTransition, useAskPushTransition } from "./ask-transition";
+import {
+  PORTFOLIO_HERO_HEADLINE,
+  PORTFOLIO_HERO_PARAGRAPHS,
+} from "./portfolio-copy";
 import { AskRouteTransitionPreview } from "./transition-previews";
 
 const DEFAULT_AGENT_NAME = "dennis-portfolio-agent";
 const DEFAULT_TOKEN_ENDPOINT = "/api/livekit/guest-session";
 const MOBILE_ASK_HISTORY_STATE_KEY = "__portfolioMobileAsk";
-const DEFAULT_VOICE: VoiceOption = {
-  avatar: "/agent-sidebar/avatar-1.png",
-  description: "Softbank founder",
-  name: "Masa Son",
-};
-
 const HERO_MESH_GRADIENT_COLORS = [
   "#bcecf6",
   "#00aaff",
@@ -92,12 +89,14 @@ function PaperHeroShader({ speed }: { speed: number }) {
 function HeroCopy({ className = "" }: { className?: string }) {
   return (
     <div className={className}>
-      <h1 className="w-full max-w-[294px] font-title text-[36px] font-[400] leading-[40px] text-white md:max-w-[530px]">
-        Dennis is a product designer based in SF
+      <h1 className="w-full max-w-[294px] font-title text-[36px] font-[400] leading-[40px] text-white md:max-w-[720px]">
+        {PORTFOLIO_HERO_HEADLINE}
       </h1>
-      <p className="mt-[12px] w-full max-w-[294px] font-body text-[16px] font-[400] leading-[19.2px] text-white md:max-w-[536px] md:text-[24px] md:leading-[40px]">
-        Previously at Nell, AGI, Krea, and Skydio.
-      </p>
+      <div className="mt-[32px] w-full max-w-[294px] space-y-[24px] font-body text-[16px] font-[400] leading-[24px] text-white md:max-w-[811px] md:text-[24px] md:leading-[40px]">
+        {PORTFOLIO_HERO_PARAGRAPHS.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+      </div>
     </div>
   );
 }
@@ -159,7 +158,7 @@ function CaseStudies() {
 
 function PortfolioLauncher({
   shaderSpeed,
-  onMobileStart,
+  onMobileStart: _onMobileStart,
 }: {
   shaderSpeed: number;
   onMobileStart: () => void;
@@ -169,7 +168,7 @@ function PortfolioLauncher({
       <section className="hidden w-full border-b border-[var(--color-border-opaque)] md:block">
         <div className="h-[928px]">
           <HeroSurface
-            copyClassName="absolute left-[36px] right-[36px] top-[322px]"
+            copyClassName="absolute left-[116px] right-[116px] top-[428px]"
             shaderSpeed={shaderSpeed}
           />
           {/* Chat with Masa Son sidebar is disabled on desktop. */}
@@ -181,16 +180,7 @@ function PortfolioLauncher({
           copyClassName="absolute left-[22px] right-[22px] top-[168px]"
           shaderSpeed={shaderSpeed}
         />
-        {/* Mobile voice control bar disabled.
-        <div className="absolute bottom-[24px] left-[20px] right-[20px] z-10">
-          <AgentControlBar
-            className="w-full"
-            onUseVoice={onMobileStart}
-            state="pre-connected"
-            voice={DEFAULT_VOICE}
-          />
-        </div>
-        */}
+        {/* Mobile voice control bar disabled. */}
       </section>
     </>
   );
@@ -423,7 +413,7 @@ export function PortfolioPage() {
               desktopHero={
                 <div className="h-[928px]">
                   <HeroSurface
-                    copyClassName="absolute left-[36px] right-[36px] top-[322px]"
+                    copyClassName="absolute left-[116px] right-[116px] top-[428px]"
                     shaderSpeed={heroMeshGradient.speed}
                   />
                 </div>

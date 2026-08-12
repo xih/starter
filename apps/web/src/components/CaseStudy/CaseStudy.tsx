@@ -111,68 +111,66 @@ function parseYouTubeStart(raw: string | null | undefined): number {
 }
 
 /**
- * Lite YouTube facade: shows YouTube's thumbnail with a play button and only
- * loads the heavy player iframe once the user clicks. Keeps the page fast on
- * mobile while still allowing the video to be watched in place.
+ * Reduced-chrome YouTube embed for case-study walkthroughs. YouTube's iframe
+ * UI is cross-origin, so we cannot style internals directly. The closest
+ * iframe-only option is to hide controls and disable pointer hover affordances.
  */
 function LiteYouTube({ url, alt }: { url: string; alt: string }) {
   const parsed = parseYouTubeUrl(url);
-  const [activated, setActivated] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || isVisible) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+
+        setIsVisible(true);
+        observer.disconnect();
+      },
+      { rootMargin: "160px 0px", threshold: 0.2 },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [isVisible]);
 
   if (!parsed) return null;
 
   const { id, startSeconds } = parsed;
-  const thumbnail = `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
   const startParam = startSeconds > 0 ? `&start=${startSeconds}` : "";
-  const embedSrc = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1${startParam}`;
+  const embedSrc = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&cc_load_policy=0&rel=0&playsinline=1${startParam}`;
 
   return (
-    <div className="absolute inset-0">
-      {activated ? (
+    <div
+      className="absolute inset-0"
+      data-testid="youtube-embed-gate"
+      ref={ref}
+    >
+      {isVisible ? (
         <iframe
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          className="absolute inset-0 size-full"
+          className="pointer-events-none absolute inset-0 size-full"
           referrerPolicy="strict-origin-when-cross-origin"
           src={embedSrc}
           title={alt}
         />
-      ) : (
-        <button
-          aria-label={`Play ${alt}`}
-          className="group absolute inset-0 flex items-center justify-center overflow-hidden focus-visible:outline-none"
-          onClick={() => setActivated(true)}
-          type="button"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            alt=""
-            className="absolute inset-0 size-full object-cover"
-            loading="lazy"
-            src={thumbnail}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-black/20 transition-opacity group-hover:opacity-80" />
-          <span
-            aria-hidden="true"
-            className="relative flex size-[68px] items-center justify-center rounded-full bg-[#ff0000] shadow-[0_10px_40px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-4 group-focus-visible:ring-white/70 md:size-[84px]"
-          >
-            <svg
-              className="ml-[6px] size-[26px] fill-white md:size-[32px]"
-              viewBox="0 0 24 24"
-            >
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </span>
-        </button>
-      )}
+      ) : null}
     </div>
   );
 }
 
 /**
- * Plays only while the section is on screen. `preload="none"` plus no
- * `autoPlay` means the media is not fetched until the video scrolls into view,
- * so off-screen sections show their poster and transfer nothing.
+ * Plays muted media while the section is on screen, then pauses it when the
+ * user scrolls away. `preload="none"` keeps off-screen sections on posters.
  */
 function LazyVideo({
   alt,
@@ -243,7 +241,7 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
     <main className="min-h-screen bg-white text-[#1e1f24]">
       <div className="mx-auto w-full max-w-[1440px]">
         <div className="relative h-[44px]">
-          <PortfolioHeader tone="dark" />
+          <PortfolioHeader className="md:px-[92px]" tone="dark" />
         </div>
 
         <div className="px-[20px] pb-[48px] md:grid md:grid-cols-[236px_minmax(0,1fr)] md:gap-[64px] md:px-[92px]">

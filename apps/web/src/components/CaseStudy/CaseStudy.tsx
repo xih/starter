@@ -117,6 +117,31 @@ function parseYouTubeStart(raw: string | null | undefined): number {
  */
 function LiteYouTube({ url, alt }: { url: string; alt: string }) {
   const parsed = parseYouTubeUrl(url);
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || isVisible) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+
+        setIsVisible(true);
+        observer.disconnect();
+      },
+      { rootMargin: "160px 0px", threshold: 0.2 },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [isVisible]);
 
   if (!parsed) return null;
 
@@ -125,14 +150,16 @@ function LiteYouTube({ url, alt }: { url: string; alt: string }) {
   const embedSrc = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&cc_load_policy=0&rel=0&playsinline=1${startParam}`;
 
   return (
-    <div className="absolute inset-0">
-      <iframe
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        className="pointer-events-none absolute inset-0 size-full"
-        referrerPolicy="strict-origin-when-cross-origin"
-        src={embedSrc}
-        title={alt}
-      />
+    <div className="absolute inset-0" data-testid="youtube-embed-gate" ref={ref}>
+      {isVisible ? (
+        <iframe
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          className="pointer-events-none absolute inset-0 size-full"
+          referrerPolicy="strict-origin-when-cross-origin"
+          src={embedSrc}
+          title={alt}
+        />
+      ) : null}
     </div>
   );
 }

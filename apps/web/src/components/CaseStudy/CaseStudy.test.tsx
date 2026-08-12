@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CaseStudy } from "./CaseStudy";
@@ -113,6 +114,73 @@ describe("CaseStudy", () => {
     );
 
     expect(srcs.some((src) => src.includes("start=16"))).toBe(true);
+  });
+
+  it("waits to mount YouTube embeds until they approach the viewport", async () => {
+    const originalObserver = window.IntersectionObserver;
+    const instances: Array<{
+      callback: IntersectionObserverCallback;
+      observed: Element[];
+    }> = [];
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "";
+      readonly thresholds = [];
+      readonly observed: Element[] = [];
+
+      constructor(readonly callback: IntersectionObserverCallback) {
+        instances.push({ callback, observed: this.observed });
+      }
+
+      disconnect = vi.fn();
+      observe = vi.fn((element: Element) => this.observed.push(element));
+      takeRecords = vi.fn((): IntersectionObserverEntry[] => []);
+      unobserve = vi.fn();
+    }
+
+    window.IntersectionObserver = MockIntersectionObserver;
+
+    try {
+      const skydio = getCaseStudy("skydio")!;
+      const { container } = render(<CaseStudy study={skydio} />);
+
+      expect(container.querySelectorAll("iframe")).toHaveLength(0);
+      expect(screen.getAllByTestId("youtube-embed-gate")).toHaveLength(2);
+
+      const youtubeObserver = instances.find((instance) =>
+        instance.observed.some(
+          (element) =>
+            element instanceof HTMLElement &&
+            element.dataset.testid === "youtube-embed-gate",
+        ),
+      );
+      const youtubeTarget = youtubeObserver?.observed.find(
+        (element) =>
+          element instanceof HTMLElement &&
+          element.dataset.testid === "youtube-embed-gate",
+      );
+
+      if (!youtubeObserver || !youtubeTarget) {
+        throw new Error("Expected a YouTube embed gate to be observed");
+      }
+
+      await act(async () => {
+        youtubeObserver.callback(
+          [
+            {
+              isIntersecting: true,
+              target: youtubeTarget,
+            } as IntersectionObserverEntry,
+          ],
+          {} as IntersectionObserver,
+        );
+      });
+
+      expect(container.querySelectorAll("iframe")).toHaveLength(1);
+    } finally {
+      window.IntersectionObserver = originalObserver;
+    }
   });
 
   it("keeps lazy videos muted, inline, postered, and idle before observation", () => {

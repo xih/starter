@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -123,6 +124,49 @@ function latestTestingSessionProps() {
   const calls = testingSessionMock.mock.calls;
   return calls.at(-1)?.[0] as { mobileLayout?: "portfolio" | "ask" };
 }
+
+describe("PortfolioPage hero", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("renders the Figma-specified hero copy with the desktop copy inset", () => {
+    const media = createMatchMediaController(false);
+    vi.stubGlobal("matchMedia", media.matchMedia);
+
+    render(<PortfolioPage />);
+
+    const heroes = screen.getAllByTestId("portfolio-hero");
+    const desktopHero = within(heroes[0]!);
+    const heading = desktopHero.getByRole("heading", {
+      name: "I’m Dennis, a founding product designer.",
+    });
+
+    expect(heading).toBeInTheDocument();
+    expect(
+      desktopHero.getByText(
+        /I worked with the co-founder of SoundCloud to build out new generative AI experiences at Nell/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      desktopHero.getByText(
+        "I grew up in Cupertino, California using pastel colored iMac G3s.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("heading", {
+        name: "I’m Dennis, a founding product designer.",
+      }),
+    ).toHaveLength(2);
+    expect(heading.parentElement).toHaveClass("left-[116px]");
+    expect(
+      desktopHero.getByRole("navigation", {
+        name: "Portfolio navigation",
+      }),
+    ).toHaveClass("md:px-[116px]");
+  });
+});
 
 // The mobile "Use Voice" AgentControlBar entry point is currently commented out
 // on the portfolio hero (see PortfolioLauncher in portfolio-page.tsx). These

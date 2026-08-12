@@ -40,7 +40,7 @@ export default {
         ],
         title: ["var(--font-font-family-title)", ...fontFamily.sans],
         header: ["var(--font-font-family-header)", ...fontFamily.sans],
-        mono: [
+        scoreboard: [
           "ABC Diatype Mono Condensed Unlicensed Trial",
           ...fontFamily.mono,
         ],

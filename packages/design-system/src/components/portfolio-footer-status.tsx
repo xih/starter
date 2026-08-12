@@ -80,7 +80,7 @@ export function PortfolioFooterStatus() {
         <span aria-hidden="true">&nbsp;</span>
         <span className="inline-flex items-baseline gap-[4px]">
           <span
-            className="font-mono tabular-nums tracking-[-0.01em]"
+            className="font-scoreboard tabular-nums tracking-[-0.01em]"
             style={{ fontFeatureSettings: "'tnum' 1" }}
           >
             {clock.digits}

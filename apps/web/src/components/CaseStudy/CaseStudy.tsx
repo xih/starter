@@ -150,7 +150,11 @@ function LiteYouTube({ url, alt }: { url: string; alt: string }) {
   const embedSrc = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&cc_load_policy=0&rel=0&playsinline=1${startParam}`;
 
   return (
-    <div className="absolute inset-0" data-testid="youtube-embed-gate" ref={ref}>
+    <div
+      className="absolute inset-0"
+      data-testid="youtube-embed-gate"
+      ref={ref}
+    >
       {isVisible ? (
         <iframe
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

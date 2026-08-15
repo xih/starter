@@ -55,17 +55,27 @@ describe("CaseStudy", () => {
     }
   });
 
-  it("links surfaces that map to a section and renders plain text otherwise", () => {
+  it("links Nell surfaces in the same order as the section content", () => {
     render(<CaseStudy study={nell} />);
 
-    const homeLink = screen.getByRole("link", { name: "Home screen" });
-    expect(homeLink).toHaveAttribute("href", "#home");
+    const surfaceLinks = screen
+      .getByRole("navigation", { name: "Product surfaces" })
+      .querySelectorAll("a");
 
-    // "Search" has no matching section, so it is not a link.
+    expect(Array.from(surfaceLinks).map((link) => link.textContent)).toEqual([
+      "Show creation",
+      "Home screen",
+      "Show and Episode Details",
+      "Library",
+      "Product Analytics",
+      "Appendix",
+      "Design System",
+    ]);
+    expect(Array.from(surfaceLinks).map((link) => link.getAttribute("href")))
+      .toEqual(nell.sections.map((section) => `#${section.id}`));
     expect(
       screen.queryByRole("link", { name: "Search" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Search")).toBeInTheDocument();
   });
 
   it("renders a video for assets with a source and an image otherwise", () => {
@@ -199,14 +209,14 @@ describe("CaseStudy", () => {
     expect(video?.getAttribute("src")).toContain("/work/nell/");
   });
 
-  it("registers the agi and krea case studies", () => {
+  it("registers the combined agi and krea case study", () => {
     expect(getCaseStudySlugs()).toEqual(
-      expect.arrayContaining(["nell", "agi", "krea"]),
+      expect.arrayContaining(["nell", "agi-krea", "agi", "krea"]),
     );
   });
 
-  it.each(["agi", "krea"])(
-    "renders every section for the %s case study",
+  it.each(["agi-krea", "agi", "krea"])(
+    "renders every section for the %s case study route",
     (slug) => {
       const study = getCaseStudy(slug)!;
       render(<CaseStudy study={study} />);
@@ -222,4 +232,34 @@ describe("CaseStudy", () => {
       }
     },
   );
+
+  it("renders combined AGI and Krea narrative links and visuals", () => {
+    const study = getCaseStudy("agi-krea")!;
+    render(<CaseStudy study={study} />);
+
+    expect(screen.getByText("AGI and Krea")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 2,
+        name: "AGI (2025) - AI Agent Phones",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Android mobile agents are designed/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", {
+        name: "Krea had $8M ARR as of April 2025",
+      }),
+    ).toHaveAttribute(
+      "href",
+      "https://startupfounderstories.com/stories/victor-perez-krea-ai",
+    );
+    expect(
+      screen.getByRole("link", { name: "Boom times in San Francisco" }),
+    ).toHaveAttribute(
+      "href",
+      "https://www.theinformation.com/articles/seeking-cerebral-valley-a-photographic-tour-of-san-franciscos-ai-underground?rc=odix4s",
+    );
+  });
 });

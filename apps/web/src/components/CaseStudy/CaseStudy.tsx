@@ -7,11 +7,17 @@ import { PortfolioFooter } from "@starter/design-system";
 import { PortfolioHeader } from "~/components/PortfolioHeader";
 import { SkeuomorphicClock } from "~/components/SkeuomorphicClock";
 import { cn } from "~/lib/utils";
-import type { CaseStudy as CaseStudyData } from "./cases";
+import type {
+  CaseStudy as CaseStudyData,
+  CaseStudyImage,
+  CaseStudyTextBlock,
+} from "./cases";
 
 const IMAGE_ASPECT = "1006 / 562";
-const SURFACE_ITEM_CLASS =
-  "font-body inline-block text-[15px] leading-[18px] font-[400]";
+const SURFACE_LINK_CLASS =
+  "font-body inline-block text-[15px] leading-[20px] font-[400]";
+const SURFACE_GROUP_CLASS =
+  "font-body inline-block text-[15px] leading-[20px] font-[600] text-[#1e1f24]";
 
 function useActiveSection(sectionIds: string[]) {
   const [activeId, setActiveId] = useState<string | null>(
@@ -222,6 +228,124 @@ function LazyVideo({
   );
 }
 
+function CaseStudyBody({ blocks }: { blocks?: CaseStudyTextBlock[] }) {
+  if (!blocks || blocks.length === 0) return null;
+
+  return (
+    <div className="mt-[16px] flex flex-col gap-[18px] font-body text-[15px] font-[400] leading-[18px] text-[#1e1f24]">
+      {blocks.map((block, index) => {
+        const key = `${block.kind}-${index}`;
+
+        if (block.kind === "subheading") {
+          return (
+            <p className="font-[600]" key={key}>
+              {block.text}
+            </p>
+          );
+        }
+
+        if (block.kind === "ordered-list") {
+          return (
+            <ol className="list-decimal pl-[24px]" key={key}>
+              {block.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ol>
+          );
+        }
+
+        if (block.kind === "link") {
+          return (
+            <p key={key}>
+              <a
+                className="underline decoration-solid underline-offset-[2px] transition-colors hover:text-[#68696d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e1f24]"
+                href={block.href}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {block.label}
+              </a>
+              {block.suffix}
+            </p>
+          );
+        }
+
+        return <p key={key}>{block.text}</p>;
+      })}
+    </div>
+  );
+}
+
+function CaseStudyImageFrame({
+  assetBase,
+  image,
+}: {
+  assetBase: string;
+  image: CaseStudyImage;
+}) {
+  const frameClassName =
+    "relative w-full overflow-hidden rounded-[20px] bg-[#f3f3f3]";
+
+  if (image.mobileSrc) {
+    return (
+      <>
+        <div
+          className={cn(frameClassName, "hidden md:block")}
+          style={{ aspectRatio: image.aspectRatio ?? IMAGE_ASPECT }}
+        >
+          <Image
+            alt={image.alt}
+            className="object-contain"
+            fill
+            quality={90}
+            sizes="1006px"
+            src={`${assetBase}/${image.src}`}
+          />
+        </div>
+        <div
+          className={cn(frameClassName, "md:hidden")}
+          style={{ aspectRatio: image.mobileAspectRatio ?? IMAGE_ASPECT }}
+        >
+          <Image
+            alt={image.alt}
+            className="object-contain"
+            fill
+            quality={90}
+            sizes="100vw"
+            src={`${assetBase}/${image.mobileSrc}`}
+          />
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <div
+      className={frameClassName}
+      style={{ aspectRatio: image.aspectRatio ?? IMAGE_ASPECT }}
+    >
+      {image.video ? (
+        <LazyVideo
+          alt={image.alt}
+          poster={`${assetBase}/${image.src}`}
+          src={`${assetBase}/${image.video}`}
+        />
+      ) : image.youtube ? (
+        <LiteYouTube alt={image.alt} url={image.youtube} />
+      ) : (
+        <Image
+          alt={image.alt}
+          className="object-contain"
+          fill
+          quality={90}
+          sizes="(max-width: 767px) 100vw, 1006px"
+          src={`${assetBase}/${image.src}`}
+        />
+      )}
+    </div>
+  );
+}
+
 export function CaseStudy({ study }: { study: CaseStudyData }) {
   const sectionIds = useMemo(
     () => study.sections.map((section) => section.id),
@@ -266,10 +390,23 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
               <p className="font-body text-[20px] font-[600] leading-[22px]">
                 Product Surfaces
               </p>
-              <ul className="mt-[12px] flex flex-col gap-0 leading-[22px] md:gap-[8px] md:leading-[18px]">
-                {study.surfaces.map((surface) => {
+              <ul className="mt-[12px] flex flex-col">
+                {study.surfaces.map((surface, index) => {
                   const isActive =
                     surface.target != null && surface.target === activeId;
+
+                  if (surface.kind === "group") {
+                    return (
+                      <li
+                        key={surface.label}
+                        className={index === 0 ? undefined : "mt-[16px]"}
+                      >
+                        <span className={SURFACE_GROUP_CLASS}>
+                          {surface.label}
+                        </span>
+                      </li>
+                    );
+                  }
 
                   return (
                     <li key={surface.label}>
@@ -277,10 +414,10 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                         <a
                           aria-current={isActive ? "true" : undefined}
                           className={cn(
-                            SURFACE_ITEM_CLASS,
+                            SURFACE_LINK_CLASS,
                             "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e1f24]",
                             isActive
-                              ? "font-[600] text-[#1e1f24]"
+                              ? "font-[500] text-[#1e1f24]"
                               : "text-[#595a5d] hover:text-[#1e1f24]",
                           )}
                           href={`#${surface.target}`}
@@ -290,7 +427,7 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                         </a>
                       ) : (
                         <span
-                          className={cn(SURFACE_ITEM_CLASS, "text-[#595a5d]")}
+                          className={cn(SURFACE_LINK_CLASS, "text-[#595a5d]")}
                         >
                           {surface.label}
                         </span>
@@ -325,37 +462,19 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                   >
                     {section.label}
                   </h2>
-                  <div className="mt-[16px] flex flex-col gap-[24px]">
-                    {section.images.map((image) => (
-                      // Landscape card matching the Figma mock: the mockup sits
-                      // centered on the shared #f3f3f3 background. Video assets
-                      // carry the same gray baked in, so they blend seamlessly.
-                      <div
-                        className="relative w-full overflow-hidden rounded-[20px] bg-[#f3f3f3]"
-                        key={image.src}
-                        style={{ aspectRatio: IMAGE_ASPECT }}
-                      >
-                        {image.video ? (
-                          <LazyVideo
-                            alt={image.alt}
-                            poster={`${assetBase}/${image.src}`}
-                            src={`${assetBase}/${image.video}`}
-                          />
-                        ) : image.youtube ? (
-                          <LiteYouTube alt={image.alt} url={image.youtube} />
-                        ) : (
-                          <Image
-                            alt={image.alt}
-                            className="object-contain"
-                            fill
-                            quality={90}
-                            sizes="(max-width: 767px) 100vw, 1006px"
-                            src={`${assetBase}/${image.src}`}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <CaseStudyBody blocks={section.body} />
+                  {section.images.length > 0 ? (
+                    <div className="mt-[16px] flex flex-col gap-[24px]">
+                      {section.images.map((image) => (
+                        <CaseStudyImageFrame
+                          assetBase={assetBase}
+                          image={image}
+                          key={image.src}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                  <CaseStudyBody blocks={section.bodyAfterImages} />
                 </section>
               ))}
             </div>

@@ -71,8 +71,9 @@ describe("CaseStudy", () => {
       "Appendix",
       "Design System",
     ]);
-    expect(Array.from(surfaceLinks).map((link) => link.getAttribute("href")))
-      .toEqual(nell.sections.map((section) => `#${section.id}`));
+    expect(
+      Array.from(surfaceLinks).map((link) => link.getAttribute("href")),
+    ).toEqual(nell.sections.map((section) => `#${section.id}`));
     expect(
       screen.queryByRole("link", { name: "Search" }),
     ).not.toBeInTheDocument();

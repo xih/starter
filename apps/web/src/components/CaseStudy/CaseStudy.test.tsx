@@ -24,7 +24,13 @@ describe("CaseStudy", () => {
     expect(screen.getByText("Nell")).toBeInTheDocument();
     expect(screen.getByText("Founding Product Designer")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { level: 1, name: "Selected Screens" }),
+      screen.getByRole("heading", {
+        level: 1,
+        name: /Designing a Generative AI Podcasting App/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Selected Screens" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Product Surfaces")).toBeInTheDocument();
   });
@@ -34,11 +40,11 @@ describe("CaseStudy", () => {
 
     expect(
       screen.getByRole("navigation", { name: "Portfolio navigation" }),
-    ).toHaveClass("md:px-[92px]");
+    ).toHaveClass("md:px-[116px]");
     expect(
       container.querySelector("main > div > div:nth-child(2)"),
-    ).toHaveClass("md:grid-cols-[236px_minmax(0,1fr)]", "md:px-[92px]");
-    expect(container.querySelector("aside")).toHaveClass("md:pr-[8px]");
+    ).toHaveClass("md:grid-cols-[192px_minmax(0,1012px)]", "md:px-[117px]");
+    expect(container.querySelector("aside")).toHaveClass("md:pt-[71px]");
     expect(container.querySelector("aside")).not.toHaveClass("md:text-right");
     expect(
       screen.getByRole("navigation", { name: "Product surfaces" }),
@@ -55,28 +61,45 @@ describe("CaseStudy", () => {
     }
   });
 
-  it("links Nell surfaces in the same order as the section content", () => {
+  it("links Nell surfaces in product surface order", () => {
     render(<CaseStudy study={nell} />);
 
     const surfaceLinks = screen
       .getByRole("navigation", { name: "Product surfaces" })
       .querySelectorAll("a");
+    const linkedSurfaces = nell.surfaces.filter((surface) => surface.target);
 
-    expect(Array.from(surfaceLinks).map((link) => link.textContent)).toEqual([
-      "Show creation",
-      "Home screen",
-      "Show and Episode Details",
-      "Library",
-      "Product Analytics",
-      "Appendix",
-      "Design System",
-    ]);
+    expect(Array.from(surfaceLinks).map((link) => link.textContent)).toEqual(
+      linkedSurfaces.map((surface) => surface.label),
+    );
     expect(
       Array.from(surfaceLinks).map((link) => link.getAttribute("href")),
-    ).toEqual(nell.sections.map((section) => `#${section.id}`));
+    ).toEqual(linkedSurfaces.map((surface) => `#${surface.target}`));
+    expect(screen.getByText("Search")).toBeInTheDocument();
+    expect(screen.getByText("Public and Private Shows")).toBeInTheDocument();
+    expect(screen.getByText("Host Selection")).toBeInTheDocument();
+  });
+
+  it("renders the Nell writing intro from the Figma section", () => {
+    render(<CaseStudy study={nell} />);
+
     expect(
-      screen.queryByRole("link", { name: "Search" }),
-    ).not.toBeInTheDocument();
+      screen.getByText(/short, high-signal podcast episodes/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 2,
+        name: /Podcast Creation Still Feels Too Hard/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "High-fidelity Xcode prototypes for testing mobile interactions",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/As of August 2026, Nell has launched in private beta/i),
+    ).toBeInTheDocument();
   });
 
   it("renders a video for assets with a source and an image otherwise", () => {

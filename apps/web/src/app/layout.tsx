@@ -15,7 +15,10 @@ import { Toaster } from "~/components/ui/sonner";
 const siteTitle = "Dennis Xing";
 const siteDescription =
   "Product designer based in San Francisco. Previously at Nell, AGI, Krea, and Skydio.";
-const openGraphImageUrl = "/og/dennis-agent-portfolio.png?v=20260816-square";
+const openGraphImageUrl =
+  "/og/dennis-agent-portfolio.png?v=20260817-figma-og";
+const twitterImageUrl =
+  "/og/dennis-agent-portfolio-twitter.png?v=20260817-figma-twitter";
 
 export const metadata: Metadata = {
   metadataBase: SITE_URL,
@@ -50,7 +53,14 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
-    images: [openGraphImageUrl],
+    images: [
+      {
+        url: twitterImageUrl,
+        width: 1200,
+        height: 600,
+        alt: "Dennis Xing — AI Product Designer.",
+      },
+    ],
   },
 };
 

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { type DialConfig, useDialKit } from "dialkit";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { PortfolioFooter } from "@starter/design-system";
 
@@ -29,6 +29,18 @@ const SURFACE_SCROLL_CONTROLS = {
   settleDistancePx: [1.1, 0.1, 12, 0.1],
   settleVelocityPxPerSecond: [39, 1, 160, 1],
 } satisfies DialConfig;
+
+const SCROLL_TAKEOVER_KEYS = new Set([
+  " ",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "End",
+  "Home",
+  "PageDown",
+  "PageUp",
+]);
 
 type SurfaceScrollControls = {
   initialVelocity: number;
@@ -70,6 +82,17 @@ function getSurfaceTargetScrollTop(target: HTMLElement, offsetPx: number) {
     currentScrollTop + target.getBoundingClientRect().top - offsetPx;
 
   return Math.max(0, Math.min(getMaxScrollTop(), Math.round(targetTop)));
+}
+
+function shouldHandleSurfaceClick(event: MouseEvent<HTMLAnchorElement>) {
+  return (
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey
+  );
 }
 
 function useActiveSection(sectionIds: string[]) {
@@ -408,6 +431,7 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
   const assetBase = `/work/${study.slug}`;
   const headingId = `case-${study.slug}-title`;
   const surfaceScrollFrameRef = useRef<number | null>(null);
+  const surfaceScrollRunRef = useRef(0);
   const hasOverview = Boolean(study.overviewTitle);
   const OverlineHeading = hasOverview ? "h2" : "h1";
   const SectionHeading = hasOverview ? "h3" : "h2";
@@ -429,26 +453,48 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
     },
   ) as SurfaceScrollControls;
 
+  const cancelSurfaceScroll = useCallback(() => {
+    surfaceScrollRunRef.current += 1;
+
+    if (surfaceScrollFrameRef.current !== null) {
+      cancelAnimationFrame(surfaceScrollFrameRef.current);
+      surfaceScrollFrameRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
-    return () => {
-      if (surfaceScrollFrameRef.current !== null) {
-        cancelAnimationFrame(surfaceScrollFrameRef.current);
+    const cancelOnScrollKey = (event: KeyboardEvent) => {
+      if (SCROLL_TAKEOVER_KEYS.has(event.key)) {
+        cancelSurfaceScroll();
       }
     };
-  }, []);
+
+    window.addEventListener("keydown", cancelOnScrollKey);
+    window.addEventListener("pointerdown", cancelSurfaceScroll);
+    window.addEventListener("touchmove", cancelSurfaceScroll, {
+      passive: true,
+    });
+    window.addEventListener("wheel", cancelSurfaceScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("keydown", cancelOnScrollKey);
+      window.removeEventListener("pointerdown", cancelSurfaceScroll);
+      window.removeEventListener("touchmove", cancelSurfaceScroll);
+      window.removeEventListener("wheel", cancelSurfaceScroll);
+      cancelSurfaceScroll();
+    };
+  }, [cancelSurfaceScroll]);
 
   const handleSurfaceClick =
     (target: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!shouldHandleSurfaceClick(event)) return;
+
       const targetElement = document.getElementById(target);
 
       if (!targetElement) return;
 
       event.preventDefault();
-
-      if (surfaceScrollFrameRef.current !== null) {
-        cancelAnimationFrame(surfaceScrollFrameRef.current);
-        surfaceScrollFrameRef.current = null;
-      }
+      cancelSurfaceScroll();
 
       const startScrollTop = getCurrentScrollTop();
       const targetScrollTop = getSurfaceTargetScrollTop(
@@ -464,6 +510,10 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
       }
 
       const startedAt = performance.now();
+      const scrollRun = surfaceScrollRunRef.current + 1;
+
+      surfaceScrollRunRef.current = scrollRun;
+
       let lastTimestamp = startedAt;
       let currentScrollTop = startScrollTop;
       let velocity =
@@ -472,6 +522,8 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
         surfaceScroll.initialVelocity;
 
       function tick(now: number) {
+        if (surfaceScrollRunRef.current !== scrollRun) return;
+
         const elapsedMs = now - startedAt;
         const deltaSeconds = Math.min(
           0.032,
@@ -499,6 +551,8 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
           surfaceScrollFrameRef.current = requestAnimationFrame(tick);
           return;
         }
+
+        if (surfaceScrollRunRef.current !== scrollRun) return;
 
         surfaceScrollFrameRef.current = null;
         window.scrollTo({ top: targetScrollTop, behavior: "auto" });

@@ -283,6 +283,64 @@ describe("CaseStudy", () => {
     expect(replaceState).toHaveBeenCalledWith(null, "", "#fleet-management");
   });
 
+  it("preserves native behavior for modified product surface clicks", () => {
+    stubMotionPreference(false);
+    defineScrollGeometry({ scrollY: 120 });
+    const scrollTo = vi
+      .spyOn(window, "scrollTo")
+      .mockImplementation(() => undefined);
+    const replaceState = vi
+      .spyOn(window.history, "replaceState")
+      .mockImplementation(() => undefined);
+    const requestAnimationFrame = vi.spyOn(window, "requestAnimationFrame");
+
+    const skydio = getCaseStudy("skydio")!;
+    render(<CaseStudy study={skydio} />);
+    mockSectionTop("fleet-management", 978);
+
+    fireEvent.click(screen.getByRole("link", { name: "Fleet management" }), {
+      metaKey: true,
+    });
+
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+    expect(scrollTo).not.toHaveBeenCalled();
+    expect(replaceState).not.toHaveBeenCalled();
+  });
+
+  it("cancels a pending surface scroll when the user scrolls manually", () => {
+    stubMotionPreference(false);
+    defineScrollGeometry({ scrollY: 120 });
+    const pendingFrames: FrameRequestCallback[] = [];
+    const scrollTo = vi
+      .spyOn(window, "scrollTo")
+      .mockImplementation(() => undefined);
+    const replaceState = vi
+      .spyOn(window.history, "replaceState")
+      .mockImplementation(() => undefined);
+    const cancelAnimationFrame = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => undefined);
+
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      pendingFrames.push(callback);
+      return 7;
+    });
+
+    const skydio = getCaseStudy("skydio")!;
+    render(<CaseStudy study={skydio} />);
+    mockSectionTop("fleet-management", 978);
+
+    fireEvent.click(screen.getByRole("link", { name: "Fleet management" }));
+    fireEvent.wheel(window);
+
+    expect(pendingFrames).toHaveLength(1);
+    pendingFrames[0]!(16);
+
+    expect(cancelAnimationFrame).toHaveBeenCalledWith(7);
+    expect(scrollTo).not.toHaveBeenCalled();
+    expect(replaceState).not.toHaveBeenCalled();
+  });
+
   it("cancels a pending surface scroll before starting another one", () => {
     stubMotionPreference(false);
     defineScrollGeometry({ scrollY: 120 });

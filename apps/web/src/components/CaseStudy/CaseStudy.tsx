@@ -21,9 +21,7 @@ const SURFACE_GROUP_CLASS =
   "font-body inline-block text-[15px] leading-[20px] font-[600] text-[#1e1f24]";
 
 function useActiveSection(sectionIds: string[]) {
-  const [activeId, setActiveId] = useState<string | null>(
-    sectionIds[0] ?? null,
-  );
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
@@ -50,9 +48,7 @@ function useActiveSection(sectionIds: string[]) {
           }
         }
 
-        if (bestId && bestRatio > 0) {
-          setActiveId(bestId);
-        }
+        setActiveId(bestId && bestRatio > 0 ? bestId : null);
       },
       { rootMargin: "-20% 0px -60% 0px", threshold: [0, 0.25, 0.5, 1] },
     );

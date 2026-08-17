@@ -80,6 +80,89 @@ describe("CaseStudy", () => {
     expect(screen.getByText("Host Selection")).toBeInTheDocument();
   });
 
+  it("does not mark a product surface current while the intro is active", async () => {
+    const originalObserver = window.IntersectionObserver;
+    const instances: Array<{
+      callback: IntersectionObserverCallback;
+      observed: Element[];
+    }> = [];
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "";
+      readonly thresholds = [];
+      readonly observed: Element[] = [];
+
+      constructor(
+        readonly callback: IntersectionObserverCallback,
+        readonly options?: IntersectionObserverInit,
+      ) {
+        instances.push({ callback, observed: this.observed });
+      }
+
+      disconnect = vi.fn();
+      observe = vi.fn((element: Element) => this.observed.push(element));
+      takeRecords = vi.fn((): IntersectionObserverEntry[] => []);
+      unobserve = vi.fn();
+    }
+
+    window.IntersectionObserver = MockIntersectionObserver;
+
+    try {
+      render(<CaseStudy study={nell} />);
+
+      const surfaceNav = screen.getByRole("navigation", {
+        name: "Product surfaces",
+      });
+      const showCreationLink = screen.getByRole("link", {
+        name: "Show creation",
+      });
+
+      expect(surfaceNav.querySelector("[aria-current='true']")).toBeNull();
+
+      const sectionObserver = instances.find((instance) =>
+        instance.observed.some((element) => element.id === "show-creation"),
+      );
+      const showCreationSection = sectionObserver?.observed.find(
+        (element) => element.id === "show-creation",
+      );
+
+      if (!sectionObserver || !showCreationSection) {
+        throw new Error("Expected the case-study sections to be observed");
+      }
+
+      await act(async () => {
+        sectionObserver.callback(
+          [
+            {
+              intersectionRatio: 0.5,
+              target: showCreationSection,
+            } as IntersectionObserverEntry,
+          ],
+          {} as IntersectionObserver,
+        );
+      });
+
+      expect(showCreationLink).toHaveAttribute("aria-current", "true");
+
+      await act(async () => {
+        sectionObserver.callback(
+          [
+            {
+              intersectionRatio: 0,
+              target: showCreationSection,
+            } as IntersectionObserverEntry,
+          ],
+          {} as IntersectionObserver,
+        );
+      });
+
+      expect(surfaceNav.querySelector("[aria-current='true']")).toBeNull();
+    } finally {
+      window.IntersectionObserver = originalObserver;
+    }
+  });
+
   it("renders the Nell writing intro from the Figma section", () => {
     render(<CaseStudy study={nell} />);
 

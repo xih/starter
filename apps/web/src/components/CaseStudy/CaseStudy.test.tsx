@@ -88,7 +88,13 @@ describe("CaseStudy", () => {
     expect(screen.getByText("Nell")).toBeInTheDocument();
     expect(screen.getByText("Founding Product Designer")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { level: 1, name: "Selected Screens" }),
+      screen.getByRole("heading", {
+        level: 1,
+        name: /Designing a Generative AI Podcasting App/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Selected Screens" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Product Surfaces")).toBeInTheDocument();
   });
@@ -98,11 +104,11 @@ describe("CaseStudy", () => {
 
     expect(
       screen.getByRole("navigation", { name: "Portfolio navigation" }),
-    ).toHaveClass("md:px-[92px]");
+    ).toHaveClass("md:px-[116px]");
     expect(
       container.querySelector("main > div > div:nth-child(2)"),
-    ).toHaveClass("md:grid-cols-[236px_minmax(0,1fr)]", "md:px-[92px]");
-    expect(container.querySelector("aside")).toHaveClass("md:pr-[8px]");
+    ).toHaveClass("md:grid-cols-[192px_minmax(0,1012px)]", "md:px-[117px]");
+    expect(container.querySelector("aside")).toHaveClass("md:pt-[71px]");
     expect(container.querySelector("aside")).not.toHaveClass("md:text-right");
     expect(
       screen.getByRole("navigation", { name: "Product surfaces" }),
@@ -114,33 +120,133 @@ describe("CaseStudy", () => {
 
     for (const section of nell.sections) {
       expect(
-        screen.getByRole("heading", { level: 2, name: section.label }),
+        screen.getByRole("heading", { level: 3, name: section.label }),
       ).toBeInTheDocument();
     }
   });
 
-  it("links Nell surfaces in the same order as the section content", () => {
+  it("links Nell surfaces in product surface order", () => {
     render(<CaseStudy study={nell} />);
 
     const surfaceLinks = screen
       .getByRole("navigation", { name: "Product surfaces" })
       .querySelectorAll("a");
+    const linkedSurfaces = nell.surfaces.filter((surface) => surface.target);
 
-    expect(Array.from(surfaceLinks).map((link) => link.textContent)).toEqual([
-      "Show creation",
-      "Home screen",
-      "Show and Episode Details",
-      "Library",
-      "Product Analytics",
-      "Appendix",
-      "Design System",
-    ]);
+    expect(Array.from(surfaceLinks).map((link) => link.textContent)).toEqual(
+      linkedSurfaces.map((surface) => surface.label),
+    );
     expect(
       Array.from(surfaceLinks).map((link) => link.getAttribute("href")),
-    ).toEqual(nell.sections.map((section) => `#${section.id}`));
+    ).toEqual(linkedSurfaces.map((surface) => `#${surface.target}`));
+    expect(screen.getByText("Search")).toBeInTheDocument();
+    expect(screen.getByText("Public and Private Shows")).toBeInTheDocument();
+    expect(screen.getByText("Host Selection")).toBeInTheDocument();
+  });
+
+  it("does not mark a product surface current while the intro is active", async () => {
+    const originalObserver = window.IntersectionObserver;
+    const instances: Array<{
+      callback: IntersectionObserverCallback;
+      observed: Element[];
+    }> = [];
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "";
+      readonly thresholds = [];
+      readonly observed: Element[] = [];
+
+      constructor(
+        readonly callback: IntersectionObserverCallback,
+        readonly options?: IntersectionObserverInit,
+      ) {
+        instances.push({ callback, observed: this.observed });
+      }
+
+      disconnect = vi.fn();
+      observe = vi.fn((element: Element) => this.observed.push(element));
+      takeRecords = vi.fn((): IntersectionObserverEntry[] => []);
+      unobserve = vi.fn();
+    }
+
+    window.IntersectionObserver = MockIntersectionObserver;
+
+    try {
+      render(<CaseStudy study={nell} />);
+
+      const surfaceNav = screen.getByRole("navigation", {
+        name: "Product surfaces",
+      });
+      const showCreationLink = screen.getByRole("link", {
+        name: "Show creation",
+      });
+
+      expect(surfaceNav.querySelector("[aria-current='true']")).toBeNull();
+
+      const sectionObserver = instances.find((instance) =>
+        instance.observed.some((element) => element.id === "show-creation"),
+      );
+      const showCreationSection = sectionObserver?.observed.find(
+        (element) => element.id === "show-creation",
+      );
+
+      if (!sectionObserver || !showCreationSection) {
+        throw new Error("Expected the case-study sections to be observed");
+      }
+
+      await act(async () => {
+        sectionObserver.callback(
+          [
+            {
+              intersectionRatio: 0.5,
+              target: showCreationSection,
+            } as IntersectionObserverEntry,
+          ],
+          {} as IntersectionObserver,
+        );
+      });
+
+      expect(showCreationLink).toHaveAttribute("aria-current", "true");
+
+      await act(async () => {
+        sectionObserver.callback(
+          [
+            {
+              intersectionRatio: 0,
+              target: showCreationSection,
+            } as IntersectionObserverEntry,
+          ],
+          {} as IntersectionObserver,
+        );
+      });
+
+      expect(surfaceNav.querySelector("[aria-current='true']")).toBeNull();
+    } finally {
+      window.IntersectionObserver = originalObserver;
+    }
+  });
+
+  it("renders the Nell writing intro from the Figma section", () => {
+    render(<CaseStudy study={nell} />);
+
     expect(
-      screen.queryByRole("link", { name: "Search" }),
-    ).not.toBeInTheDocument();
+      screen.getByText(/short, high-signal podcast episodes/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 2,
+        name: /Podcast Creation Still Feels Too Hard/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "High-fidelity Xcode prototypes for testing mobile interactions",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/As of August 2026, Nell has launched in private beta/i),
+    ).toBeInTheDocument();
   });
 
   it("renders a video for assets with a source and an image otherwise", () => {

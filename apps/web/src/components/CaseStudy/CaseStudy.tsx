@@ -12,6 +12,7 @@ import { cn } from "~/lib/utils";
 import type {
   CaseStudy as CaseStudyData,
   CaseStudyImage,
+  CaseStudyIntroSection,
   CaseStudyTextBlock,
 } from "./cases";
 
@@ -352,6 +353,75 @@ function CaseStudyBody({ blocks }: { blocks?: CaseStudyTextBlock[] }) {
   );
 }
 
+function CaseStudyIntroSectionView({
+  section,
+}: {
+  section: CaseStudyIntroSection;
+}) {
+  return (
+    <section className="flex flex-col gap-[16px] text-[#1e1f24]">
+      {section.heading ? (
+        <h2 className="font-body text-[20px] font-[600] leading-[22px]">
+          {section.heading}
+        </h2>
+      ) : null}
+
+      {section.kind === "list" ? (
+        <div className="font-body text-[13px] font-[400] leading-[15.6px] md:text-[15px] md:leading-[18px]">
+          <p>{section.lead}</p>
+          <ol className="list-[lower-alpha] pl-[39px] md:pl-[45px]">
+            {section.items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ol>
+          <p className="mt-[15.6px] whitespace-pre-line md:mt-[18px]">
+            {section.body}
+          </p>
+        </div>
+      ) : (
+        <p className="whitespace-pre-line font-body text-[13px] font-[400] leading-[15.6px] text-black md:text-[15px] md:leading-[18px]">
+          {section.body}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function CaseStudyIntro({
+  lead,
+  sections,
+  title,
+}: {
+  lead?: string;
+  sections?: CaseStudyIntroSection[];
+  title?: string;
+}) {
+  if (!title || !lead) return null;
+
+  return (
+    <div className="flex flex-col gap-[16px] [word-break:break-word]">
+      <section className="flex flex-col gap-[16px]">
+        <h1
+          className="font-body text-[20px] font-[600] leading-[22px] text-[#1e1f24] md:font-title md:text-[36px] md:font-[500] md:leading-[40px] md:tracking-[-0.02em]"
+          id="case-study-intro-title"
+        >
+          {title}
+        </h1>
+        <p className="whitespace-pre-line font-body text-[13px] font-[400] leading-[15.6px] text-black md:text-[15px] md:leading-[18px]">
+          {lead}
+        </p>
+      </section>
+
+      {sections?.map((section) => (
+        <CaseStudyIntroSectionView
+          key={section.heading ?? section.kind}
+          section={section}
+        />
+      ))}
+    </div>
+  );
+}
+
 function CaseStudyImageFrame({
   assetBase,
   image,
@@ -429,12 +499,11 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
   );
   const activeId = useActiveSection(sectionIds);
   const assetBase = `/work/${study.slug}`;
-  const headingId = `case-${study.slug}-title`;
+  const hasIntro = Boolean(study.introTitle && study.introLead);
+  const headingId = hasIntro ? undefined : `case-${study.slug}-title`;
+  const SectionHeading = hasIntro ? "h3" : "h2";
   const surfaceScrollFrameRef = useRef<number | null>(null);
   const surfaceScrollRunRef = useRef(0);
-  const hasOverview = Boolean(study.overviewTitle);
-  const OverlineHeading = hasOverview ? "h2" : "h1";
-  const SectionHeading = hasOverview ? "h3" : "h2";
   const surfaceScroll = useDialKit(
     "Case study product surface scroll",
     SURFACE_SCROLL_CONTROLS,
@@ -566,32 +635,38 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
     <main className="min-h-screen bg-white text-[#1e1f24]">
       <div className="mx-auto w-full max-w-[1440px]">
         <div className="relative h-[44px]">
-          <PortfolioHeader className="md:px-[92px]" tone="dark" />
+          <PortfolioHeader tone="dark" />
         </div>
 
-        <div className="px-[20px] pb-[48px] md:grid md:grid-cols-[236px_minmax(0,1fr)] md:gap-[64px] md:px-[92px]">
+        <div className="px-[20px] pb-[48px] md:grid md:grid-cols-[192px_minmax(0,1012px)] md:gap-[34px] md:px-[117px]">
           {/* Fixed-vertical sidebar on desktop; stacks inline on mobile. */}
-          <aside className="md:sticky md:top-0 md:flex md:h-screen md:flex-col md:self-start md:overflow-y-auto md:py-[48px] md:pr-[8px]">
-            <div className="pt-[40px] md:pt-0">
+          <aside className="md:sticky md:top-0 md:flex md:h-screen md:flex-col md:self-start md:overflow-y-auto md:pb-[48px] md:pt-[71px]">
+            <div className="pt-[34px] md:pt-0">
               <p className="font-body text-[15px] font-[600] leading-[18px]">
                 {study.company}
               </p>
-              <p className="mt-[8px] font-body text-[15px] font-[400] leading-[18px] text-[#595a5d]">
+              <p className="mt-[7px] font-body text-[15px] font-[400] leading-[18px] text-[#595a5d] md:mt-[8px]">
                 {study.role}
               </p>
-              <p className="font-body text-[15px] font-[400] leading-[18px] text-[#595a5d]">
+              <p className="mt-[7px] font-body text-[15px] font-[400] leading-[18px] text-[#595a5d] md:mt-[2px]">
                 {study.period}
               </p>
-              <p className="mt-[16px] font-body text-[15px] font-[400] leading-[21px] text-[#595a5d] md:max-w-[240px]">
-                {study.description}
+              <p className="mt-[42px] font-body text-[15px] font-[400] leading-[21px] text-[#595a5d] md:mt-[32px] md:max-w-[192px]">
+                <span className="md:hidden">
+                  {study.mobileDescription ?? study.description}
+                </span>
+                <span className="hidden md:inline">{study.description}</span>
               </p>
             </div>
 
-            <nav aria-label="Product surfaces" className="mt-[40px]">
+            <nav
+              aria-label="Product surfaces"
+              className="mt-[14px] md:mt-[32px]"
+            >
               <p className="font-body text-[20px] font-[600] leading-[22px]">
                 Product Surfaces
               </p>
-              <ul className="mt-[12px] flex flex-col">
+              <ul className="mt-[8px] flex flex-col">
                 {study.surfaces.map((surface, index) => {
                   const isActive =
                     surface.target != null && surface.target === activeId;
@@ -638,31 +713,36 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                 })}
               </ul>
             </nav>
+
+            {hasIntro ? (
+              <div className="mt-[28px] h-[2px] w-full bg-[#1e1f24] md:hidden" />
+            ) : null}
           </aside>
 
           {/* Scrolling main column. */}
-          <div className="pt-[40px] md:pt-[48px]">
-            {hasOverview ? (
-              <div>
-                <h1
-                  className="font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24] md:text-[36px] md:leading-[40px]"
-                  id={headingId}
-                >
-                  {study.overviewTitle}
-                </h1>
-                <CaseStudyBody blocks={study.overviewBody} />
-              </div>
+          <div className="pt-[38px] md:pt-[60px]">
+            <CaseStudyIntro
+              lead={study.introLead}
+              sections={study.introSections}
+              title={study.introTitle}
+            />
+
+            {hasIntro ? (
+              <div className="mt-[40px] h-[2px] w-full bg-[#1e1f24] md:hidden" />
             ) : null}
 
-            <OverlineHeading
-              className={cn(
-                "font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24]",
-                hasOverview ? "mt-[40px]" : undefined,
-              )}
-              id={hasOverview ? `${study.slug}-selected-work` : headingId}
-            >
-              {study.overline}
-            </OverlineHeading>
+            {hasIntro ? (
+              <h2 className="mt-[18px] font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24] md:mt-[40px]">
+                {study.overline}
+              </h2>
+            ) : (
+              <h1
+                className="font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24]"
+                id={headingId}
+              >
+                {study.overline}
+              </h1>
+            )}
 
             <div className="mt-[40px] flex flex-col gap-[64px]">
               {study.sections.map((section) => {

@@ -30,6 +30,20 @@ export type CaseStudySection = {
   images: CaseStudyImage[];
 };
 
+export type CaseStudyIntroSection =
+  | {
+      kind: "text";
+      heading?: string;
+      body: string;
+    }
+  | {
+      kind: "list";
+      heading: string;
+      lead: string;
+      items: string[];
+      body: string;
+    };
+
 export type ProductSurface = {
   label: string;
   /** Group heading for related surfaces in the sidebar. */
@@ -45,9 +59,10 @@ export type CaseStudy = {
   role: string;
   period: string;
   description: string;
-  /** Optional narrative before the selected work gallery. */
-  overviewTitle?: string;
-  overviewBody?: CaseStudyTextBlock[];
+  mobileDescription?: string;
+  introTitle?: string;
+  introLead?: string;
+  introSections?: CaseStudyIntroSection[];
   /** Title above the main column, e.g. "Selected Screens". */
   overline: string;
   surfaces: ProductSurface[];
@@ -85,15 +100,50 @@ const nell: CaseStudy = {
   period: "Jan 2026 - July 2026",
   description:
     "I worked with the cofounder of Soundcloud to design interaction patterns for the future of prompt to podcast. Raised $XX from Danny Rimer at Index Ventures.",
+  mobileDescription:
+    "I worked with the cofounder of Soundcloud, and a team of engineers and a head of content to build out the core product, and interaction patterns for the future of generative AI podcasting. Raised $XX from Danny Rimer at Index Ventures.",
+  introTitle:
+    "Nell - Designing a Generative AI Podcasting App for Personalized Audio Learning",
+  introLead:
+    "Nell is a generative AI podcasting app that lets users create short, high-signal podcast episodes from any prompt, topic, article, or question.\n\nInspired by A Young Lady’s Illustrated Primer from Neal Stephenson’s The Diamond Age, Nell is an adaptive educational tool that helped Nell become more independent, capable, and self-directed. Our goal was to bring that same spirit into audio: a system that could turn curiosity into personalized, useful listening experiences.\n\nUsers could ask for anything from “a 10-minute history of the Roman Empire” to “explain the latest AI chip design news” and receive a concise 5-10 minute episode designed to be clear, direct, and information-dense.",
+  introSections: [
+    {
+      kind: "text",
+      heading:
+        "Problem: AI Can Generate Content, But Podcast Creation Still Feels Too Hard",
+      body: "People are already using tools like ChatGPT, Claude, and NotebookLM to summarize articles, explain papers, and generate learning material. But turning those outputs into a polished, listenable podcast still requires too much effort.\n\nThe opportunity was to design a mobile-first experience that made podcast generation feel simple, fast, and native to the medium, not like a chatbot with an audio export button.",
+    },
+    {
+      kind: "list",
+      heading: "My Role: Product Design, Prototyping, and Core UX Decisions",
+      lead: "I designed the core information architecture and end-to-end product experience, including:",
+      items: [
+        "Home, episode, and show detail screens",
+        "The show creation and generation flow",
+        "Host picker, search, profile, and onboarding flows",
+        "High-fidelity Xcode prototypes for testing mobile interactions",
+        "Loading states for long-running AI generation, including skeletons, spinners, and shimmering text",
+      ],
+      body: "I also helped shape key product decisions, including making shows public by default to increase discovery and engagement, defining onboarding and retention metrics in PostHog, and deciding how identity should work across usernames, full names, and creator profiles.",
+    },
+    {
+      kind: "text",
+      heading:
+        "Outcome: Private Beta, Fundraising, and Early Product Validation",
+      body: "The beta mobile app raised $XX from top-tier investors and angels, including Danny Rimer from Index Ventures, Guillermo Rauch from Vercel, Anton Osika from Lovable, Mati Staniszewski from ElevenLabs, and Soleio.\n\n\nAs of August 2026, Nell has launched in private beta.",
+    },
+  ],
   overline: "Selected Screens",
   surfaces: [
     { label: "Show creation", target: "show-creation" },
     { label: "Home screen", target: "home" },
     { label: "Show and Episode Details", target: "episode-show-details" },
+    { label: "Search" },
     { label: "Library", target: "library" },
-    { label: "Product Analytics", target: "product-analytics" },
-    { label: "Appendix", target: "appendix" },
+    { label: "Public and Private Shows" },
+    { label: "Host Selection" },
     { label: "Design System", target: "design-system" },
+    { label: "Product Analytics", target: "product-analytics" },
   ],
   sections: [
     {
@@ -139,6 +189,11 @@ const nell: CaseStudy = {
       ],
     },
     {
+      id: "design-system",
+      label: "Selections from the Design System",
+      images: [{ src: "design-system.png", alt: "Nell design system" }],
+    },
+    {
       id: "product-analytics",
       label: "Product Analytics",
       images: [
@@ -158,11 +213,6 @@ const nell: CaseStudy = {
         },
         { src: "appendix-image.png", alt: "Nell appendix" },
       ],
-    },
-    {
-      id: "design-system",
-      label: "Selections from the Design System",
-      images: [{ src: "design-system.png", alt: "Nell design system" }],
     },
   ],
 };
@@ -360,27 +410,16 @@ const skydio: CaseStudy = {
   period: "2020-2022",
   description:
     "I worked across drone autonomy, cloud infra, engineering and product teams to deliver a cloud dashboard to manage enterprise drone fleets.",
-  overviewTitle:
+  introTitle:
     "Skydio Cloud: Designing the Enterprise Platform for Drone Fleet Operations",
-  overviewBody: [
+  introLead:
+    "Skydio is an enterprise drone company building the hardware and software layer for large-scale drone operations.\n\nI was the first design hire on Skydio Cloud, the enterprise platform that helps organizations manage drone fleets, live operations, missions, media, licensing, and cloud-based 3D data.",
+  introSections: [
     {
-      kind: "paragraph",
-      text: "Skydio is an enterprise drone company building the hardware and software layer for large-scale drone operations.",
-    },
-    {
-      kind: "paragraph",
-      text: "I was the first design hire on Skydio Cloud, the enterprise platform that helps organizations manage drone fleets, live operations, missions, media, licensing, and cloud-based 3D data.",
-    },
-    {
-      kind: "subheading",
-      text: "Customers: Public Safety, Infrastructure, Mining, Telecom, and Rail",
-    },
-    {
-      kind: "paragraph",
-      text: "Skydio Cloud served enterprise and government customers across complex operational environments, including:",
-    },
-    {
-      kind: "unordered-list",
+      kind: "list",
+      heading:
+        "Customers: Public Safety, Infrastructure, Mining, Telecom, and Rail",
+      lead: "Skydio Cloud served enterprise and government customers across complex operational environments, including:",
       items: [
         "Public safety teams such as the Las Vegas Police Department and Chula Vista Police Department",
         "Mining companies such as Rio Tinto",
@@ -388,50 +427,22 @@ const skydio: CaseStudy = {
         "Transportation and infrastructure teams such as Salt Lake City Department of Transportation and Caltrans",
         "Rail companies such as BNSF and Union Pacific",
       ],
+      body: "These customers needed software that could support high-stakes field operations, long-running inspection programs, and organization-wide fleet management.",
     },
     {
-      kind: "subheading",
-      text: "Problem: Drone Operations Were Scaling Beyond the Pilot",
+      kind: "text",
+      heading: "Problem: Drone Operations Were Scaling Beyond the Pilot",
+      body: "As enterprise drone programs grew, teams needed more than a pilot and a controller. They needed a cloud platform to coordinate fleets, manage vehicles, stream live video, schedule missions, review 3D data, and give stakeholders access to the right information at the right time.\n\nThe design challenge was to turn highly technical drone workflows into clear, operational software for teams working in high-stakes environments.",
     },
     {
-      kind: "paragraph",
-      text: "As enterprise drone programs grew, teams needed more than a pilot and a controller. They needed a cloud platform to coordinate fleets, manage vehicles, stream live video, schedule missions, review 3D data, and give stakeholders access to the right information at the right time.",
+      kind: "text",
+      heading: "Building Mental Models Across Real Drone Workflows",
+      body: "I embedded myself in customer workflows to understand how different organizations used drones in the field.\n\nFor public safety, this included Drone as First Responder programs and Live 911 response workflows, where officers needed real-time aerial context before arriving on scene.\n\nFor mining teams, drones were used to generate daily orthomosaics of large sites, helping teams monitor operations and track changes over time.\n\nFor rail customers like BNSF, drones were used to identify container serial numbers in rail yards and build more accurate geolocation maps of assets, saving time and reducing manual inspection work.\n\nFor transportation teams like Salt Lake City Department of Transportation, drones captured mountain highway terrain and generated 3D photogrammetry models to identify avalanche pressure points and plan safer clearing operations.",
     },
     {
-      kind: "paragraph",
-      text: "The design challenge was to turn highly technical drone workflows into clear, operational software for teams working in high-stakes environments.",
-    },
-    {
-      kind: "subheading",
-      text: "Building Mental Models Across Real Drone Workflows",
-    },
-    {
-      kind: "paragraph",
-      text: "I embedded myself in customer workflows to understand how different organizations used drones in the field.",
-    },
-    {
-      kind: "ordered-list",
-      items: [
-        "For public safety, this included Drone as First Responder programs and Live 911 response workflows, where officers needed real-time aerial context before arriving on scene.",
-        "For mining teams, drones were used to generate daily orthomosaics of large sites, helping teams monitor operations and track changes over time.",
-        "For rail customers like BNSF, drones were used to identify container serial numbers in rail yards and build more accurate geolocation maps of assets, saving time and reducing manual inspection work.",
-        "For transportation teams like Salt Lake City Department of Transportation, drones captured mountain highway terrain and generated 3D photogrammetry models to identify avalanche pressure points and plan safer clearing operations.",
-      ],
-    },
-    {
-      kind: "subheading",
-      text: "Designing for Real-Time Drone Systems",
-    },
-    {
-      kind: "paragraph",
-      text: "I worked closely with engineering teams on interaction-heavy and technically complex features, including 3D model viewing in the cloud using CesiumJS, deck.gl, and Three.js.",
-    },
-    {
-      kind: "paragraph",
-      text: "I also partnered with engineers to define real-time control and system-status interactions, including:",
-    },
-    {
-      kind: "ordered-list",
+      kind: "list",
+      heading: "Designing for Real-Time Drone Systems",
+      lead: "I worked closely with engineering teams on interaction-heavy and technically complex features, including 3D model viewing in the cloud using CesiumJS, deck.gl, and Three.js.\n\nI also partnered with engineers to define real-time control and system-status interactions, including:",
       items: [
         "Obstacle avoidance state toggles",
         "Run mode switching",
@@ -439,18 +450,13 @@ const skydio: CaseStudy = {
         "Thermal and visual camera mode transitions",
         "Operational states for active drone missions",
       ],
+      body: "These details helped operators understand drone state quickly while moving between live video, map, fleet, and mission workflows.",
     },
     {
-      kind: "subheading",
-      text: "Hundreds of orgs onboarded onto Skydio Cloud and we generated $XX ARR",
-    },
-    {
-      kind: "paragraph",
-      text: "After launch, hundreds of organizations onboarded to Skydio Cloud, and the platform generated $XX in ARR.",
-    },
-    {
-      kind: "paragraph",
-      text: "Skydio Cloud was sold through multiple enterprise SKUs, including Skydio Cloud Basic and Skydio Cloud Live Streaming. I designed upsell and pricing experiences that helped convert more organizations into paid enterprise customers.",
+      kind: "text",
+      heading:
+        "Hundreds of orgs onboarded onto Skydio Cloud and we generated $XX ARR",
+      body: "After launch, hundreds of organizations onboarded to Skydio Cloud, and the platform generated $XX in ARR.\n\nSkydio Cloud was sold through multiple enterprise SKUs, including Skydio Cloud Basic and Skydio Cloud Live Streaming. I designed upsell and pricing experiences that helped convert more organizations into paid enterprise customers.",
     },
   ],
   overline: "Selected Work",

@@ -38,3 +38,9 @@ export const Krea: Story = {
     study: getCaseStudy("krea")!,
   },
 };
+
+export const Skydio: Story = {
+  args: {
+    study: getCaseStudy("skydio")!,
+  },
+};

@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { type DialConfig, useDialKit } from "dialkit";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { PortfolioFooter } from "@starter/design-system";
 
 import { PortfolioHeader } from "~/components/PortfolioHeader";
@@ -18,11 +20,60 @@ const SURFACE_LINK_CLASS =
   "font-body inline-block text-[15px] leading-[20px] font-[400]";
 const SURFACE_GROUP_CLASS =
   "font-body inline-block text-[15px] leading-[20px] font-[600] text-[#1e1f24]";
+const SURFACE_SCROLL_CONTROLS = {
+  offsetPx: [24, 0, 120, 1],
+  springStiffness: [490, 80, 1_600, 10],
+  springDamping: [44, 8, 120, 1],
+  initialVelocity: [0.4, 0, 4, 0.1],
+  maxDurationMs: [700, 120, 1_400, 10],
+  settleDistancePx: [1.1, 0.1, 12, 0.1],
+  settleVelocityPxPerSecond: [39, 1, 160, 1],
+} satisfies DialConfig;
+
+type SurfaceScrollControls = {
+  initialVelocity: number;
+  maxDurationMs: number;
+  offsetPx: number;
+  settleDistancePx: number;
+  settleVelocityPxPerSecond: number;
+  springDamping: number;
+  springStiffness: number;
+};
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function getCurrentScrollTop() {
+  return (
+    window.scrollY ?? window.pageYOffset ?? document.documentElement.scrollTop
+  );
+}
+
+function getMaxScrollTop() {
+  const documentElement = document.documentElement;
+  const body = document.body;
+  const scrollHeight = Math.max(
+    documentElement.scrollHeight,
+    body?.scrollHeight ?? 0,
+  );
+
+  return Math.max(0, scrollHeight - window.innerHeight);
+}
+
+function getSurfaceTargetScrollTop(target: HTMLElement, offsetPx: number) {
+  const currentScrollTop = getCurrentScrollTop();
+  const targetTop =
+    currentScrollTop + target.getBoundingClientRect().top - offsetPx;
+
+  return Math.max(0, Math.min(getMaxScrollTop(), Math.round(targetTop)));
+}
 
 function useActiveSection(sectionIds: string[]) {
-  const [activeId, setActiveId] = useState<string | null>(
-    sectionIds[0] ?? null,
-  );
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
@@ -49,9 +100,7 @@ function useActiveSection(sectionIds: string[]) {
           }
         }
 
-        if (bestId && bestRatio > 0) {
-          setActiveId(bestId);
-        }
+        setActiveId(bestId && bestRatio > 0 ? bestId : null);
       },
       { rootMargin: "-20% 0px -60% 0px", threshold: [0, 0.25, 0.5, 1] },
     );
@@ -244,13 +293,17 @@ function CaseStudyBody({ blocks }: { blocks?: CaseStudyTextBlock[] }) {
           );
         }
 
-        if (block.kind === "ordered-list") {
+        if (block.kind === "ordered-list" || block.kind === "unordered-list") {
+          const List = block.kind === "ordered-list" ? "ol" : "ul";
+          const listClassName =
+            block.kind === "ordered-list" ? "list-decimal" : "list-disc";
+
           return (
-            <ol className="list-decimal pl-[24px]" key={key}>
+            <List className={cn(listClassName, "pl-[24px]")} key={key}>
               {block.items.map((item) => (
                 <li key={item}>{item}</li>
               ))}
-            </ol>
+            </List>
           );
         }
 
@@ -354,12 +407,106 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
   const activeId = useActiveSection(sectionIds);
   const assetBase = `/work/${study.slug}`;
   const headingId = `case-${study.slug}-title`;
+  const surfaceScrollFrameRef = useRef<number | null>(null);
+  const hasOverview = Boolean(study.overviewTitle);
+  const OverlineHeading = hasOverview ? "h2" : "h1";
+  const SectionHeading = hasOverview ? "h3" : "h2";
+  const surfaceScroll = useDialKit(
+    "Case study product surface scroll",
+    SURFACE_SCROLL_CONTROLS,
+    {
+      id: "case-study-product-surface-scroll",
+      persist: {
+        key: "case-study-product-surface-scroll-v1",
+        storage: "localStorage",
+        presets: true,
+      },
+      shortcuts: {
+        maxDurationMs: { key: "d", mode: "coarse" },
+        springDamping: { key: "m", mode: "coarse" },
+        springStiffness: { key: "s", mode: "coarse" },
+      },
+    },
+  ) as SurfaceScrollControls;
 
-  const handleSurfaceClick = (target: string) => () => {
-    document
-      .getElementById(target)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  useEffect(() => {
+    return () => {
+      if (surfaceScrollFrameRef.current !== null) {
+        cancelAnimationFrame(surfaceScrollFrameRef.current);
+      }
+    };
+  }, []);
+
+  const handleSurfaceClick =
+    (target: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+      const targetElement = document.getElementById(target);
+
+      if (!targetElement) return;
+
+      event.preventDefault();
+
+      if (surfaceScrollFrameRef.current !== null) {
+        cancelAnimationFrame(surfaceScrollFrameRef.current);
+        surfaceScrollFrameRef.current = null;
+      }
+
+      const startScrollTop = getCurrentScrollTop();
+      const targetScrollTop = getSurfaceTargetScrollTop(
+        targetElement,
+        surfaceScroll.offsetPx,
+      );
+      const distance = targetScrollTop - startScrollTop;
+
+      if (prefersReducedMotion() || Math.abs(distance) < 2) {
+        window.scrollTo({ top: targetScrollTop, behavior: "auto" });
+        window.history.replaceState(null, "", `#${target}`);
+        return;
+      }
+
+      const startedAt = performance.now();
+      let lastTimestamp = startedAt;
+      let currentScrollTop = startScrollTop;
+      let velocity =
+        Math.sign(distance) *
+        Math.abs(distance) *
+        surfaceScroll.initialVelocity;
+
+      function tick(now: number) {
+        const elapsedMs = now - startedAt;
+        const deltaSeconds = Math.min(
+          0.032,
+          Math.max(0, now - lastTimestamp) / 1_000,
+        );
+
+        lastTimestamp = now;
+
+        const displacement = targetScrollTop - currentScrollTop;
+        const acceleration =
+          surfaceScroll.springStiffness * displacement -
+          surfaceScroll.springDamping * velocity;
+
+        velocity += acceleration * deltaSeconds;
+        currentScrollTop += velocity * deltaSeconds;
+
+        window.scrollTo({ top: currentScrollTop, behavior: "auto" });
+
+        const isSettled =
+          Math.abs(targetScrollTop - currentScrollTop) <=
+            surfaceScroll.settleDistancePx &&
+          Math.abs(velocity) <= surfaceScroll.settleVelocityPxPerSecond;
+
+        if (!isSettled && elapsedMs < surfaceScroll.maxDurationMs) {
+          surfaceScrollFrameRef.current = requestAnimationFrame(tick);
+          return;
+        }
+
+        surfaceScrollFrameRef.current = null;
+        window.scrollTo({ top: targetScrollTop, behavior: "auto" });
+        window.history.replaceState(null, "", `#${target}`);
+      }
+
+      surfaceScrollFrameRef.current = requestAnimationFrame(tick);
+    };
 
   return (
     <main className="min-h-screen bg-white text-[#1e1f24]">
@@ -441,42 +588,59 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
 
           {/* Scrolling main column. */}
           <div className="pt-[40px] md:pt-[48px]">
-            <h1
-              className="font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24]"
-              id={headingId}
+            {hasOverview ? (
+              <div>
+                <h1
+                  className="font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24] md:text-[36px] md:leading-[40px]"
+                  id={headingId}
+                >
+                  {study.overviewTitle}
+                </h1>
+                <CaseStudyBody blocks={study.overviewBody} />
+              </div>
+            ) : null}
+
+            <OverlineHeading
+              className={cn(
+                "font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24]",
+                hasOverview ? "mt-[40px]" : undefined,
+              )}
+              id={hasOverview ? `${study.slug}-selected-work` : headingId}
             >
               {study.overline}
-            </h1>
+            </OverlineHeading>
 
             <div className="mt-[40px] flex flex-col gap-[64px]">
-              {study.sections.map((section) => (
-                <section
-                  aria-labelledby={`${section.id}-label`}
-                  className="scroll-mt-[24px]"
-                  id={section.id}
-                  key={section.id}
-                >
-                  <h2
-                    className="font-body text-[20px] font-[600] leading-[22px] text-[#1e1f24]"
-                    id={`${section.id}-label`}
+              {study.sections.map((section) => {
+                return (
+                  <section
+                    aria-labelledby={`${section.id}-label`}
+                    className="scroll-mt-[24px]"
+                    id={section.id}
+                    key={section.id}
                   >
-                    {section.label}
-                  </h2>
-                  <CaseStudyBody blocks={section.body} />
-                  {section.images.length > 0 ? (
-                    <div className="mt-[16px] flex flex-col gap-[24px]">
-                      {section.images.map((image) => (
-                        <CaseStudyImageFrame
-                          assetBase={assetBase}
-                          image={image}
-                          key={image.src}
-                        />
-                      ))}
-                    </div>
-                  ) : null}
-                  <CaseStudyBody blocks={section.bodyAfterImages} />
-                </section>
-              ))}
+                    <SectionHeading
+                      className="font-body text-[20px] font-[600] leading-[22px] text-[#1e1f24]"
+                      id={`${section.id}-label`}
+                    >
+                      {section.label}
+                    </SectionHeading>
+                    <CaseStudyBody blocks={section.body} />
+                    {section.images.length > 0 ? (
+                      <div className="mt-[16px] flex flex-col gap-[24px]">
+                        {section.images.map((image) => (
+                          <CaseStudyImageFrame
+                            assetBase={assetBase}
+                            image={image}
+                            key={image.src}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                    <CaseStudyBody blocks={section.bodyAfterImages} />
+                  </section>
+                );
+              })}
             </div>
           </div>
         </div>

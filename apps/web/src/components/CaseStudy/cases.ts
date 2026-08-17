@@ -45,6 +45,9 @@ export type CaseStudy = {
   role: string;
   period: string;
   description: string;
+  /** Optional narrative before the selected work gallery. */
+  overviewTitle?: string;
+  overviewBody?: CaseStudyTextBlock[];
   /** Title above the main column, e.g. "Selected Screens". */
   overline: string;
   surfaces: ProductSurface[];
@@ -62,6 +65,10 @@ export type CaseStudyTextBlock =
     }
   | {
       kind: "ordered-list";
+      items: string[];
+    }
+  | {
+      kind: "unordered-list";
       items: string[];
     }
   | {
@@ -353,15 +360,109 @@ const skydio: CaseStudy = {
   period: "2020-2022",
   description:
     "I worked across drone autonomy, cloud infra, engineering and product teams to deliver a cloud dashboard to manage enterprise drone fleets.",
+  overviewTitle:
+    "Skydio Cloud: Designing the Enterprise Platform for Drone Fleet Operations",
+  overviewBody: [
+    {
+      kind: "paragraph",
+      text: "Skydio is an enterprise drone company building the hardware and software layer for large-scale drone operations.",
+    },
+    {
+      kind: "paragraph",
+      text: "I was the first design hire on Skydio Cloud, the enterprise platform that helps organizations manage drone fleets, live operations, missions, media, licensing, and cloud-based 3D data.",
+    },
+    {
+      kind: "subheading",
+      text: "Customers: Public Safety, Infrastructure, Mining, Telecom, and Rail",
+    },
+    {
+      kind: "paragraph",
+      text: "Skydio Cloud served enterprise and government customers across complex operational environments, including:",
+    },
+    {
+      kind: "unordered-list",
+      items: [
+        "Public safety teams such as the Las Vegas Police Department and Chula Vista Police Department",
+        "Mining companies such as Rio Tinto",
+        "Telecom customers such as TELUS and Dish",
+        "Transportation and infrastructure teams such as Salt Lake City Department of Transportation and Caltrans",
+        "Rail companies such as BNSF and Union Pacific",
+      ],
+    },
+    {
+      kind: "subheading",
+      text: "Problem: Drone Operations Were Scaling Beyond the Pilot",
+    },
+    {
+      kind: "paragraph",
+      text: "As enterprise drone programs grew, teams needed more than a pilot and a controller. They needed a cloud platform to coordinate fleets, manage vehicles, stream live video, schedule missions, review 3D data, and give stakeholders access to the right information at the right time.",
+    },
+    {
+      kind: "paragraph",
+      text: "The design challenge was to turn highly technical drone workflows into clear, operational software for teams working in high-stakes environments.",
+    },
+    {
+      kind: "subheading",
+      text: "Building Mental Models Across Real Drone Workflows",
+    },
+    {
+      kind: "paragraph",
+      text: "I embedded myself in customer workflows to understand how different organizations used drones in the field.",
+    },
+    {
+      kind: "ordered-list",
+      items: [
+        "For public safety, this included Drone as First Responder programs and Live 911 response workflows, where officers needed real-time aerial context before arriving on scene.",
+        "For mining teams, drones were used to generate daily orthomosaics of large sites, helping teams monitor operations and track changes over time.",
+        "For rail customers like BNSF, drones were used to identify container serial numbers in rail yards and build more accurate geolocation maps of assets, saving time and reducing manual inspection work.",
+        "For transportation teams like Salt Lake City Department of Transportation, drones captured mountain highway terrain and generated 3D photogrammetry models to identify avalanche pressure points and plan safer clearing operations.",
+      ],
+    },
+    {
+      kind: "subheading",
+      text: "Designing for Real-Time Drone Systems",
+    },
+    {
+      kind: "paragraph",
+      text: "I worked closely with engineering teams on interaction-heavy and technically complex features, including 3D model viewing in the cloud using CesiumJS, deck.gl, and Three.js.",
+    },
+    {
+      kind: "paragraph",
+      text: "I also partnered with engineers to define real-time control and system-status interactions, including:",
+    },
+    {
+      kind: "ordered-list",
+      items: [
+        "Obstacle avoidance state toggles",
+        "Run mode switching",
+        "System status information architecture",
+        "Thermal and visual camera mode transitions",
+        "Operational states for active drone missions",
+      ],
+    },
+    {
+      kind: "subheading",
+      text: "Hundreds of orgs onboarded onto Skydio Cloud and we generated $XX ARR",
+    },
+    {
+      kind: "paragraph",
+      text: "After launch, hundreds of organizations onboarded to Skydio Cloud, and the platform generated $XX in ARR.",
+    },
+    {
+      kind: "paragraph",
+      text: "Skydio Cloud was sold through multiple enterprise SKUs, including Skydio Cloud Basic and Skydio Cloud Live Streaming. I designed upsell and pricing experiences that helped convert more organizations into paid enterprise customers.",
+    },
+  ],
   overline: "Selected Work",
   surfaces: [
-    { label: "Livestreaming", target: "mobile-livestream" },
-    { label: "Thermal Streaming", target: "thermal-livestream" },
+    { label: "Thermal streaming", target: "thermal-livestream" },
+    { label: "Cloud model viewer", target: "cloud-model-viewer" },
+    { label: "Flight review", target: "flight-review" },
+    { label: "Mission management", target: "mission-management" },
     { label: "Fleet management", target: "fleet-management" },
-    { label: "Drone logs", target: "drone-flight-logs" },
-    { label: "License renewals" },
+    { label: "Drone flight logs", target: "drone-flight-logs" },
+    { label: "Mobile livestreaming", target: "mobile-livestream" },
     { label: "Media management", target: "media-management" },
-    { label: "Remote Ops", target: "mission-management" },
   ],
   sections: [
     {

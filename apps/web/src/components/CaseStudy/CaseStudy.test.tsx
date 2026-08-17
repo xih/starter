@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -9,13 +9,77 @@ vi.mock("@starter/design-system", () => ({
   PortfolioFooter: () => <footer data-testid="portfolio-footer" />,
 }));
 
+vi.mock("dialkit", () => ({
+  useDialKit: (_name: string, controls: Record<string, unknown>) =>
+    Object.fromEntries(
+      Object.entries(controls).map(([key, value]) => [
+        key,
+        Array.isArray(value) ? value[0] : value,
+      ]),
+    ),
+}));
+
 vi.mock("~/components/SkeuomorphicClock", () => ({
   SkeuomorphicClock: () => <div data-testid="clock" />,
 }));
 
 const nell = getCaseStudy("nell")!;
 
-afterEach(cleanup);
+function stubMotionPreference(matches: boolean) {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({
+      addEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      matches,
+      media: "(prefers-reduced-motion: reduce)",
+      onchange: null,
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+function defineScrollGeometry({ scrollY }: { scrollY: number }) {
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    value: 800,
+  });
+  Object.defineProperty(window, "scrollY", {
+    configurable: true,
+    value: scrollY,
+  });
+  Object.defineProperty(document.documentElement, "scrollHeight", {
+    configurable: true,
+    value: 4_000,
+  });
+  Object.defineProperty(document.body, "scrollHeight", {
+    configurable: true,
+    value: 4_000,
+  });
+}
+
+function mockSectionTop(id: string, top: number) {
+  const target = document.getElementById(id);
+  if (!target) throw new Error(`Expected ${id} section to render`);
+
+  vi.spyOn(target, "getBoundingClientRect").mockReturnValue({
+    bottom: top + 602,
+    height: 602,
+    left: 0,
+    right: 1_012,
+    toJSON: () => undefined,
+    top,
+    width: 1_012,
+    x: 0,
+    y: top,
+  });
+}
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe("CaseStudy", () => {
   it("renders the sidebar intro and overline title", () => {
@@ -114,6 +178,128 @@ describe("CaseStudy", () => {
       expect(src).toContain("iv_load_policy=3");
       expect(embed).toHaveClass("pointer-events-none");
     }
+  });
+
+  it("renders the Figma-updated Skydio narrative and product surfaces", () => {
+    const skydio = getCaseStudy("skydio")!;
+    render(<CaseStudy study={skydio} />);
+
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Skydio Cloud: Designing the Enterprise Platform for Drone Fleet Operations",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /manage drone fleets, live operations, missions, media, licensing/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Customers: Public Safety, Infrastructure, Mining, Telecom, and Rail",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Selected Work" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Thermal Livestream" }),
+    ).toBeInTheDocument();
+
+    const surfaceLinks = screen
+      .getByRole("navigation", { name: "Product surfaces" })
+      .querySelectorAll("a");
+
+    expect(Array.from(surfaceLinks).map((link) => link.textContent)).toEqual([
+      "Thermal streaming",
+      "Cloud model viewer",
+      "Flight review",
+      "Mission management",
+      "Fleet management",
+      "Drone flight logs",
+      "Mobile livestreaming",
+      "Media management",
+    ]);
+  });
+
+  it("does not mark a product surface current before a section intersects", () => {
+    const skydio = getCaseStudy("skydio")!;
+    render(<CaseStudy study={skydio} />);
+
+    expect(
+      screen.getByRole("link", { name: "Thermal streaming" }),
+    ).not.toHaveAttribute("aria-current");
+  });
+
+  it("animates product surface clicks with momentum and updates the hash on arrival", () => {
+    stubMotionPreference(false);
+    vi.spyOn(performance, "now").mockReturnValue(0);
+    const scrollTo = vi
+      .spyOn(window, "scrollTo")
+      .mockImplementation(() => undefined);
+    const replaceState = vi
+      .spyOn(window.history, "replaceState")
+      .mockImplementation(() => undefined);
+    const requestAnimationFrame = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        callback(2_000);
+        return 1;
+      });
+
+    defineScrollGeometry({ scrollY: 120 });
+
+    const skydio = getCaseStudy("skydio")!;
+    render(<CaseStudy study={skydio} />);
+    mockSectionTop("fleet-management", 978);
+
+    fireEvent.click(screen.getByRole("link", { name: "Fleet management" }));
+
+    expect(requestAnimationFrame).toHaveBeenCalled();
+    expect(scrollTo).toHaveBeenCalledWith({ top: 1_074, behavior: "auto" });
+    expect(replaceState).toHaveBeenCalledWith(null, "", "#fleet-management");
+  });
+
+  it("skips surface scroll animation when reduced motion is preferred", () => {
+    stubMotionPreference(true);
+    defineScrollGeometry({ scrollY: 120 });
+    const scrollTo = vi
+      .spyOn(window, "scrollTo")
+      .mockImplementation(() => undefined);
+    const replaceState = vi
+      .spyOn(window.history, "replaceState")
+      .mockImplementation(() => undefined);
+    const requestAnimationFrame = vi.spyOn(window, "requestAnimationFrame");
+
+    const skydio = getCaseStudy("skydio")!;
+    render(<CaseStudy study={skydio} />);
+    mockSectionTop("fleet-management", 978);
+
+    fireEvent.click(screen.getByRole("link", { name: "Fleet management" }));
+
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+    expect(scrollTo).toHaveBeenCalledWith({ top: 1_074, behavior: "auto" });
+    expect(replaceState).toHaveBeenCalledWith(null, "", "#fleet-management");
+  });
+
+  it("cancels a pending surface scroll before starting another one", () => {
+    stubMotionPreference(false);
+    defineScrollGeometry({ scrollY: 120 });
+    const cancelAnimationFrame = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => undefined);
+    vi.spyOn(window, "requestAnimationFrame").mockReturnValue(7);
+
+    const skydio = getCaseStudy("skydio")!;
+    render(<CaseStudy study={skydio} />);
+    mockSectionTop("fleet-management", 978);
+    mockSectionTop("media-management", 1_480);
+
+    fireEvent.click(screen.getByRole("link", { name: "Fleet management" }));
+    fireEvent.click(screen.getByRole("link", { name: "Media management" }));
+
+    expect(cancelAnimationFrame).toHaveBeenCalledWith(7);
   });
 
   it("preserves YouTube start offsets for curated walkthrough moments", () => {

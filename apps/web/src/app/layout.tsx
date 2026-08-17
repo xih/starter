@@ -15,8 +15,7 @@ import { Toaster } from "~/components/ui/sonner";
 const siteTitle = "Dennis Xing";
 const siteDescription =
   "Product designer based in San Francisco. Previously at Nell, AGI, Krea, and Skydio.";
-const openGraphImageUrl =
-  "/og/dennis-agent-portfolio.png?v=20260817-figma-og";
+const openGraphImageUrl = "/og/dennis-agent-portfolio.png?v=20260817-figma-og";
 const twitterImageUrl =
   "/og/dennis-agent-portfolio-twitter.png?v=20260817-figma-twitter";
 

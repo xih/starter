@@ -30,6 +30,20 @@ export type CaseStudySection = {
   images: CaseStudyImage[];
 };
 
+export type CaseStudyIntroSection =
+  | {
+      kind: "text";
+      heading?: string;
+      body: string;
+    }
+  | {
+      kind: "list";
+      heading: string;
+      lead: string;
+      items: string[];
+      body: string;
+    };
+
 export type ProductSurface = {
   label: string;
   /** Group heading for related surfaces in the sidebar. */
@@ -45,6 +59,10 @@ export type CaseStudy = {
   role: string;
   period: string;
   description: string;
+  mobileDescription?: string;
+  introTitle?: string;
+  introLead?: string;
+  introSections?: CaseStudyIntroSection[];
   /** Title above the main column, e.g. "Selected Screens". */
   overline: string;
   surfaces: ProductSurface[];
@@ -78,15 +96,50 @@ const nell: CaseStudy = {
   period: "Jan 2026 - July 2026",
   description:
     "I worked with the cofounder of Soundcloud to design interaction patterns for the future of prompt to podcast. Raised $XX from Danny Rimer at Index Ventures.",
+  mobileDescription:
+    "I worked with the cofounder of Soundcloud, and a team of engineers and a head of content to build out the core product, and interaction patterns for the future of generative AI podcasting. Raised $XX from Danny Rimer at Index Ventures.",
+  introTitle:
+    "Nell - Designing a Generative AI Podcasting App for Personalized Audio Learning",
+  introLead:
+    "Nell is a generative AI podcasting app that lets users create short, high-signal podcast episodes from any prompt, topic, article, or question.\n\nInspired by A Young Lady’s Illustrated Primer from Neal Stephenson’s The Diamond Age, Nell is an adaptive educational tool that helped Nell become more independent, capable, and self-directed. Our goal was to bring that same spirit into audio: a system that could turn curiosity into personalized, useful listening experiences.\n\nUsers could ask for anything from “a 10-minute history of the Roman Empire” to “explain the latest AI chip design news” and receive a concise 5-10 minute episode designed to be clear, direct, and information-dense.",
+  introSections: [
+    {
+      kind: "text",
+      heading:
+        "Problem: AI Can Generate Content, But Podcast Creation Still Feels Too Hard",
+      body: "People are already using tools like ChatGPT, Claude, and NotebookLM to summarize articles, explain papers, and generate learning material. But turning those outputs into a polished, listenable podcast still requires too much effort.\n\nThe opportunity was to design a mobile-first experience that made podcast generation feel simple, fast, and native to the medium, not like a chatbot with an audio export button.",
+    },
+    {
+      kind: "list",
+      heading: "My Role: Product Design, Prototyping, and Core UX Decisions",
+      lead: "I designed the core information architecture and end-to-end product experience, including:",
+      items: [
+        "Home, episode, and show detail screens",
+        "The show creation and generation flow",
+        "Host picker, search, profile, and onboarding flows",
+        "High-fidelity Xcode prototypes for testing mobile interactions",
+        "Loading states for long-running AI generation, including skeletons, spinners, and shimmering text",
+      ],
+      body: "I also helped shape key product decisions, including making shows public by default to increase discovery and engagement, defining onboarding and retention metrics in PostHog, and deciding how identity should work across usernames, full names, and creator profiles.",
+    },
+    {
+      kind: "text",
+      heading:
+        "Outcome: Private Beta, Fundraising, and Early Product Validation",
+      body: "The beta mobile app raised $XX from top-tier investors and angels, including Danny Rimer from Index Ventures, Guillermo Rauch from Vercel, Anton Osika from Lovable, Mati Staniszewski from ElevenLabs, and Soleio.\n\n\nAs of August 2026, Nell has launched in private beta.",
+    },
+  ],
   overline: "Selected Screens",
   surfaces: [
     { label: "Show creation", target: "show-creation" },
     { label: "Home screen", target: "home" },
     { label: "Show and Episode Details", target: "episode-show-details" },
+    { label: "Search" },
     { label: "Library", target: "library" },
-    { label: "Product Analytics", target: "product-analytics" },
-    { label: "Appendix", target: "appendix" },
+    { label: "Public and Private Shows" },
+    { label: "Host Selection" },
     { label: "Design System", target: "design-system" },
+    { label: "Product Analytics", target: "product-analytics" },
   ],
   sections: [
     {
@@ -132,6 +185,11 @@ const nell: CaseStudy = {
       ],
     },
     {
+      id: "design-system",
+      label: "Selections from the Design System",
+      images: [{ src: "design-system.png", alt: "Nell design system" }],
+    },
+    {
       id: "product-analytics",
       label: "Product Analytics",
       images: [
@@ -151,11 +209,6 @@ const nell: CaseStudy = {
         },
         { src: "appendix-image.png", alt: "Nell appendix" },
       ],
-    },
-    {
-      id: "design-system",
-      label: "Selections from the Design System",
-      images: [{ src: "design-system.png", alt: "Nell design system" }],
     },
   ],
 };

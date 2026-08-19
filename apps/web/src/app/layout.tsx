@@ -2,6 +2,7 @@ import "@starter/tokens/css";
 import "@starter/design-system/styles";
 import "~/styles/globals.css";
 import "dialkit/styles.css";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";

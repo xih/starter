@@ -1,22 +1,103 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type DialConfig, useDialKit } from "dialkit";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { PortfolioFooter } from "@starter/design-system";
 
 import { PortfolioHeader } from "~/components/PortfolioHeader";
 import { SkeuomorphicClock } from "~/components/SkeuomorphicClock";
 import { cn } from "~/lib/utils";
-import type { CaseStudy as CaseStudyData } from "./cases";
+import type {
+  CaseStudy as CaseStudyData,
+  CaseStudyImage,
+  CaseStudyIntroSection,
+  CaseStudyTextBlock,
+} from "./cases";
 
 const IMAGE_ASPECT = "1006 / 562";
-const SURFACE_ITEM_CLASS =
-  "font-body inline-block text-[15px] leading-[18px] font-[400]";
+const SURFACE_LINK_CLASS =
+  "font-body inline-block text-[15px] leading-[20px] font-[400]";
+const SURFACE_GROUP_CLASS =
+  "font-body inline-block text-[15px] leading-[20px] font-[600] text-[#1e1f24]";
+const SURFACE_SCROLL_CONTROLS = {
+  offsetPx: [24, 0, 120, 1],
+  springStiffness: [490, 80, 1_600, 10],
+  springDamping: [44, 8, 120, 1],
+  initialVelocity: [0.4, 0, 4, 0.1],
+  maxDurationMs: [700, 120, 1_400, 10],
+  settleDistancePx: [1.1, 0.1, 12, 0.1],
+  settleVelocityPxPerSecond: [39, 1, 160, 1],
+} satisfies DialConfig;
+
+const SCROLL_TAKEOVER_KEYS = new Set([
+  " ",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "End",
+  "Home",
+  "PageDown",
+  "PageUp",
+]);
+
+type SurfaceScrollControls = {
+  initialVelocity: number;
+  maxDurationMs: number;
+  offsetPx: number;
+  settleDistancePx: number;
+  settleVelocityPxPerSecond: number;
+  springDamping: number;
+  springStiffness: number;
+};
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function getCurrentScrollTop() {
+  return (
+    window.scrollY ?? window.pageYOffset ?? document.documentElement.scrollTop
+  );
+}
+
+function getMaxScrollTop() {
+  const documentElement = document.documentElement;
+  const body = document.body;
+  const scrollHeight = Math.max(
+    documentElement.scrollHeight,
+    body?.scrollHeight ?? 0,
+  );
+
+  return Math.max(0, scrollHeight - window.innerHeight);
+}
+
+function getSurfaceTargetScrollTop(target: HTMLElement, offsetPx: number) {
+  const currentScrollTop = getCurrentScrollTop();
+  const targetTop =
+    currentScrollTop + target.getBoundingClientRect().top - offsetPx;
+
+  return Math.max(0, Math.min(getMaxScrollTop(), Math.round(targetTop)));
+}
+
+function shouldHandleSurfaceClick(event: MouseEvent<HTMLAnchorElement>) {
+  return (
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey
+  );
+}
 
 function useActiveSection(sectionIds: string[]) {
-  const [activeId, setActiveId] = useState<string | null>(
-    sectionIds[0] ?? null,
-  );
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
@@ -43,9 +124,7 @@ function useActiveSection(sectionIds: string[]) {
           }
         }
 
-        if (bestId && bestRatio > 0) {
-          setActiveId(bestId);
-        }
+        setActiveId(bestId && bestRatio > 0 ? bestId : null);
       },
       { rootMargin: "-20% 0px -60% 0px", threshold: [0, 0.25, 0.5, 1] },
     );
@@ -222,6 +301,197 @@ function LazyVideo({
   );
 }
 
+function CaseStudyBody({ blocks }: { blocks?: CaseStudyTextBlock[] }) {
+  if (!blocks || blocks.length === 0) return null;
+
+  return (
+    <div className="mt-[16px] flex flex-col gap-[18px] font-body text-[15px] font-[400] leading-[18px] text-[#1e1f24]">
+      {blocks.map((block, index) => {
+        const key = `${block.kind}-${index}`;
+
+        if (block.kind === "subheading") {
+          return (
+            <p className="font-[600]" key={key}>
+              {block.text}
+            </p>
+          );
+        }
+
+        if (block.kind === "ordered-list" || block.kind === "unordered-list") {
+          const List = block.kind === "ordered-list" ? "ol" : "ul";
+          const listClassName =
+            block.kind === "ordered-list" ? "list-decimal" : "list-disc";
+
+          return (
+            <List className={cn(listClassName, "pl-[24px]")} key={key}>
+              {block.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </List>
+          );
+        }
+
+        if (block.kind === "link") {
+          return (
+            <p key={key}>
+              <a
+                className="underline decoration-solid underline-offset-[2px] transition-colors hover:text-[#68696d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e1f24]"
+                href={block.href}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {block.label}
+              </a>
+              {block.suffix}
+            </p>
+          );
+        }
+
+        return <p key={key}>{block.text}</p>;
+      })}
+    </div>
+  );
+}
+
+function CaseStudyIntroSectionView({
+  section,
+}: {
+  section: CaseStudyIntroSection;
+}) {
+  return (
+    <section className="flex flex-col gap-[16px] text-[#1e1f24]">
+      {section.heading ? (
+        <h2 className="font-body text-[20px] font-[600] leading-[22px]">
+          {section.heading}
+        </h2>
+      ) : null}
+
+      {section.kind === "list" ? (
+        <div className="font-body text-[13px] font-[400] leading-[15.6px] md:text-[15px] md:leading-[18px]">
+          <p>{section.lead}</p>
+          <ol className="list-[lower-alpha] pl-[39px] md:pl-[45px]">
+            {section.items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ol>
+          <p className="mt-[15.6px] whitespace-pre-line md:mt-[18px]">
+            {section.body}
+          </p>
+        </div>
+      ) : (
+        <p className="whitespace-pre-line font-body text-[13px] font-[400] leading-[15.6px] text-black md:text-[15px] md:leading-[18px]">
+          {section.body}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function CaseStudyIntro({
+  lead,
+  sections,
+  title,
+}: {
+  lead?: string;
+  sections?: CaseStudyIntroSection[];
+  title?: string;
+}) {
+  if (!title || !lead) return null;
+
+  return (
+    <div className="flex flex-col gap-[16px] [word-break:break-word]">
+      <section className="flex flex-col gap-[16px]">
+        <h1
+          className="font-body text-[20px] font-[600] leading-[22px] text-[#1e1f24] md:font-title md:text-[36px] md:font-[500] md:leading-[40px] md:tracking-[-0.02em]"
+          id="case-study-intro-title"
+        >
+          {title}
+        </h1>
+        <p className="whitespace-pre-line font-body text-[13px] font-[400] leading-[15.6px] text-black md:text-[15px] md:leading-[18px]">
+          {lead}
+        </p>
+      </section>
+
+      {sections?.map((section) => (
+        <CaseStudyIntroSectionView
+          key={section.heading ?? section.kind}
+          section={section}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CaseStudyImageFrame({
+  assetBase,
+  image,
+}: {
+  assetBase: string;
+  image: CaseStudyImage;
+}) {
+  const frameClassName =
+    "relative w-full overflow-hidden rounded-[20px] bg-[#f3f3f3]";
+
+  if (image.mobileSrc) {
+    return (
+      <>
+        <div
+          className={cn(frameClassName, "hidden md:block")}
+          style={{ aspectRatio: image.aspectRatio ?? IMAGE_ASPECT }}
+        >
+          <Image
+            alt={image.alt}
+            className="object-contain"
+            fill
+            quality={90}
+            sizes="1006px"
+            src={`${assetBase}/${image.src}`}
+          />
+        </div>
+        <div
+          className={cn(frameClassName, "md:hidden")}
+          style={{ aspectRatio: image.mobileAspectRatio ?? IMAGE_ASPECT }}
+        >
+          <Image
+            alt={image.alt}
+            className="object-contain"
+            fill
+            quality={90}
+            sizes="100vw"
+            src={`${assetBase}/${image.mobileSrc}`}
+          />
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <div
+      className={frameClassName}
+      style={{ aspectRatio: image.aspectRatio ?? IMAGE_ASPECT }}
+    >
+      {image.video ? (
+        <LazyVideo
+          alt={image.alt}
+          poster={`${assetBase}/${image.src}`}
+          src={`${assetBase}/${image.video}`}
+        />
+      ) : image.youtube ? (
+        <LiteYouTube alt={image.alt} url={image.youtube} />
+      ) : (
+        <Image
+          alt={image.alt}
+          className="object-contain"
+          fill
+          quality={90}
+          sizes="(max-width: 767px) 100vw, 1006px"
+          src={`${assetBase}/${image.src}`}
+        />
+      )}
+    </div>
+  );
+}
+
 export function CaseStudy({ study }: { study: CaseStudyData }) {
   const sectionIds = useMemo(
     () => study.sections.map((section) => section.id),
@@ -229,47 +499,190 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
   );
   const activeId = useActiveSection(sectionIds);
   const assetBase = `/work/${study.slug}`;
-  const headingId = `case-${study.slug}-title`;
+  const hasIntro = Boolean(study.introTitle && study.introLead);
+  const headingId = hasIntro ? undefined : `case-${study.slug}-title`;
+  const SectionHeading = hasIntro ? "h3" : "h2";
+  const surfaceScrollFrameRef = useRef<number | null>(null);
+  const surfaceScrollRunRef = useRef(0);
+  const surfaceScroll = useDialKit(
+    "Case study product surface scroll",
+    SURFACE_SCROLL_CONTROLS,
+    {
+      id: "case-study-product-surface-scroll",
+      persist: {
+        key: "case-study-product-surface-scroll-v1",
+        storage: "localStorage",
+        presets: true,
+      },
+      shortcuts: {
+        maxDurationMs: { key: "d", mode: "coarse" },
+        springDamping: { key: "m", mode: "coarse" },
+        springStiffness: { key: "s", mode: "coarse" },
+      },
+    },
+  ) as SurfaceScrollControls;
 
-  const handleSurfaceClick = (target: string) => () => {
-    document
-      .getElementById(target)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const cancelSurfaceScroll = useCallback(() => {
+    surfaceScrollRunRef.current += 1;
+
+    if (surfaceScrollFrameRef.current !== null) {
+      cancelAnimationFrame(surfaceScrollFrameRef.current);
+      surfaceScrollFrameRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const cancelOnScrollKey = (event: KeyboardEvent) => {
+      if (SCROLL_TAKEOVER_KEYS.has(event.key)) {
+        cancelSurfaceScroll();
+      }
+    };
+
+    window.addEventListener("keydown", cancelOnScrollKey);
+    window.addEventListener("pointerdown", cancelSurfaceScroll);
+    window.addEventListener("touchmove", cancelSurfaceScroll, {
+      passive: true,
+    });
+    window.addEventListener("wheel", cancelSurfaceScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("keydown", cancelOnScrollKey);
+      window.removeEventListener("pointerdown", cancelSurfaceScroll);
+      window.removeEventListener("touchmove", cancelSurfaceScroll);
+      window.removeEventListener("wheel", cancelSurfaceScroll);
+      cancelSurfaceScroll();
+    };
+  }, [cancelSurfaceScroll]);
+
+  const handleSurfaceClick =
+    (target: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!shouldHandleSurfaceClick(event)) return;
+
+      const targetElement = document.getElementById(target);
+
+      if (!targetElement) return;
+
+      event.preventDefault();
+      cancelSurfaceScroll();
+
+      const startScrollTop = getCurrentScrollTop();
+      const targetScrollTop = getSurfaceTargetScrollTop(
+        targetElement,
+        surfaceScroll.offsetPx,
+      );
+      const distance = targetScrollTop - startScrollTop;
+
+      if (prefersReducedMotion() || Math.abs(distance) < 2) {
+        window.scrollTo({ top: targetScrollTop, behavior: "auto" });
+        window.history.replaceState(null, "", `#${target}`);
+        return;
+      }
+
+      const startedAt = performance.now();
+      const scrollRun = surfaceScrollRunRef.current + 1;
+
+      surfaceScrollRunRef.current = scrollRun;
+
+      let lastTimestamp = startedAt;
+      let currentScrollTop = startScrollTop;
+      let velocity =
+        Math.sign(distance) *
+        Math.abs(distance) *
+        surfaceScroll.initialVelocity;
+
+      function tick(now: number) {
+        if (surfaceScrollRunRef.current !== scrollRun) return;
+
+        const elapsedMs = now - startedAt;
+        const deltaSeconds = Math.min(
+          0.032,
+          Math.max(0, now - lastTimestamp) / 1_000,
+        );
+
+        lastTimestamp = now;
+
+        const displacement = targetScrollTop - currentScrollTop;
+        const acceleration =
+          surfaceScroll.springStiffness * displacement -
+          surfaceScroll.springDamping * velocity;
+
+        velocity += acceleration * deltaSeconds;
+        currentScrollTop += velocity * deltaSeconds;
+
+        window.scrollTo({ top: currentScrollTop, behavior: "auto" });
+
+        const isSettled =
+          Math.abs(targetScrollTop - currentScrollTop) <=
+            surfaceScroll.settleDistancePx &&
+          Math.abs(velocity) <= surfaceScroll.settleVelocityPxPerSecond;
+
+        if (!isSettled && elapsedMs < surfaceScroll.maxDurationMs) {
+          surfaceScrollFrameRef.current = requestAnimationFrame(tick);
+          return;
+        }
+
+        if (surfaceScrollRunRef.current !== scrollRun) return;
+
+        surfaceScrollFrameRef.current = null;
+        window.scrollTo({ top: targetScrollTop, behavior: "auto" });
+        window.history.replaceState(null, "", `#${target}`);
+      }
+
+      surfaceScrollFrameRef.current = requestAnimationFrame(tick);
+    };
 
   return (
     <main className="min-h-screen bg-white text-[#1e1f24]">
       <div className="mx-auto w-full max-w-[1440px]">
         <div className="relative h-[44px]">
-          <PortfolioHeader className="md:px-[92px]" tone="dark" />
+          <PortfolioHeader tone="dark" />
         </div>
 
-        <div className="px-[20px] pb-[48px] md:grid md:grid-cols-[236px_minmax(0,1fr)] md:gap-[64px] md:px-[92px]">
+        <div className="px-[20px] pb-[48px] md:grid md:grid-cols-[192px_minmax(0,1012px)] md:gap-[34px] md:px-[117px]">
           {/* Fixed-vertical sidebar on desktop; stacks inline on mobile. */}
-          <aside className="md:sticky md:top-0 md:flex md:h-screen md:flex-col md:self-start md:overflow-y-auto md:py-[48px] md:pr-[8px]">
-            <div className="pt-[40px] md:pt-0">
+          <aside className="md:sticky md:top-0 md:flex md:h-screen md:flex-col md:self-start md:overflow-y-auto md:pb-[48px] md:pt-[71px]">
+            <div className="pt-[34px] md:pt-0">
               <p className="font-body text-[15px] font-[600] leading-[18px]">
                 {study.company}
               </p>
-              <p className="mt-[8px] font-body text-[15px] font-[400] leading-[18px] text-[#595a5d]">
+              <p className="mt-[7px] font-body text-[15px] font-[400] leading-[18px] text-[#595a5d] md:mt-[8px]">
                 {study.role}
               </p>
-              <p className="font-body text-[15px] font-[400] leading-[18px] text-[#595a5d]">
+              <p className="mt-[7px] font-body text-[15px] font-[400] leading-[18px] text-[#595a5d] md:mt-[2px]">
                 {study.period}
               </p>
-              <p className="mt-[16px] font-body text-[15px] font-[400] leading-[21px] text-[#595a5d] md:max-w-[240px]">
-                {study.description}
+              <p className="mt-[42px] font-body text-[15px] font-[400] leading-[21px] text-[#595a5d] md:mt-[32px] md:max-w-[192px]">
+                <span className="md:hidden">
+                  {study.mobileDescription ?? study.description}
+                </span>
+                <span className="hidden md:inline">{study.description}</span>
               </p>
             </div>
 
-            <nav aria-label="Product surfaces" className="mt-[40px]">
+            <nav
+              aria-label="Product surfaces"
+              className="mt-[14px] md:mt-[32px]"
+            >
               <p className="font-body text-[20px] font-[600] leading-[22px]">
                 Product Surfaces
               </p>
-              <ul className="mt-[12px] flex flex-col gap-0 leading-[22px] md:gap-[8px] md:leading-[18px]">
-                {study.surfaces.map((surface) => {
+              <ul className="mt-[8px] flex flex-col">
+                {study.surfaces.map((surface, index) => {
                   const isActive =
                     surface.target != null && surface.target === activeId;
+
+                  if (surface.kind === "group") {
+                    return (
+                      <li
+                        key={surface.label}
+                        className={index === 0 ? undefined : "mt-[16px]"}
+                      >
+                        <span className={SURFACE_GROUP_CLASS}>
+                          {surface.label}
+                        </span>
+                      </li>
+                    );
+                  }
 
                   return (
                     <li key={surface.label}>
@@ -277,10 +690,10 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                         <a
                           aria-current={isActive ? "true" : undefined}
                           className={cn(
-                            SURFACE_ITEM_CLASS,
+                            SURFACE_LINK_CLASS,
                             "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e1f24]",
                             isActive
-                              ? "font-[600] text-[#1e1f24]"
+                              ? "font-[500] text-[#1e1f24]"
                               : "text-[#595a5d] hover:text-[#1e1f24]",
                           )}
                           href={`#${surface.target}`}
@@ -290,7 +703,7 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                         </a>
                       ) : (
                         <span
-                          className={cn(SURFACE_ITEM_CLASS, "text-[#595a5d]")}
+                          className={cn(SURFACE_LINK_CLASS, "text-[#595a5d]")}
                         >
                           {surface.label}
                         </span>
@@ -300,64 +713,68 @@ export function CaseStudy({ study }: { study: CaseStudyData }) {
                 })}
               </ul>
             </nav>
+
+            {hasIntro ? (
+              <div className="mt-[28px] h-[2px] w-full bg-[#1e1f24] md:hidden" />
+            ) : null}
           </aside>
 
           {/* Scrolling main column. */}
-          <div className="pt-[40px] md:pt-[48px]">
-            <h1
-              className="font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24]"
-              id={headingId}
-            >
-              {study.overline}
-            </h1>
+          <div className="pt-[38px] md:pt-[60px]">
+            <CaseStudyIntro
+              lead={study.introLead}
+              sections={study.introSections}
+              title={study.introTitle}
+            />
+
+            {hasIntro ? (
+              <div className="mt-[40px] h-[2px] w-full bg-[#1e1f24] md:hidden" />
+            ) : null}
+
+            {hasIntro ? (
+              <h2 className="mt-[18px] font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24] md:mt-[40px]">
+                {study.overline}
+              </h2>
+            ) : (
+              <h1
+                className="font-title text-[28px] font-[500] leading-[31.1px] tracking-[-0.02em] text-[#1e1f24]"
+                id={headingId}
+              >
+                {study.overline}
+              </h1>
+            )}
 
             <div className="mt-[40px] flex flex-col gap-[64px]">
-              {study.sections.map((section) => (
-                <section
-                  aria-labelledby={`${section.id}-label`}
-                  className="scroll-mt-[24px]"
-                  id={section.id}
-                  key={section.id}
-                >
-                  <h2
-                    className="font-body text-[20px] font-[600] leading-[22px] text-[#1e1f24]"
-                    id={`${section.id}-label`}
+              {study.sections.map((section) => {
+                return (
+                  <section
+                    aria-labelledby={`${section.id}-label`}
+                    className="scroll-mt-[24px]"
+                    id={section.id}
+                    key={section.id}
                   >
-                    {section.label}
-                  </h2>
-                  <div className="mt-[16px] flex flex-col gap-[24px]">
-                    {section.images.map((image) => (
-                      // Landscape card matching the Figma mock: the mockup sits
-                      // centered on the shared #f3f3f3 background. Video assets
-                      // carry the same gray baked in, so they blend seamlessly.
-                      <div
-                        className="relative w-full overflow-hidden rounded-[20px] bg-[#f3f3f3]"
-                        key={image.src}
-                        style={{ aspectRatio: IMAGE_ASPECT }}
-                      >
-                        {image.video ? (
-                          <LazyVideo
-                            alt={image.alt}
-                            poster={`${assetBase}/${image.src}`}
-                            src={`${assetBase}/${image.video}`}
+                    <SectionHeading
+                      className="font-body text-[20px] font-[600] leading-[22px] text-[#1e1f24]"
+                      id={`${section.id}-label`}
+                    >
+                      {section.label}
+                    </SectionHeading>
+                    <CaseStudyBody blocks={section.body} />
+                    {section.images.length > 0 ? (
+                      <div className="mt-[16px] flex flex-col gap-[24px]">
+                        {section.images.map((image) => (
+                          <CaseStudyImageFrame
+                            assetBase={assetBase}
+                            image={image}
+                            key={image.src}
                           />
-                        ) : image.youtube ? (
-                          <LiteYouTube alt={image.alt} url={image.youtube} />
-                        ) : (
-                          <Image
-                            alt={image.alt}
-                            className="object-contain"
-                            fill
-                            quality={90}
-                            sizes="(max-width: 767px) 100vw, 1006px"
-                            src={`${assetBase}/${image.src}`}
-                          />
-                        )}
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </section>
-              ))}
+                    ) : null}
+                    <CaseStudyBody blocks={section.bodyAfterImages} />
+                  </section>
+                );
+              })}
             </div>
           </div>
         </div>

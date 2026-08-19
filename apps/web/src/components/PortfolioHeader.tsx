@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cn } from "~/lib/utils";
 
 export type PortfolioHeaderProps = {
-  activePage?: "about" | "home";
+  activePage?: "about" | "home" | "writing";
   brandLabel?: string;
   className?: string;
   tone?: "dark" | "light";
@@ -33,13 +33,22 @@ export function PortfolioHeader({
         >
           {brandLabel}
         </Link>
-        <Link
-          aria-current={activePage === "about" ? "page" : undefined}
-          className="whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-          href="/about"
-        >
-          About
-        </Link>
+        <div className="flex items-center justify-end gap-token-16">
+          <Link
+            aria-current={activePage === "writing" ? "page" : undefined}
+            className="whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+            href="/writing"
+          >
+            Writing
+          </Link>
+          <Link
+            aria-current={activePage === "about" ? "page" : undefined}
+            className="whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+            href="/about"
+          >
+            About
+          </Link>
+        </div>
       </div>
     </nav>
   );

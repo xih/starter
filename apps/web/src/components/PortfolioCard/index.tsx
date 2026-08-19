@@ -9,7 +9,7 @@ export type PortfolioCardLink = {
   href: string;
 };
 
-export type PortfolioArtwork = "nell" | "agi" | "krea" | "skydio";
+export type PortfolioArtwork = "nell" | "agi-krea" | "skydio";
 
 export type PortfolioCardProps = {
   year: string;
@@ -47,24 +47,14 @@ export const portfolioProjects: PortfolioCardProps[] = [
     ],
   },
   {
-    year: "2023",
-    company: "Krea",
-    role: "Designer",
+    year: "2023-2025",
+    company: "Krea + AGI",
+    role: "Product Design Consultant",
     description:
-      "Worked with the founders of Krea to concept inpainting and outpainting with the launch of ControlNet.",
-    artwork: "krea",
-    artworkLabel: "Krea creative canvas",
-    links: [{ label: "Case Study", href: "/work/krea" }],
-  },
-  {
-    year: "2025",
-    company: "AGI",
-    role: "Product Designer",
-    description:
-      "Built out prototypes for how agentic experiences can work while controlling the phone.",
-    artwork: "agi",
-    artworkLabel: "Samsung phone frame for AGI prototype",
-    links: [{ label: "Case Study", href: "/work/agi" }],
+      "Collaborated with the founders of AGI and Krea to design and build out AI Agent Phones as well as text-to-image workflows for inpainting and outpainting.",
+    artwork: "agi-krea",
+    artworkLabel: "Krea and AGI combined phone prototype graphic",
+    links: [{ label: "Case Study", href: "/work/agi-krea" }],
   },
 ];
 
@@ -160,8 +150,7 @@ function PortfolioCardArtwork({
   const artworkContent = (
     <>
       {artwork === "nell" ? <NellArtwork /> : null}
-      {artwork === "agi" ? <AgiArtwork /> : null}
-      {artwork === "krea" ? <KreaArtwork /> : null}
+      {artwork === "agi-krea" ? <AgiKreaArtwork /> : null}
       {artwork === "skydio" ? <SkydioArtwork /> : null}
     </>
   );
@@ -217,42 +206,16 @@ function SkydioArtwork() {
   );
 }
 
-function KreaArtwork() {
+function AgiKreaArtwork() {
   return (
-    <>
-      <div className="absolute left-[7.83%] top-[25.69%] h-[48.93%] w-[84.04%] md:hidden">
-        <Image
-          alt=""
-          className="object-contain"
-          fill
-          sizes="279px"
-          src="/portfolio/krea-canvas.png"
-        />
-      </div>
-      <div className="absolute left-[24.52%] top-[17.43%] hidden h-[65.35%] w-[51.1%] overflow-hidden md:block">
-        <div className="absolute left-[-9.83%] top-[-9.83%] h-[119.66%] w-[119.65%]">
-          <Image
-            alt=""
-            className="object-contain"
-            fill
-            sizes="446px"
-            src="/portfolio/krea-canvas.png"
-          />
-        </div>
-      </div>
-    </>
-  );
-}
-
-function AgiArtwork() {
-  return (
-    <div className="absolute left-[30.42%] top-[9.17%] h-[81.96%] w-[39.35%] md:left-[41.02%] md:w-[17.9%]">
+    <div className="absolute left-1/2 top-[8.26%] h-[83.79%] w-[38.55%] -translate-x-1/2 md:w-[17.53%]">
       <Image
         alt=""
         className="object-contain"
         fill
-        sizes="131px"
-        src="/portfolio/samsung-frame.png"
+        quality={90}
+        sizes="(min-width: 768px) 128px, 39vw"
+        src="/portfolio/agi-krea-phone.png"
       />
     </div>
   );

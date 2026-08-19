@@ -16,6 +16,9 @@ import { Toaster } from "~/components/ui/sonner";
 const siteTitle = "Dennis Xing";
 const siteDescription =
   "Product designer based in San Francisco. Previously at Nell, AGI, Krea, and Skydio.";
+const openGraphImageUrl = "/og/dennis-agent-portfolio.png?v=20260817-figma-og";
+const twitterImageUrl =
+  "/og/dennis-agent-portfolio-twitter.png?v=20260817-figma-twitter";
 
 export const metadata: Metadata = {
   metadataBase: SITE_URL,
@@ -26,7 +29,8 @@ export const metadata: Metadata = {
   },
   icons: [
     { rel: "icon", url: "/favicon.ico", sizes: "any" },
-    { rel: "icon", url: "/icon.svg", type: "image/svg+xml" },
+    { rel: "icon", url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+    { rel: "icon", url: "/icon-512.png", type: "image/png", sizes: "512x512" },
     { rel: "apple-touch-icon", url: "/apple-touch-icon.png" },
   ],
   openGraph: {
@@ -36,10 +40,10 @@ export const metadata: Metadata = {
     siteName: "Dennis Xing",
     images: [
       {
-        url: "/og/dennis-agent-portfolio.png",
+        url: openGraphImageUrl,
         width: 1200,
-        height: 630,
-        alt: "Dennis Xing — product designer based in SF. Teal and cyan gradient card with wordmark.",
+        height: 1200,
+        alt: "Dennis Xing — AI Product Designer.",
       },
     ],
     locale: "en_US",
@@ -49,7 +53,14 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
-    images: ["/og/dennis-agent-portfolio.png"],
+    images: [
+      {
+        url: twitterImageUrl,
+        width: 1200,
+        height: 600,
+        alt: "Dennis Xing — AI Product Designer.",
+      },
+    ],
   },
 };
 

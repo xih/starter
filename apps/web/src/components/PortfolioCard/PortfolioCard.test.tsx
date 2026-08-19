@@ -19,18 +19,14 @@ describe("PortfolioCard", () => {
     );
   });
 
-  it("links AGI and Krea cards to their internal case studies", () => {
+  it("links the combined AGI and Krea card to its internal case study", () => {
     render(<PortfolioCardGrid />);
 
-    const agiCard = screen.getByText("AGI").closest("article")!;
-    const kreaCard = screen.getByText("Krea").closest("article")!;
+    const agiKreaCard = screen.getByText("Krea + AGI").closest("article")!;
 
     expect(
-      within(agiCard).getByRole("link", { name: "Case Study" }),
-    ).toHaveAttribute("href", "/work/agi");
-    expect(
-      within(kreaCard).getByRole("link", { name: "Case Study" }),
-    ).toHaveAttribute("href", "/work/krea");
+      within(agiKreaCard).getByRole("link", { name: "Case Study" }),
+    ).toHaveAttribute("href", "/work/agi-krea");
   });
 
   it("links the artwork thumbnail to the case study", () => {
@@ -53,8 +49,7 @@ describe("PortfolioCard", () => {
     expect(portfolioProjects.map((project) => project.company)).toEqual([
       "Nell",
       "Skydio Cloud",
-      "Krea",
-      "AGI",
+      "Krea + AGI",
     ]);
   });
 
@@ -64,8 +59,7 @@ describe("PortfolioCard", () => {
     const expectedArtwork = [
       ["Nell", "/portfolio/nell-creation-flow.png"],
       ["Skydio Cloud", "/portfolio/skydio-map.png"],
-      ["Krea", "/portfolio/krea-canvas.png"],
-      ["AGI", "/portfolio/samsung-frame.png"],
+      ["Krea + AGI", "/portfolio/agi-krea-phone.png"],
     ] as const;
 
     for (const [company, src] of expectedArtwork) {

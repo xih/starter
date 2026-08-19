@@ -62,6 +62,72 @@ const OPERATIONS_METADATA = [
   ["Matched Address", "geocodeMatchedAddress"],
 ] as const satisfies readonly [string, keyof PermanentCapitalCompany][];
 
+const RENDERED_RAW_EQUIVALENT_KEYS = new Set<keyof PermanentCapitalCompany>([
+  "address1",
+  "address2",
+  "brokers",
+  "ccoName",
+  "cik",
+  "city",
+  "custodian",
+  "directors",
+  "fileNo",
+  "filingDate",
+  "filingType",
+  "fullAddress",
+  "geocodeMatch",
+  "geocodeMatchedAddress",
+  "googleQuotedSearchUrl",
+  "googleSearchUrl",
+  "holdingsCount",
+  "keyPeopleNames",
+  "keyPeopleWithImages",
+  "latitude",
+  "lei",
+  "liabilitiesToAssets",
+  "longitude",
+  "ncenFilingDate",
+  "ncenUrl",
+  "netAssetsUsd",
+  "nportFilingDate",
+  "nportPeriod",
+  "nportUrl",
+  "pricingServices",
+  "publicAccountant",
+  "secCategory",
+  "secCompanyName",
+  "secCompanySearchUrl",
+  "secEntityType",
+  "secExchanges",
+  "secFiscalYearEnd",
+  "secInvestorWebsite",
+  "secSic",
+  "secSicDescription",
+  "secTickers",
+  "state",
+  "top10Holdings",
+  "top10HoldingsWeightPct",
+  "totalAssetsUsd",
+  "totalLiabilitiesUsd",
+  "transferAgent",
+  "zipCode",
+]);
+
+const RAW_SOURCE_KEY_MAP: Record<string, keyof PermanentCapitalCompany> = {
+  CIK: "cik",
+  File_No: "fileNo",
+  "Filing Date": "filingDate",
+  "Filing Type": "filingType",
+  Registrant_Name: "name",
+  Address_1: "address1",
+  Address_2: "address2",
+  City: "city",
+  State: "state",
+  Zip_Code: "zipCode",
+  key_people_with_image_src_json: "keyPeopleWithImages",
+  top_10_holdings_json: "top10Holdings",
+};
+
 export function PermanentCapitalInspector({
   selection,
   onClose,
@@ -490,6 +556,7 @@ function PersonAvatar({ imageSrc, name }: { imageSrc: string; name: string }) {
   return (
     <span className="leading-caption grid size-[48px] shrink-0 place-items-center overflow-hidden rounded-full bg-white text-caption font-semibold text-[#121318]">
       {imageSrc ? (
+        // TODO: validate image_src identity before showing officer headshots from enriched data.
         // eslint-disable-next-line @next/next/no-img-element
         <img alt="" className="size-full object-cover" src={imageSrc} />
       ) : (
@@ -548,17 +615,35 @@ function getRawMetadataRows(company: PermanentCapitalCompany) {
   const displayedKeys = new Set<string>([
     ...PRIMARY_METADATA.map(([, key]) => key),
     ...OPERATIONS_METADATA.map(([, key]) => key),
+    ...RENDERED_RAW_EQUIVALENT_KEYS,
   ]);
 
   return Object.entries(company.raw)
     .filter(
-      ([key, value]) => !displayedKeys.has(key) && rawValueIsPresent(value),
+      ([key, value]) =>
+        !displayedKeys.has(normalizeRawSourceKey(key)) &&
+        rawValueIsPresent(value),
     )
     .map(
       ([key, value]) =>
         [humanizeRawKey(key), stringifyRawValue(value)] as const,
     )
     .slice(0, 80);
+}
+
+function normalizeRawSourceKey(key: string) {
+  return RAW_SOURCE_KEY_MAP[key] ?? snakeLikeToCamelCase(key);
+}
+
+function snakeLikeToCamelCase(key: string) {
+  const normalizedKey = key
+    .trim()
+    .replaceAll(/[^a-zA-Z0-9]+/g, "_")
+    .toLocaleLowerCase("en-US");
+
+  return normalizedKey.replaceAll(/_([a-z0-9])/g, (_, letter: string) =>
+    letter.toLocaleUpperCase("en-US"),
+  );
 }
 
 function rawValueIsPresent(value: unknown) {

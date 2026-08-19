@@ -259,6 +259,14 @@ function PermanentCapitalMapContent({
     () => Math.max(...hexBins.map((bin) => bin.totalAssets), 1),
     [hexBins],
   );
+  const elevationAssetCap = useMemo(
+    () =>
+      getPercentile(
+        hexBins.map((bin) => bin.totalAssets),
+        elevationControls.elevationUpperPercentile,
+      ),
+    [elevationControls.elevationUpperPercentile, hexBins],
+  );
 
   const layers = useMemo(
     () => [
@@ -273,7 +281,7 @@ function PermanentCapitalMapContent({
         elevationScale: elevationControls.elevationScale,
         getHexagon: (bin) => bin.hex,
         getElevation: (bin) =>
-          getClampedElevationWeight(bin, elevationControls),
+          getClampedElevationWeight(bin, elevationControls, elevationAssetCap),
         getFillColor: (bin) =>
           isSelectedHex(bin, selectedFeature)
             ? SELECTED_FILL_COLOR
@@ -293,6 +301,7 @@ function PermanentCapitalMapContent({
             elevationControls.elevationRangeMax,
             elevationControls.elevationRangeMin,
             elevationControls.elevationScale,
+            elevationAssetCap,
           ],
           getFillColor: [
             maxHexAssets,
@@ -311,7 +320,10 @@ function PermanentCapitalMapContent({
         radiusMinPixels: 4,
         radiusMaxPixels: 12,
         getRadius: (company) =>
-          Math.max(Math.sqrt(getCompanyAssets(company) / 1_000_000), 16000),
+          Math.max(
+            Math.sqrt(getCompanyAssets(company) / 1_000_000),
+            elevationControls.radiusMeters,
+          ),
         getPosition: (company) => [company.longitude, company.latitude],
         getFillColor: (company) =>
           isSelectedCompany(company, selectedFeature)
@@ -323,6 +335,7 @@ function PermanentCapitalMapContent({
             : [18, 19, 24, 220],
         lineWidthMinPixels: 1,
         updateTriggers: {
+          getRadius: [elevationControls.radiusMeters],
           getFillColor: [selectedFeature?.type, selectedFeature?.id],
           getLineColor: [selectedFeature?.type, selectedFeature?.id],
         },
@@ -332,7 +345,14 @@ function PermanentCapitalMapContent({
         },
       }),
     ],
-    [companies, elevationControls, hexBins, maxHexAssets, selectedFeature],
+    [
+      companies,
+      elevationAssetCap,
+      elevationControls,
+      hexBins,
+      maxHexAssets,
+      selectedFeature,
+    ],
   );
 
   const selectedCompanies =
@@ -748,14 +768,29 @@ function getH3HexBins(companies: MappedPermanentCapitalCompany[]) {
 function getClampedElevationWeight(
   bin: PermanentCapitalHexBin,
   controls: ElevationControls,
+  assetCap: number,
 ) {
   const safeScale = Math.max(controls.elevationScale, 0.000001);
+  const cappedAssets = Math.min(bin.totalAssets, assetCap);
   const clampedMeters = Math.min(
-    Math.max(bin.totalAssets * safeScale, controls.elevationRangeMin),
+    Math.max(cappedAssets * safeScale, controls.elevationRangeMin),
     controls.elevationRangeMax,
   );
 
   return clampedMeters / safeScale;
+}
+
+function getPercentile(values: number[], percentile: number) {
+  const sortedValues = values
+    .filter((value) => Number.isFinite(value))
+    .sort((left, right) => left - right);
+
+  if (sortedValues.length === 0) return 1;
+
+  const clampedPercentile = Math.min(Math.max(percentile, 0), 100);
+  const index = Math.ceil((clampedPercentile / 100) * sortedValues.length) - 1;
+
+  return sortedValues[Math.max(index, 0)] ?? sortedValues.at(-1) ?? 1;
 }
 
 function getHexFillColor(totalAssets: number, maxAssets: number) {

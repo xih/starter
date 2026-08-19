@@ -13,6 +13,7 @@ import {
   getAggregateAssets,
   getHoldingsSegments,
 } from "./format";
+import { HoldingsCompositionBar } from "./HoldingsCompositionBar";
 
 describe("PermanentCapitalInspector", () => {
   it("renders aggregate totals and calls back when selecting a company", async () => {
@@ -62,6 +63,30 @@ describe("PermanentCapitalInspector", () => {
     expect(screen.getByText("Other (65 holdings)")).toBeInTheDocument();
   });
 
+  it("does not repeat already rendered source metadata in raw rows", () => {
+    render(
+      <PermanentCapitalInspector
+        selection={{
+          type: "company",
+          company: {
+            ...permanentCapitalCompanyFixture,
+            raw: {
+              File_No: "811-00041",
+              "Filing Date": "05/15/26",
+              sec_company_name: "GENERAL AMERICAN INVESTORS CO INC",
+              custom_review_note: "Needs review",
+            },
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText("Filing Date")).toHaveLength(1);
+    expect(screen.queryByText("File No")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sec Company Name")).not.toBeInTheDocument();
+    expect(screen.getByText("custom review note")).toBeInTheDocument();
+  });
+
   it("renders missing data without dropping the company panel", () => {
     render(
       <PermanentCapitalInspector
@@ -102,5 +127,23 @@ describe("permanent capital formatting", () => {
         value: 48.6,
       }),
     );
+  });
+
+  it("represents leveraged holdings exposure", () => {
+    render(
+      <HoldingsCompositionBar
+        company={{
+          ...permanentCapitalCompanyFixture,
+          top10HoldingsWeightPct: 130,
+          top10Holdings: [
+            { name: "Leveraged Holding A", pct_nav: 70 },
+            { name: "Leveraged Holding B", pct_nav: 60 },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Leveraged exposure")).toBeInTheDocument();
+    expect(screen.getByText("130% of NAV")).toBeInTheDocument();
   });
 });

@@ -29,7 +29,13 @@ export function HoldingsCompositionBar({
   width?: number;
 }) {
   const segments = getHoldingsSegments(company);
-  const scale = scaleLinear({ domain: [0, 100], range: [0, width] });
+  const totalExposure = segments.reduce(
+    (total, segment) => total + segment.value,
+    0,
+  );
+  const visualDomain = Math.max(100, totalExposure);
+  const isLeveragedExposure = totalExposure > 100;
+  const scale = scaleLinear({ domain: [0, visualDomain], range: [0, width] });
   let offset = 0;
 
   if (segments.length === 0) {
@@ -42,8 +48,21 @@ export function HoldingsCompositionBar({
 
   return (
     <div className="grid gap-token-16">
+      {isLeveragedExposure ? (
+        <div className="leading-caption flex items-baseline justify-between gap-token-12 text-caption">
+          <span className="text-text-secondary">Leveraged exposure</span>
+          <span className="font-medium text-[#e6e6e6]">
+            {formatPercent(totalExposure)} of NAV
+          </span>
+        </div>
+      ) : null}
+
       <svg
-        aria-label="Top holdings composition"
+        aria-label={
+          isLeveragedExposure
+            ? `Top holdings composition with ${formatPercent(totalExposure)} leveraged exposure`
+            : "Top holdings composition"
+        }
         className="h-[32px] w-full overflow-hidden rounded-[6px]"
         role="img"
         viewBox={`0 0 ${width} 32`}

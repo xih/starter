@@ -106,6 +106,7 @@ type PermanentCapitalHexBin = {
   hex: string;
   companies: MappedPermanentCapitalCompany[];
   totalAssets: number;
+  knownAssetCount: number;
 };
 
 type SelectedFeature =
@@ -285,7 +286,7 @@ function PermanentCapitalMapContent({
         getFillColor: (bin) =>
           isSelectedHex(bin, selectedFeature)
             ? SELECTED_FILL_COLOR
-            : getHexFillColor(bin.totalAssets, maxHexAssets),
+            : getHexFillColor(bin, maxHexAssets),
         material: {
           ambient: 0.45,
           diffuse: 0.55,
@@ -321,7 +322,7 @@ function PermanentCapitalMapContent({
         radiusMaxPixels: 12,
         getRadius: (company) =>
           Math.max(
-            Math.sqrt(getCompanyAssets(company) / 1_000_000),
+            Math.sqrt((getCompanyAssets(company) ?? 0) / 1_000_000),
             elevationControls.radiusMeters,
           ),
         getPosition: (company) => [company.longitude, company.latitude],
@@ -413,7 +414,7 @@ function PermanentCapitalMapContent({
             }
 
             if (pickedSelection.type === "company") {
-              selectCompany(pickedSelection.company);
+              selectCompany(pickedSelection.company, undefined);
               return;
             }
 
@@ -749,15 +750,20 @@ function getH3HexBins(companies: MappedPermanentCapitalCompany[]) {
       H3_RESOLUTION,
     );
     const bin = bins.get(hex);
+    const assets = getCompanyAssets(company);
 
     if (bin) {
       bin.companies.push(company);
-      bin.totalAssets += getCompanyAssets(company);
+      if (assets != null) {
+        bin.totalAssets += assets;
+        bin.knownAssetCount += 1;
+      }
     } else {
       bins.set(hex, {
         hex,
         companies: [company],
-        totalAssets: getCompanyAssets(company),
+        totalAssets: assets ?? 0,
+        knownAssetCount: assets == null ? 0 : 1,
       });
     }
   }
@@ -793,9 +799,13 @@ function getPercentile(values: number[], percentile: number) {
   return sortedValues[Math.max(index, 0)] ?? sortedValues.at(-1) ?? 1;
 }
 
-function getHexFillColor(totalAssets: number, maxAssets: number) {
+function getHexFillColor(bin: PermanentCapitalHexBin, maxAssets: number) {
+  if (bin.knownAssetCount === 0) {
+    return [112, 120, 132, 120] as const;
+  }
+
   const normalized = Math.min(
-    Math.log10(totalAssets + 1) / Math.log10(maxAssets + 1),
+    Math.log10(bin.totalAssets + 1) / Math.log10(maxAssets + 1),
     1,
   );
 

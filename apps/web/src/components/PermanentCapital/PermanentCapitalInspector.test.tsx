@@ -119,6 +119,17 @@ describe("permanent capital formatting", () => {
     ).toBe("$5.7B");
   });
 
+  it("preserves unknown aggregate asset totals", () => {
+    expect(getAggregateAssets([missingPermanentCapitalCompanyFixture])).toBe(
+      null,
+    );
+    expect(
+      formatCompactCurrency(
+        getAggregateAssets([missingPermanentCapitalCompanyFixture]),
+      ),
+    ).toBe("Unknown");
+  });
+
   it("adds an Other segment to top holdings", () => {
     expect(getHoldingsSegments(permanentCapitalCompanyFixture).at(-1)).toEqual(
       expect.objectContaining({

@@ -131,10 +131,19 @@ export function getCompanyAssets(company: PermanentCapitalCompany) {
 export function getAggregateAssets(
   companies: readonly PermanentCapitalCompany[],
 ) {
-  return companies.reduce(
-    (total, company) => total + getCompanyAssets(company),
-    0,
-  );
+  let hasKnownAssets = false;
+  const totalAssets = companies.reduce((total, company) => {
+    const assets = getCompanyAssets(company);
+
+    if (assets == null) {
+      return total;
+    }
+
+    hasKnownAssets = true;
+    return total + assets;
+  }, 0);
+
+  return hasKnownAssets ? totalAssets : null;
 }
 
 export function getHoldingsSegments(company: PermanentCapitalCompany) {
@@ -182,10 +191,10 @@ function sanitizeHoldingPercent(holding: PermanentCapitalHolding) {
 
 function coerceNumber(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value !== "string") return 0;
+  if (typeof value !== "string") return null;
 
   const parsed = Number(value.replaceAll(/[$,]/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function isUrl(value: string) {

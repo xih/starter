@@ -48,8 +48,15 @@ export const env = createEnv({
     NEXT_PUBLIC_LIVEKIT_AGENT_NAME: z.string().optional(),
     NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT: z.string().optional(),
     NEXT_PUBLIC_LIVEKIT_PROJECT_ENV: z.string().optional(),
+    NEXT_PUBLIC_APP_ENV: z
+      .enum(["development", "staging", "production"])
+      .optional(),
     NEXT_PUBLIC_DIALKIT_ENABLED: z.enum(["true", "false"]).optional(),
+    NEXT_PUBLIC_VERCEL_ENV: z
+      .enum(["development", "preview", "production"])
+      .optional(),
     NEXT_PUBLIC_STORYBOOK_ORIGIN: z.string().url().optional(),
+    NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: z.string().optional(),
   },
 
   /**
@@ -89,8 +96,12 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT,
     NEXT_PUBLIC_LIVEKIT_PROJECT_ENV:
       process.env.NEXT_PUBLIC_LIVEKIT_PROJECT_ENV,
+    NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV,
     NEXT_PUBLIC_DIALKIT_ENABLED: process.env.NEXT_PUBLIC_DIALKIT_ENABLED,
+    NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
     NEXT_PUBLIC_STORYBOOK_ORIGIN: process.env.NEXT_PUBLIC_STORYBOOK_ORIGIN,
+    NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN:
+      process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

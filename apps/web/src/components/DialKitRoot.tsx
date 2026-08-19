@@ -19,10 +19,19 @@ const EXPANDED_PANEL_SIZE = { height: 388, width: 280 };
 const MINIMIZED_PANEL_SIZE = { height: 40, width: 56 };
 const PANEL_EDGE_INSET = 8;
 
-function isDialKitEnabled() {
+export function isDialKitEnabled() {
+  const appEnv = process.env.NEXT_PUBLIC_APP_ENV;
+  const livekitProjectEnv = process.env.NEXT_PUBLIC_LIVEKIT_PROJECT_ENV;
+  const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV;
+  const isStaging =
+    appEnv === "staging" ||
+    livekitProjectEnv === "staging" ||
+    vercelEnv === "preview";
+  const isLocalDevelopment = process.env.NODE_ENV === "development";
+
   return (
-    process.env.NODE_ENV !== "production" ||
-    process.env.NEXT_PUBLIC_DIALKIT_ENABLED === "true"
+    process.env.NEXT_PUBLIC_DIALKIT_ENABLED !== "false" &&
+    (isLocalDevelopment || isStaging)
   );
 }
 
